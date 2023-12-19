@@ -1,1 +1,65 @@
-\section{Implementation}
+\section{Design and Implementation}
+
+\subsection{Design goal}
+\begin{itemize}
+    \item Safety
+        \begin{itemize}
+            \item Same level of safety as eBPF
+            \item Memory safety
+            \item Control-flow soundness
+            \item Resource management
+            \item Program termination
+        \end{itemize}
+    \item Expressiveness
+        \begin{itemize}
+            \item Support more complicated/advanced programs
+            \item Longer programs
+            \item Unbounded loops
+        \end{itemize}
+    \item An important note: we want expressiveness w/o impairing safety (e.g.
+        allow unbounded loop while ensuring termination)
+\end{itemize}
+
+\subsection{Overview}
+\begin{itemize}
+    \item Brings out the Rust based approach (use Jiyuan's property-oriented
+        argument: We want these properties, and Rust happens to provide these)
+    \item Infrastructure (Need a figure similar to Fig. 5 from HotOS paper)
+\end{itemize}
+
+\subsection{Runtime crate as the programming interface}
+\begin{itemize}
+    \item program type (how Rust type system is leveraged) (feels like this
+        should be in Design section, but at the same time this is pretty
+        detailed that fits here)
+    \item kernel helper and symbol bindings (dynamic linking scheme)
+    \item kconfig-based conditional compilation
+\end{itemize}
+
+\subsection{Entry code generation}
+\begin{itemize}
+    \item LLVM pass
+\end{itemize}
+
+\subsection{Program load and attachment}
+\begin{itemize}
+    \item kernel loading code and attachment
+    \item relocation fixups for maps and kernel symbols
+    \item libiu
+\end{itemize}
+
+\subsection{Handle exceptional control flow}
+\begin{itemize}
+    \item kernel trampoline
+\end{itemize}
+
+\subsection{Stack overflow protection}
+\begin{itemize}
+    \item kernel vmapped, dedicated stack
+    \item LLVM instrumentation
+\end{itemize}
+
+\subsection{program termination}
+\begin{itemize}
+    \item Need work
+\end{itemize}

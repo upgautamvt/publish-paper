@@ -1,0 +1,30 @@
+\section{Principle and ideas}
+
+\begin{itemize}
+    \item how to ensure safety (high-level discussion, no implementation
+        details)
+        \begin{itemize}
+            \item builtin memory/control/type safety
+                \begin{itemize}
+                    \item generic and const-generic functions and slices to
+                        prevent OOB access
+                    \item Safe direct packet access for XDP programs
+                    \item Retired expressiveness kernel helpers
+                \end{itemize}
+            \item RAII (e.g. lock, refcnt)
+            \item runtime mechanism to support properties that are
+                (fundamentally) hard to check at compile time
+                \begin{itemize}
+                    \item program termination
+                    \item stack overflow protection
+                \end{itemize}
+            \item exception handling and stack unwinding
+                \begin{itemize}
+                    \item Needed because Rust itself has runtime checks (e.g.
+                        array OOB access)
+                    \item handle exceptional control flow
+                    \item clean up resources to achieve RAII under exceptional
+                        circumstances
+                \end{itemize}
+        \end{itemize}
+\end{itemize}

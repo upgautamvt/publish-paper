@@ -1,1 +1,73 @@
 \section{Evaluation}
+
+\begin{itemize}
+    \item Macro-benchmark
+        \begin{itemize}
+            \item BMC
+                \begin{itemize}
+                    \item Expressiveness: how to evaluate?
+                        \begin{itemize}
+                            \item LOC: we have 33\% reduction
+                            \item 1 rust program vs 7 eBPF programs
+                            \item based on experience?
+                            \item Rust is a safer language
+                        \end{itemize}
+                    \item Performance evaluation
+                        \begin{itemize}
+                            \item Check their paper to see if we can perform
+                                the same experiment
+                            \item We want a figure similar to Figure 6 in BMC
+                                (except we don't need to evaluate on different
+                                CPU configs)
+                            \item x: Vanilla memcached, BMC, Rust
+                            \item y: normalized throughput
+
+                        \end{itemize}
+                \end{itemize}
+            \item Electrode
+                \begin{itemize}
+                    \item LOC reduction
+                    \item Performance using their benchmark (similar to figure
+                        5 and 7 in Electrode)
+                    \item Dynamic allocation (ask the authors)
+                \end{itemize}
+            \item LSM implementation (if we have time / requires handle
+                nesting)
+            \item XRP
+            \item FUSE in eBPF (from Hubertus)
+        \end{itemize}
+    \item Micro-benchmark
+        \begin{itemize}
+            \item Memory footprint (BPF vs Rust) given we have a larger binary
+                \begin{itemize}
+                    \item Number of prog in the same translation unit vs memory
+                        usage for program allocation
+                    \item This is because we are always statically linked to
+                        the runtime crate on the translation unit basis
+                    \item E.g. a bpf kern.c with 4 programs vs a rust main.rs
+                        with 4 programs
+                \end{itemize}
+            \item Small expressiveness examples
+                \begin{itemize}
+                    \item Loop: strcmp
+                    \item need more
+                \end{itemize}
+            \item Stack-check overhead
+                \begin{itemize}
+                    \item Use BMC?
+                    \item Or create some other workload that are function call
+                        intensive (since our instrumentation happens before
+                        each function call)
+                \end{itemize}
+            \item Cleanup overhead on normal execution path (recording
+                allocated kernel objects)
+                \begin{itemize}
+                    \item Similar to Stack-check
+                \end{itemize}
+            \item Startup overhead due to stack switching
+                \begin{itemize}
+                    \item A minimal program () to show the upper bound?
+                    \item Plus a real world application (again BMC)?
+                \end{itemize}
+        \end{itemize}
+\end{itemize}

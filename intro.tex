@@ -1,1 +1,56 @@
 \section{Introduction}
+
+\begin{itemize}
+    \item eBPF is the de-facto way of doing kernel extension in Linux
+    \item Used in different domains
+    \item
+        \begin{itemize}
+            \item networking, tracing, security
+            \item also embraced by research community (BMC, XRP, Electrode)
+        \end{itemize}
+    \item Core value argument: verification for safety
+    \item Problem: current static verification scheme (i.e. the verifier)
+        places unnecessary constraints on expressiveness on extension programs
+        \begin{itemize}
+            \item BMC has a subsection discussing verification workarounds
+            \item We had an unpleasant experience in porting BMC (though this
+                is more like the new compiler does not play well with the
+                verifier for some old code)
+            \item Overhead argument in BMC (sending data through map vs
+                function arguments)
+            \item Certain program constructs are not possible
+            \item Some more evidence/example needed
+        \end{itemize}
+    \item Another point to include: for certain safety properties static
+        verification is fundamentally limited even in current eBPF
+        \begin{itemize}
+            \item From Roop's experiment: there is not a way for verifier to
+                figure out statically how much stack will be used when bpf2bpf
+                calls and tail calls are mixed due to the indirect nature of
+                tail calls. If the stack is 8k (e.g. on 32-bit platforms) the
+                verifier cannot protect the stack.
+            \item Related to our argument on runtime mechanism
+        \end{itemize}
+    \item Our solution: we should use a more expressive language for kernel
+        extensions and move away from the verifier. The language should:
+        \begin{itemize}
+            \item be more expressive (e.g. Turing complete)
+            \item support equivalent safety properties as the verifier (the
+                hotos table)
+                \begin{itemize}
+                    \item memory safety
+                    \item control-flow safety
+                    \item type safety
+                    \item safe resource management
+                    \item program termination
+                    \item kernel stack overflow protection
+                \end{itemize}
+            \item Rust
+                \begin{itemize}
+                    \item a widely used high-level programming language, also
+                        embraced by Linux (Rust for Linux)
+                    \item happens to have most of these properties out-of-box,
+                        therefore we choose to build upon Rust
+                \end{itemize}
+        \end{itemize}
+\end{itemize}
