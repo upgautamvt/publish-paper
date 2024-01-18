@@ -1,3 +1,29 @@
 \begin{abstract}
-    TODO
+eBPF has become the de-facto kernel extension mechanism in the Linux kernel
+  and have been leveraged extensively in domains of networking, system
+  debugging and event tracing, as well as, security.
+The core value proposition of eBPF is the unprecedented promise of safety
+  through its static verification scheme: the kernel performs symbolic
+  execution on the compiled eBPF bytecode to examine various safety properties.
+Despite its safety guarantees, the price of kernel verification of eBPF
+  programs is high.
+The restricted expressiveness of eBPF on loops or complex logic often leads to
+  splitting the program into small pieces, or limitation in functionality when
+  logic cannot be expressed.
+On the other hand, static verification is fundamentally limited in verifying
+  certain safety properties -- a verified eBPF program can still overflow
+  the kernel stack or hold the CPU for a long time.
+
+In this paper, we make the observation that the needed safety can still be
+  guaranteed from a safe language like Rust without the verifier.
+We design and implement a new kernel extension abstraction: Rust-based
+  {\em inner unikernels}, which are safe Rust programs that run in
+  the place of verified eBPF programs.
+The use of Rust achieves both Turing-Completeness and runtime-safety.
+Our Rust layer provides a \textit{safe} program interface for kernel extension
+  programs and runtime safety mechanisms that ensures stack protection, timely
+  termination, and exception handling.
+We implement several state of the art eBPF programs with comparable
+  performance to JITed eBPF programs, demonstrating there is no need to split
+  programs or limit their processing data size.
 \end{abstract}
