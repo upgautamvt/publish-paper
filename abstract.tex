@@ -16,8 +16,8 @@ On the other hand, static verification is fundamentally limited in verifying
 
 In this paper, we make the observation that the needed safety can still be
   guaranteed from a safe language like Rust without the verifier.
-We design and implement a new kernel extension abstraction: Rust-based
-  {\em inner unikernels}, which are safe Rust programs that run in
+We design and implement a new Rust-based kernel extension abstraction:
+  {\em Rex}, which are safe Rust programs that run in
   the place of verified eBPF programs.
 The use of Rust achieves both Turing-Completeness and runtime-safety.
 Our Rust layer provides a \textit{safe} program interface for kernel extension
