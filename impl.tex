@@ -1,24 +1,38 @@
 \section{Design and Implementation}
 
 \subsection{Design goal}
-\begin{itemize}
-    \item Safety
-        \begin{itemize}
-            \item Same level of safety as eBPF
-            \item Memory safety
-            \item Control-flow soundness
-            \item Resource management
-            \item Program termination
-        \end{itemize}
-    \item Expressiveness
-        \begin{itemize}
-            \item Support more complicated/advanced programs
-            \item Longer programs
-            \item Unbounded loops
-        \end{itemize}
-    \item An important note: we want expressiveness w/o impairing safety (e.g.
-        allow unbounded loop while ensuring termination)
-\end{itemize}
+
+%\begin{itemize}
+%     \item Safety
+%         \begin{itemize}
+%             \item Same level of safety as eBPF
+%             \item Memory safety
+%             \item Control-flow soundness
+%             \item Resource management
+%             \item Program termination
+%         \end{itemize}
+%     \item Expressiveness
+%         \begin{itemize}
+%             \item Support more complicated/advanced programs
+%             \item Longer programs
+%             \item Unbounded loops
+%         \end{itemize}
+%     \item An important note: we want expressiveness w/o impairing safety (e.g.
+%         allow unbounded loop while ensuring termination)
+% \end{itemize}
+
+We now detail the design goals of a new kernel extension framework beyond eBPF.
+
+\para{Safety} We aim to provide at least the same level of safety as that of
+  eBPF.
+This leads to the requirements of 1) memory safety, 2) control-flow soundness,
+3) safe resource management, and 4) program termination.
+
+\para{Expressiveness} At the same time, the new kernel extension framework
+  should avoid the limitation of eBPF on expressiveness.
+In particular, it should support more complicated programs, including large
+  programs beyond verifier limits as well as programs with unbounded loops
+  and other advanced program constructs.
 
 \subsection{Overview}
 \begin{itemize}
