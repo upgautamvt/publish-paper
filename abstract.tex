@@ -1,21 +1,36 @@
 \begin{abstract}
-eBPF has become the de-facto kernel extension mechanism in the Linux kernel
-  and have been leveraged extensively in domains of networking, system
-  debugging and event tracing, as well as, security.
-The core value proposition of eBPF is the unprecedented promise of safety
-  through its static verification scheme: the kernel performs symbolic
-  execution on the compiled eBPF bytecode to examine various safety properties.
-Despite its safety guarantees, the price of kernel verification of eBPF
-  programs is high.
-The restricted expressiveness of eBPF on loops or complex logic often leads to
-  splitting the program into small pieces, or limitation in functionality when
-  logic cannot be expressed.
+% eBPF has become the de-facto kernel extension mechanism in the Linux kernel
+%   and have been leveraged extensively in domains of networking, system
+%   debugging and event tracing, as well as, security.
+% The core value proposition of eBPF is the unprecedented promise of safety
+%   through its static verification scheme: the kernel performs symbolic
+%   execution on the compiled eBPF bytecode to examine various safety properties.
+% Despite its safety guarantees, the price of kernel verification of eBPF
+%   programs is high.
+% The restricted expressiveness of eBPF on loops or complex logic often leads to
+%   splitting the program into small pieces, or limitation in functionality when
+%   logic cannot be expressed.
+% On the other hand, static verification is fundamentally limited in verifying
+%   certain safety properties -- a verified eBPF program can still overflow
+%   the kernel stack or hold the CPU for a long time.
+
+Kernel extension is an essential component of modern operating systems.
+In recent years, kernel extension has been increasingly leveraged in the domains
+  of file systems, consensus protocols, key-value storage, and security, often
+  in the form of large and complex programs.
+The de-facto kernel extension mechanism in the Linux kernel is eBPF.
+However, eBPF is contrained by its static verifier, which provides
+  safety as its core value proposition but at the same time makes it hard to
+  support the increasingly complex use cases due to limited expressiveness.
+The restriction of eBPF on loops or complex logic often leads to splitting the
+  program into small pieces, or limitation in functionality when logic cannot
+  be expressed.
 On the other hand, static verification is fundamentally limited in verifying
   certain safety properties -- a verified eBPF program can still overflow
   the kernel stack or hold the CPU for a long time.
 
-In this paper, we make the observation that the needed safety can still be
-  guaranteed from a safe language like Rust without the verifier.
+In this paper, we make the observation that the needed expressivness and safety
+  can be obtained from a safe language like Rust without the verifier.
 We design and implement a new Rust-based kernel extension abstraction:
   {\em Rex}, which are safe Rust programs that run in
   the place of verified eBPF programs.
@@ -26,4 +41,5 @@ Our Rust layer provides a \textit{safe} program interface for kernel extension
 We implement several state of the art eBPF programs with comparable
   performance to JITed eBPF programs, demonstrating there is no need to split
   programs or limit their processing data size.
+
 \end{abstract}
