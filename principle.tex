@@ -1,6 +1,16 @@
 \section{Principle and ideas}
 
 \begin{itemize}
+%    \item goal: expressive and safe (more expressive than and at least as safe
+%        as eBPF)
+%    \item Current problem of eBPF: the verifier
+%    \item Idea: remove the verifier and use a safe language
+%    \item the language should be Turing complete and at the same time low-level
+%        enough to provide safety features.
+%    \item We choose Rust as the implementation language.
+%    \item The use of Rust automatically provides eexpresssiveness
+%    \item We then show how a safety can be achieved for kernel extensions via
+%        language-based safety from Rust.
     \item how to ensure safety (high-level discussion, no implementation
         details)
         \begin{itemize}
@@ -9,15 +19,9 @@
                     \item generic and const-generic functions and slices to
                         prevent OOB access
                     \item Safe direct packet access for XDP programs
-                    \item Retired expressiveness kernel helpers
+                    \item Retired expressiveness kernel helpers (\jinghao{probably does not belong here})
                 \end{itemize}
             \item RAII (e.g. lock, refcnt)
-            \item runtime mechanism to support properties that are
-                (fundamentally) hard to check at compile time
-                \begin{itemize}
-                    \item program termination
-                    \item stack overflow protection
-                \end{itemize}
             \item exception handling and stack unwinding
                 \begin{itemize}
                     \item Needed because Rust itself has runtime checks (e.g.
@@ -26,5 +30,199 @@
                     \item clean up resources to achieve RAII under exceptional
                         circumstances
                 \end{itemize}
+            \item runtime mechanism to support properties that are
+                (fundamentally) hard to check at compile time
+                \begin{itemize}
+                    \item program termination
+                    \item stack overflow protection
+                \end{itemize}
         \end{itemize}
 \end{itemize}
+
+The goal of \projname{} is to provide more expressiveness for kernel extensions,
+    while ensuring the safety properties of the extension programs.
+In particular, we aim to make \projname{} more expressive than eBPF and at least
+    as safe as eBPF.
+The current limitation on expressiveness of eBPF is from its static
+    verification scheme -- programs must be contrained for efficient and
+    complete verification.
+Our insight is that both the needed expressiveness and safety can be obtained
+    from a safe programming language without the verifier.
+Specifically, the language should have the following properties:
+\begin{itemize}
+    \item \textbf{Turing-complete}: This helps to satisfy the expressiveness
+        requirement.
+    \item \textbf{Safe}: The language should not be as permissive and
+        error-prone as unsafe languages like C.
+    \item \textbf{Low-level}: Being low-level helps the programs to better
+        model low-level kernel semantics and simplifies infrastructure needed
+        to support it.
+\end{itemize}
+We choose Rust as the language for extension programs because Rust happens to
+    provide all the desired properties -- it is Turing-complete, strict on
+    safety, while being low-level enough to support kernel programming.
+
+While the use of Rust automatically provides expressiveness (as it is
+    Turing-complete), it does not supply the safety out-of-box, and the use of
+    Rust, especially unsafe Rust, can still exhibit undesired behaviors.
+We require all extension programs to be implemented \textit{only} in safe Rust.
+On top of that, we discuss how the safety properties from Rust can be leveraged
+    and applied to the context of kernel extensions to provide a safe
+    programming interface.
+
+\subsection{Ensure memory safety}
+In extension programs, there are
+    frequenct cases that a program needs to work on a buffer of data or a\
+    specific structs.
+These regions of memory are accessed by both the program and the kernel (via
+    helper functions).
+Rust provides powerful primitives that helpers to validate the memory is
+    accessed correctly.
+There are usually two common patterns on how the memory is accessed.
+In the first case, the program may allocate some memory on the stack and send
+    it to the kernel along with the size for processing (e.g., obtaining kernel
+    stack traces).
+For eBPF, the verifier validates the memory region with the size to make sure
+    that both the kernel and the program do not make erroneous accesses.
+With Rust, its strict type safety already protects program from making a
+    out-of-bound access.
+In order to make sure that the size sent to the kernel is always correct, which
+    is vital for the correctness of memory access from the kernel, we leverage
+    the generic programming support of Rust.
+For the kernel helper function that falls to the category of taking in a
+    program-supplied pointer and size, we create an adaptor interface that
+    parametrize the type of the pointer as a generic type parameter.
+Under the interface, we query the size of the type from the compiler based on
+    the generic type parameter and invoke the kernel interface with this size.
+In this way, the size always matches the type and the kernel will make an
+    out-of-bound access.
+This can work for not only the scalar types, but for array types as well: Rust
+    supports const generics that allows a constant to be used as a generic
+    parameter, which can be used to encode array length.
+
+In the second case, the kernel may provide the user program a piece of kernel
+    memory to perform direct access (e.g., direct packet access in XDP).
+The user programs must not make an out-of-bound memory access for this
+    kernel-owned region of memory.
+The eBPF verifier enforces user programs to explicitly check for memory
+    boundaries and to not make an out-of-bound access.
+In Rust, we abstract the memory region into a Rust \textit{slice} of bytes.
+Rust slice provides runtime bounds checks, which allows the check to happen
+    automatically without explicit handling from the program.
+
+One challenge of supplying kernel memory to extension programs is to allow them
+    to safely reinterpret the stream of bytes into useful data.
+For example, a XDP program using direct packet access might need to extract
+    the ethernet header information from the bytes in the packet.
+Current eBPF allows the program to freely interpret the memory into other
+    data types via pointer casting.
+The verifier checks the casting and ensures that it does not make a pointer
+    from scalar values and the new type fits in the memory chunk.
+In the case of Rust, the reinterpret cast (dubbed ``transmute'' in Rust) is an
+    unsafe operation, particularly because Rust does not prevent making
+    pointers from scalar values.
+To allow extension programs to still safely reinterpret the bytes into useful
+    data types, we first define a group of primitive types that are considered
+    safe as target for casting.
+The safe types are marked by implementing the \texttt{SafeTransmute} trait.
+We then require all casting target types to be of either the safe types or a
+    structure type in which all the members are of the safe types.
+We use the ``proc-macro'' feature of Rust to enforce this constraint.
+Like conventional C macros, proc-macros performs transformation on the program,
+    albeit on the abstract syntax tree level.
+Our proc-macro, when applied on a structure type, generates code that tries
+    to treat each field of the structure as an instance of
+    \texttt{SafeTransmute} followed by the actual transmute operation to
+    perform the unsafe cast.
+If one of field in the structure does not implement \texttt{SafeTransmute},
+    the Rust compiler will issue a hard error.
+At the same time, if the program tries to directly transmute the bytes into a
+    structure without using the proc-macro, the compiler will also emit an
+    error because tranmute belongs to unsafe Rust, which we set as forbidden
+    in extension programs.
+Since proc-macro transformations happen after the linting of unsafe operations,
+    our proc-macro allows programs to perform transmutes in a safe, controlled
+    way.
+
+\subsection{Safely manage resources}
+In addition to memory safety, Rust can also enforce properties relating to safe
+    resource acquisition and release.
+In eBPF, some kernel helper functions returns kernel resources that requires
+    explicit release after use (e.g., reference counts of kernel objects,
+    locks).
+In these situations, the verifier checks the resource is released on all paths
+    to prevent leaking kernel resources.
+In Rust, the resource-acquisition-is-initialization (RAII) pattern can be used
+    to create an abstraction around kernel resources that user extension code
+    must use.
+For example, when the program obtains a lock from the kernel, our Rust
+    abstraction layer constructs and returns a lock guard.
+The lock guard implements the RAII semantics through the \texttt{drop} trait in
+    Rust, which defines the operation to perform when an object is distroyed.
+In the case of lock guard, its \texttt{drop} handler releases the lock.
+The program does not need to explicitly release the lock, instead, the lock is
+    effitively released when the lock guard goes out of scopt and is dropped.
+
+\subsection{Runtime exception handling}
+While the compiler contributes a lot to the safety of Rust, many safety checks
+    happen at runtime in the form of exceptions (i.e., Rust panics).
+In userspace, Rust uses the Itanium exception handling ABI.
+When an exception is triggered, the control flow is redirected to the Rust
+    panic handler in its standard library, which in turn calls into the unwind
+    library to perform stack unwinding and resource cleanups for each stack
+    frame.
+However, the Itanium ABI is not suitable for kernel extensions, making
+    exception handling a challenge in extension programs:
+\begin{itemize}
+    \item The Itanium ABI-based exception handling is too complicated, as the
+        userspace unwind libraries are not direcly usable.
+    \item Failures during unwinding, which are permissible in userspace, cannot
+        be tolerated in kernel space, as incomplete cleanup means leaking
+        kernel resources.
+    \item ABI-based unwinding typically requires dynamic allocation, which
+        creates challenges for extensions in interrupt contexts, in which an
+        allocator may not be available~\cite{bpf-mempool-lwn}.
+%    \item Unwinding generally executes destructors for all existing objects on
+%        the stack, but executing untrusted, user-defined destructors (via the
+%        \texttt{\small Drop} trait in Rust) is not safe.
+\end{itemize}
+
+\begin{figure}
+	\includegraphics[width=0.8\linewidth]{figs/EH.png}
+	\centering
+	\vspace{-10pt}
+	\caption{Overview of exception handling control flow}
+	\label{fig:eh-overview}
+	\vspace{-10pt}
+\end{figure}
+
+Our exception handling framework consists of two components: 1) graceful exit
+    upon exceptions that resets the current context and 2) resource cleanup to
+    prevent kernel resource leaks.
+To support a graceful exit from an exception, we implemented a small runtime
+    (as shown in Figure~\ref{fig:eh-overview}) in the kernel that contains a
+    program dispatcher, a panic handler, and a landingpad function.
+The dispatcher function always saves the stack and framepointer of the current
+    context before calling into the program.
+If the program executes normally without triggering an exception, it would just
+    return normally and then return from the dispatcher.
+Under exceptional cases where a Rust panic is triggered, the panic handler will
+    transfer the control flow to the landingpad function to print debug
+    information related to the exception (e.g., exception message) to the
+    kernel ring buffer.
+Then, the landingpad function redirects the control flow to a pre-defined label
+    in the dispatcher function, where it restores the old value of the stack
+    and frame pointer from the storage location.
+This effectively unwinds the stack and resets the context as if the extension
+    program returned successfully.
+
+For resource cleanup, light-weight mechanisms can be effective.
+Our insight for resource cleanup is that the extension program can only obtain
+    resources by explicitly issuing helper function calls and therefore only
+    these resources needs to be released.
+For these helper function calls, we record the allocated kernel resource during
+    execution.
+Upon a panic, the panic handler will take the responsiblility to correctly
+    handle the release of kernel resources.
+We implement the cleanup code as part of our extension programming interface
+    and programs themselves do not need to handle cleanups.
