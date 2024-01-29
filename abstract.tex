@@ -29,7 +29,7 @@ On the other hand, static verification is fundamentally limited in verifying
   certain safety properties -- a verified eBPF program can still overflow
   the kernel stack or hold the CPU for a long time.
 
-In this paper, we make the observation that the needed expressivness and safety
+In this paper, we make the observation that the needed expressiveness and safety
   can be obtained from a safe language like Rust without the verifier.
 We design and implement a new Rust-based kernel extension abstraction:
   {\em Rex}, which are safe Rust programs that run in
