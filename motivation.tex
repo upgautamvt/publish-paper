@@ -13,15 +13,15 @@ This can manifest itself in needing to write arcane expressions to please the ve
 We categorize the solutions that programmers need to implement in order to pass the verifier.
 
 \subsection{Methodology}
-To capture data, we searched through the git commit logs of cilium, aya-rs, and katran, for instances of the keywords: "error", "reject", "rejects", "issue", and "verifer." 
+To capture data, we searched through the git commit logs of cilium, aya-rs, and katran, for instances of the keywords: "error", "reject", "rejects", "issue", and "verifier." 
 For each commit log that matched, we manually inspected it to try and classify it.
-Overall we captured XXX commit logs, of which we decided that YY of them were not actually realted to verifier complaints.
+Overall we captured XXX commit logs, of which we decided that YY of them were not actually related to verifier complaints.
 That left a total of ZZ commits that were related to the verifier.
 The vast majority of commits that we found were from the cilium repository.
 
 For each commit, we read the commit message, and examined the source code changes.
 Some categories were clear to see and are well documented in the literature (i.e. splitting functions), while other categories were more subtle.
-We created a qualitative analysis of many of the kinds of problems that arise when writing and verifiyng BPF programs.
+We created a qualitative analysis of many of the kinds of problems that arise when writing and verifying BPF programs.
 
 \subsection{Results}
 
@@ -43,7 +43,7 @@ We created a qualitative analysis of many of the kinds of problems that arise wh
         \hline
         Explicitly teaching the verifier information & 4 \\
         \hline
-        Writing a special implemention of a helping function & 2 or 3 \\
+        Writing a special implementation of a helping function & 2 or 3 \\
         \hline
     \end{tabular}
     \caption{Table of common verifier problems}
@@ -66,7 +66,7 @@ The classes of solution employed are different ways that developers use to make 
 To better explain our categorization, we will now walk through some characteristic examples for the most important categories.
 
 \subsubsection{Fixing LLVM}
-One issue found by cilium was that LLVM may generate 32-bit assignments for accesing \emph{ctx->data, ctx->data\_end, ctx->data\_meta} fields.
+One issue found by cilium was that LLVM may generate 32-bit assignments for accessing \emph{ctx->data, ctx->data\_end, ctx->data\_meta} fields.
 The verifier cannot track the packet pointers through these 32-bit assignments.
 The solution was to implement the read through inline assembly code shown in figure ~\ref{fig:inline-asm}.
 This causes LLVM to not know that it could generate 32-bit assignments as an optimization.
@@ -108,7 +108,7 @@ Again, this change is horrible from a usability standpoint.
 With no assistance from their compiler, programmers must know design and then include code that enables the verifier's state pruning mechanism to kick in.
 
 \subsubsection{Splitting Helper Functions}
-A well documented technique to decrease overall BPF program complexity is to use BPF tail calls to split programs into several smaller subprograms that can be verified indepenently.
+A well documented technique to decrease overall BPF program complexity is to use BPF tail calls to split programs into several smaller subprograms that can be verified independently.
 Research works like Electrode and BMC note that they had to use this technique in order to pass the verifier.
 The idea behind the split is that if each individual piece is verified to be safe, then the verifier itself would have verified the entire program if it could check enough instructions.
 
