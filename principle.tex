@@ -70,6 +70,26 @@ On top of that, we discuss how the safety properties from Rust can be leveraged
     and applied to the context of kernel extensions to provide a safe
     programming interface.
 
+\begin{figure}
+    \includegraphics[width=1.0\linewidth]{figs/overview.pdf}
+    \centering
+    \vspace{-10pt}
+    \caption{Overview of \projname{}}
+    \label{fig:rex-overview}
+    \vspace{-10pt}
+\end{figure}
+
+Figure~\ref{fig:rex-overview} shows the overview of the \projname framework.
+The extension program is written strictly in safe Rust.
+It links with the ``kernel crate'' at compile time, which provides essential
+    program interfaces to interact with the kernel.
+The kernel crate contains unsafe Rust code due to its role as a bridge between
+    the safe extension program and the unsafe but trusted kernel code.
+It also provides a custom Rust panic handler to support panic-based runtime
+    safety checks in Rust.
+The compiled binary runs in a light-weight runtime environment implemented in
+    the kernel, which provides program termination and stack unwinding support.
+
 \subsection{Ensure memory safety}
 In extension programs, there are
     frequenct cases that a program needs to work on a buffer of data or a\
@@ -145,8 +165,8 @@ Since proc-macro transformations happen after the linting of unsafe operations,
     way.
 
 \subsection{Safely manage resources}
-In addition to memory safety, Rust can also enforce properties relating to safe
-    resource acquisition and release.
+In addition to memory safety, extension programs must also aquire and release
+    resources safely.
 In eBPF, some kernel helper functions returns kernel resources that requires
     explicit release after use (e.g., reference counts of kernel objects,
     locks).
@@ -226,3 +246,57 @@ Upon a panic, the panic handler will take the responsiblility to correctly
     handle the release of kernel resources.
 We implement the cleanup code as part of our extension programming interface
     and programs themselves do not need to handle cleanups.
+
+\subsection{Safe guard the kernel stack}
+One unique safety requirement the kernel extension programs are facing is the
+    usage of kernel stack.
+Unlike the userspace programs, where the stack can grow indefinitely on demand (\jinghao{TODO: add a footnote}),
+    the stack in kernel space is fix-sized (4 pages on X86-64) and therefore
+    limited.
+Overflowing the kernel stack may result in memory corruptions or kernel panics.
+
+The stack safety property is checked in eBPF.
+The eBPF verifier handles it by keeping track of the stack size throughout its
+    symbolic execution process.
+However, the verification of the stack usage does not always yield the correct
+    result -- in particular, the verifier fails to track stack usage across the
+    indirect tail calls.
+
+Our observation is that the enforcement of stack safety is easier to check at
+    runtime when indirect or recursive calls are present in the code.
+\projname{} takes a hybrid approach in ensuring stack safety that employs
+    static checks for programs without indirect or recursive calls, and
+    dynamic, runtime checks for programs make use of these function calls.
+For each program being compiled, the \projname{}-specific pass in the compiler
+    will check whether it involves indirect or recursive calls.
+When the extension program contains only direct, non-recursive function calls,
+    its total stack usage can be calculated by traversing its static callgraph.
+If the total stack usage of the program exceeds total amount of stack
+    available, the \projname{} compiler pass will generate an error and reject
+    the program.
+
+On the other hand, programs with indirect or recursive calls are hard to be
+    checked for stack usage statically, as is the case in the eBPF verifier.
+In these cases, \projname{} performs runtime checks to limit the stack usage of
+    programs.
+The \projname{} compiler pass first ensures each function in the program takes
+    less than one page of stack.
+Then, before each function call in the extension program, the \projname{}
+    compiler pass inserts a call to \texttt{\_\_rex\_check\_stack} function.
+\texttt{\_\_rex\_check\_stack} is provided by the kernel crate and checks the
+    current stack depth of the program, if the stack usage exceeds the
+    threshold, it will trigger a Rust panic and effectively terminate the
+    program.
+
+\projname{} defines the stack usage threshold to be two pages less than the
+    total stack available.
+This design choice is based on two considerations.
+First, kernel helper functions are not visible at program compile time but they
+    also account for stack usage during program execution.
+Leaving extra spaces accomdates kernel helper functions and we believe two
+    pages of stack is a reasonable limit for kernel helper functions.
+Second, since the stack usage of each function in the program is limited to
+    1 page of stack, in the worse case the remaining stack space is at least
+    one page when \texttt{\_\_rex\_check\_stack} triggers a Rust panic.
+This worse case guarrantee leaves enough space for the panic handling and stack
+    unwinding routines.
