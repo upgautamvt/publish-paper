@@ -126,18 +126,7 @@ Another change that was implemented was to mark certain variables as volatile.
 This change keeps LLVM from performing other kinds of optimizations that would cause the program to be rejected by the verifier.
 
 \begin{figure}
-    \begin{lstlisting}[language=myC]
-#define DEFINE_FUNC_CTX_POINTER(FIELD)
-static __always_inline void *
-ctx_ ## FIELD(const struct __sk_buff *ctx)
-{
-	void *ptr;
-	asm volatile("%0 = *(u32 *)(%1 + %2)"
-		     : "=r"(ptr)
-		     : "r"(ctx), "i"(offsetof(struct __sk_buff, FIELD)));
-	return ptr;
-}
-    \end{lstlisting}
+    \lstinputlisting[language=myC]{./snippets/s2-inline-asm.c}
     \caption{Inline asm to access fields}
     \label{fig:inline-asm}
 \end{figure}
@@ -186,7 +175,7 @@ policy_check_entry:
 	return CTX_ACT_OK;
 }
     \end{lstlisting}
-    \caption{Block of code reached after a goto}
+    \caption{Block of code reached after a goto \jinghao{This code is not referenced}}
     \label{fig:inline-fig}
 \end{figure}
 
