@@ -8,8 +8,8 @@ At the core of the problem is a large gap between the programmer and the
 Typical eBPF development involves implementing programs in a high-level
     programming langauge (e.g., C, Rust) and compiling to eBPF bytecode.
 This binds developers with a contract not only with the high-evel language
-    that is enforced by the compiler of interpreter, but also with the eBPF
-    verifier, where the specifications are not clear.
+    that is enforced by the compiler or interpreter, but also with the eBPF
+    verifier, where the specifications are not clear. \mvle{I don't it's an issue with specification. it's partly due to going from a turing-complete language to turing-incomplete. I think we should bulletize these challenges. 1. semantic gap (turing complete -> turing-incomplete, 2. difficult to debug due to many levels of translation, 3. compiler optimizations that are incompatible with verifier, 4. specification for verifier changes across kernel versions, 5. ?}
 %Developers have a contract with the programming language that is enforced by the compiler of interpreter.
 %The programmer also has a contract with the eBPF verifier, but the specifics are unclear.
 At the same time, because source code goes through a translation to eBPF
@@ -39,8 +39,8 @@ To collect data, we searched through the git commit logs of Cilium, Aya-rs, and
     Katran, which are mature, widely-used eBPF projects, for instances of
     keywords: "error", "reject", "rejects", "issue", and "verifier."
 For each commit log that matched, we manually inspected and classified the commit.% it to try and classify it.
-In total, we collected 216 commit messages, of which we decided that 73 of them were actually about verifier complaints.
-In addition, we included the BMC~\cite{BMC} and Electrode~\cite{Electrode} papers as examples when appropriate.
+In total, we collected 216 commit messages \mvle{containing the above keywords}, of which we decided that 73 of them were actually about verifier complaints.
+In addition, we included \mvle{how many?} issues raised in the BMC~\cite{BMC} and Electrode~\cite{Electrode} papers as examples when appropriate.
 \jinghao{Citation needed for all mentioned projects/papers.}
 
 88\% of commit messages found were from the Cilium repository.
