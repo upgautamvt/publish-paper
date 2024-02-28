@@ -176,23 +176,26 @@ Since proc-macro transformations happen after the linting of unsafe operations,
     way.
 
 \subsection{Safely manage resources}
-In addition to memory safety, extension programs must also aquire and release
+In addition to memory safety, extension programs must also acquire and release
     resources safely.
 In eBPF, some kernel helper functions returns kernel resources that requires
     explicit release after use (e.g., reference counts of kernel objects,
     locks).
 In these situations, the verifier checks the resource is released on all paths
     to prevent leaking kernel resources.
-In Rust, the resource-acquisition-is-initialization (RAII) pattern can be used
-    to create an abstraction around kernel resources that user extension code
-    must use.
-For example, when the program obtains a lock from the kernel, our Rust
+
+In \projname{}, the resource-acquisition-is-initialization (RAII) pattern of
+    Rust can be used to create an abstraction around kernel resources that
+    extension programs need.
+For example, when the program obtains a spin lock from the kernel, our Rust
     abstraction layer constructs and returns a lock guard.
 The lock guard implements the RAII semantics through the \texttt{drop} trait in
     Rust, which defines the operation to perform when an object is distroyed.
 In the case of lock guard, its \texttt{drop} handler releases the lock.
-The program does not need to explicitly release the lock, instead, the lock is
-    effitively released when the lock guard goes out of scopt and is dropped.
+The program does not need to explicitly release the lock or drop the loack
+    guard, instead, the compile inserts an implicit \texttt{drop} at the end of
+    the current scope. This effitively releases the lock when the lock guard
+    goes out of scope.
 
 \subsection{Runtime exception handling}
 While the compiler contributes a lot to the safety of Rust, many safety checks
