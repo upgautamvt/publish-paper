@@ -103,12 +103,12 @@ In extension programs, there are
     specific structs.
 These regions of memory are accessed by both the program and the kernel (via
     helper functions).
-Rust provides powerful primitives that helpers to validate the memory is
+Rust provides powerful primitives that help to validate the memory is
     accessed correctly.
 There are usually two common patterns on how the memory is accessed.
-In the first case, the program may allocate some memory on the stack and send
-    it to the kernel along with the size for processing (e.g., obtaining kernel
-    stack traces).
+In the first case, the extension program may allocate some memory on the stack
+    and send it to the kernel along with the size for processing (e.g.,
+    asking kernel to fill a stack buffer with some data).
 For eBPF, the verifier validates the memory region with the size to make sure
     that both the kernel and the program do not make erroneous accesses.
 With Rust, its strict type safety already protects program from making a
@@ -117,14 +117,15 @@ In order to make sure that the size sent to the kernel is always correct, which
     is vital for the correctness of memory access from the kernel, we leverage
     the generic programming support of Rust.
 For the kernel helper function that falls to the category of taking in a
-    program-supplied pointer and size, we create an adaptor interface that
-    parametrize the type of the pointer as a generic type parameter.
-Under the interface, we query the size of the type from the compiler based on
+    program-supplied pointer and size, the \projname{} kernel crate creates an
+    adaptor interface that parametrize the type of the pointer as a generic
+    type parameter.
+The interface queries the size of the type from the compiler based on
     the generic type parameter and invoke the kernel interface with this size.
 In this way, the size always matches the type and the kernel will make an
     out-of-bound access.
 This can work for not only the scalar types, but for array types as well: Rust
-    supports const generics that allows a constant to be used as a generic
+    supports ``const generics'' that allows a constant to be used as a generic
     parameter, which can be used to encode array length.
 
 In the second case, the kernel may provide the user program a piece of kernel
@@ -151,17 +152,20 @@ In the case of Rust, the reinterpret cast (dubbed ``transmute'' in Rust) is an
 To allow extension programs to still safely reinterpret the bytes into useful
     data types, we first define a group of primitive types that are considered
     safe as target for casting.
-The safe types are marked by implementing the \texttt{SafeTransmute} trait.
-We then require all casting target types to be of either the safe types or a
+The safe types can be specified by implementing the \texttt{Rex::SafeTransmute}
+    trait.
+\projname{} requires target type of casting to be of either the safe types or a
     structure type in which all the members are of the safe types.
-We use the ``proc-macro'' feature of Rust to enforce this constraint.
+
+We use the ``proc-macro'' feature of Rust to enforce this constraint at compile
+    time.
 Like conventional C macros, proc-macros performs transformation on the program,
     albeit on the abstract syntax tree level.
 Our proc-macro, when applied on a structure type, generates code that tries
     to treat each field of the structure as an instance of
-    \texttt{SafeTransmute} followed by the actual transmute operation to
+    \texttt{Rex::SafeTransmute} followed by the actual transmute operation to
     perform the unsafe cast.
-If one of field in the structure does not implement \texttt{SafeTransmute},
+If one of field in the structure does not implement \texttt{Rex::SafeTransmute},
     the Rust compiler will issue a hard error.
 At the same time, if the program tries to directly transmute the bytes into a
     structure without using the proc-macro, the compiler will also emit an
