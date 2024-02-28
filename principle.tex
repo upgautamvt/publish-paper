@@ -232,7 +232,7 @@ However, the Itanium ABI is not suitable for kernel extensions, making
 
 Our exception handling framework consists of two components: 1) graceful exit
     upon exceptions that resets the current context and 2) resource cleanup to
-    prevent kernel resource leaks.
+    ensure release of kernel resources like reference counts and locks.
 To support a graceful exit from an exception, we implemented a small runtime
     (as shown in Figure~\ref{fig:eh-overview}) in the kernel that contains a
     program dispatcher, a panic handler, and a landingpad function.
@@ -258,7 +258,7 @@ For these helper function calls, we record the allocated kernel resource during
     execution.
 Upon a panic, the panic handler will take the responsiblility to correctly
     handle the release of kernel resources.
-We implement the cleanup code as part of our extension programming interface
+We implement the cleanup code as part of the \projname{} kernel crate
     and programs themselves do not need to handle cleanups.
 
 \subsection{Safe guard the kernel stack}
