@@ -1,6 +1,7 @@
 \section{Principle and ideas}
+\label{sec:principle}
 
-\begin{itemize}
+%\begin{itemize}
 %    \item goal: expressive and safe (more expressive than and at least as safe
 %        as eBPF)
 %    \item Current problem of eBPF: the verifier
@@ -11,64 +12,69 @@
 %    \item The use of Rust automatically provides eexpresssiveness
 %    \item We then show how a safety can be achieved for kernel extensions via
 %        language-based safety from Rust.
-    \item how to ensure safety (high-level discussion, no implementation
-        details)
-        \begin{itemize}
-            \item builtin memory/control/type safety
-                \begin{itemize}
-                    \item generic and const-generic functions and slices to
-                        prevent OOB access
-                    \item Safe direct packet access for XDP programs
-                    \item Retired expressiveness kernel helpers (\jinghao{probably does not belong here})
-                \end{itemize}
-            \item RAII (e.g. lock, refcnt)
-            \item exception handling and stack unwinding
-                \begin{itemize}
-                    \item Needed because Rust itself has runtime checks (e.g.
-                        array OOB access)
-                    \item handle exceptional control flow
-                    \item clean up resources to achieve RAII under exceptional
-                        circumstances
-                \end{itemize}
-            \item runtime mechanism to support properties that are
-                (fundamentally) hard to check at compile time
-                \begin{itemize}
-                    \item program termination
-                    \item stack overflow protection
-                \end{itemize}
-        \end{itemize}
-\end{itemize}
+%    \item how to ensure safety (high-level discussion, no implementation
+%        details)
+%        \begin{itemize}
+%            \item builtin memory/control/type safety
+%                \begin{itemize}
+%                    \item generic and const-generic functions and slices to
+%                        prevent OOB access
+%                    \item Safe direct packet access for XDP programs
+%                    \item Retired expressiveness kernel helpers (\jinghao{probably does not belong here})
+%                \end{itemize}
+%            \item RAII (e.g. lock, refcnt)
+%            \item exception handling and stack unwinding
+%                \begin{itemize}
+%                    \item Needed because Rust itself has runtime checks (e.g.
+%                        array OOB access)
+%                    \item handle exceptional control flow
+%                    \item clean up resources to achieve RAII under exceptional
+%                        circumstances
+%                \end{itemize}
+%            \item runtime mechanism to support properties that are
+%                (fundamentally) hard to check at compile time
+%                \begin{itemize}
+%                    \item program termination
+%                    \item stack overflow protection
+%                \end{itemize}
+%        \end{itemize}
+%\end{itemize}
 
-The goal of \projname{} is to provide more expressiveness for kernel extensions,
+The goal of \projname{} is to provide enhanced usuability for kernel extensions,
     while ensuring the safety properties of the extension programs.
-In particular, we aim to make \projname{} more expressive than eBPF and at least
+In particular, we aim to make \projname{} more usable than eBPF and at least
     as safe as eBPF.
-The current limitation on expressiveness of eBPF is from its static
-    verification scheme -- programs must be contrained for efficient and
-    complete verification.
-Our insight is that both the needed expressiveness and safety can be obtained
-    from a safe programming language without the verifier.
-Specifically, the language should have the following properties:
-\begin{itemize}
-    \item \textbf{Turing-complete}: This helps to satisfy the expressiveness
-        requirement.
-    \item \textbf{Safe}: The language should not be as permissive and
-        error-prone as unsafe languages like C.
-    \item \textbf{Low-level}: Being low-level helps the programs to better
-        model low-level kernel semantics and simplifies infrastructure needed
-        to support it.
-\end{itemize}
-We choose Rust as the language for extension programs because Rust happens to
-    provide all the desired properties -- it is Turing-complete, strict on
-    safety, while being low-level enough to support kernel programming.
-
-While the use of Rust automatically provides expressiveness (as it is
-    Turing-complete), it does not supply the safety out-of-box, and the use of
-    Rust, especially unsafe Rust, can still exhibit undesired behaviors.
-We require all extension programs to be implemented \textit{only} in safe Rust.
-On top of that, we discuss how the safety properties from Rust can be leveraged
-    and applied to the context of kernel extensions to provide a safe
-    programming interface.
+As discussed in \S~\ref{sec:motivation}, the current problem on usability of
+    eBPF is the large semantic gap between the programer, who works on
+    high-level langauges, and the verifier, which operates on compiled bytecode.
+% Our insight is that both the needed expressiveness and safety can be obtained
+%     from a safe programming language without the verifier.
+Our insight is that by using a safe, high-level langauge that directly
+    implements the required safety of the kernel, the semantic gap can be
+    closed.
+% Specifically, the language should have the following properties:
+% \begin{itemize}
+%     \item \textbf{Turing-complete}: This helps to satisfy the expressiveness
+%         requirement.
+%     \item \textbf{Safe}: The language should not be as permissive and
+%         error-prone as unsafe languages like C.
+%     \item \textbf{Low-level}: Being low-level helps the programs to better
+%         model low-level kernel semantics and simplifies infrastructure needed
+%         to support it.
+% \end{itemize}
+\projname{} uses Rust as the language for extension programs.
+This is because Rust happens to provide the desired properties -- its
+    langauge-based safety can be leveraged for safe kernel extensions without a
+    verifier.
+We now discuss how the safety properties from Rust can be applied to the
+    context of kernel extensions to provide a safe programming interface.
+% While the use of Rust automatically provides expressiveness (as it is
+%     Turing-complete), it does not supply the safety out-of-box, and the use of
+%     Rust, especially unsafe Rust, can still exhibit undesired behaviors.
+% We require all extension programs to be implemented \textit{only} in safe Rust.
+% On top of that, we discuss how the safety properties from Rust can be leveraged
+%     and applied to the context of kernel extensions to provide a safe
+%     programming interface.
 
 \begin{figure}
     \includegraphics[width=1.0\linewidth]{figs/overview.pdf}
@@ -79,16 +85,17 @@ On top of that, we discuss how the safety properties from Rust can be leveraged
     \vspace{-10pt}
 \end{figure}
 
-Figure~\ref{fig:rex-overview} shows the overview of the \projname framework.
+Figure~\ref{fig:rex-overview} provides an overview of the \projname{} framework.
 The extension program is written strictly in safe Rust.
-It links with the ``kernel crate'' at compile time, which provides essential
-    program interfaces to interact with the kernel.
+The program interacts with the kernel through a program interface implemented
+    by the \projname{} ``kernel crate''.
 The kernel crate contains unsafe Rust code due to its role as a bridge between
     the safe extension program and the unsafe but trusted kernel code.
 It also provides a custom Rust panic handler to support panic-based runtime
     safety checks in Rust.
-The compiled binary runs in a light-weight runtime environment implemented in
-    the kernel, which provides program termination and stack unwinding support.
+The program links with the ``kernel crate'' at compile time and runs in a
+    light-weight runtime environment implemented in the kernel, which provides
+    program termination and stack unwinding support.
 
 \subsection{Ensure memory safety}
 In extension programs, there are
