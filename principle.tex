@@ -264,9 +264,9 @@ We implement the cleanup code as part of the \projname{} kernel crate
 \subsection{Safe guard the kernel stack}
 One unique safety requirement the kernel extension programs are facing is the
     usage of kernel stack.
-Unlike the userspace programs, where the stack can grow indefinitely on demand (\jinghao{TODO: add a footnote}),
-    the stack in kernel space is fix-sized (4 pages on X86-64) and therefore
-    limited.
+Unlike the userspace programs, where the stack grows on demand and has a large
+    maximum size,
+    the stack in kernel space is fix-sized (4 pages on X86-64) and limited.
 Overflowing the kernel stack may result in memory corruptions or kernel panics.
 
 The stack safety property is checked in eBPF.
