@@ -78,10 +78,10 @@
 
 \para{Experiment setup} Our evaluation setup consists two machines, with one
     acting as the server and the other one acting as the client.
-The server machine runs our \projname{} custom kernel on an AMD EPYC 7551P
-    32-Core processor with 128 GB memory (\jinghao{TODO: disable SMT and Turbo,
-    and ask Ruowen about actual amount of memory}).
-The client machine is a latest Ubuntu 22.04LTS system on Intel i9-12900
+The server machine runs the \projname{} custom kernel on an AMD EPYC 7551P
+    32-Core processor with 128 GB memory.
+SMT and Turbo are turned off for the experiments.
+The client machine runs a vanilla v6.7.8 Linux kernel on AMD Ryzen 9 7900X
     processor with 64 GB memory.
 Both machines are equiped with Mellanox ConnectX-3 Pro 40GbE NICs and are
     connected back-to-back.
