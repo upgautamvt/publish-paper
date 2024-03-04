@@ -73,10 +73,38 @@
 \end{itemize}
 
 \subsection{Macro-benchmarks}
-\subsubsection{\projname{}-based BMC}
-\jinghao{TODO: Preamable}
+We now demonstrate that \projname{} can be used to implement complicated,
+    real-world kernel extension use cases with enhanced usability but without
+    losing much performance by implementing BMC and Electrode in \projname{}.
 
-\para{Experiment setup} Our evaluation setup consists two machines, with one
+\subsubsection{\projname{}-based BMC}
+% \jinghao{TODO: Preamable}
+% BMC implements in-kernel memcached cache -- how it works
+% Compilcated program, original paper splits into 7 programs and uses tail calls
+%
+
+BMC~\cite{BMC} is an in-kernel cache for Memcached based on eBPF.
+It stores recently queried key-value pairs in an eBPF map to accelerate the
+    processing of GET requests to the Memcached server.
+If a GET is hit in the cache, the queried value can be sent in a reply without
+    going through the expensive network stack in the Linux kernel.
+The map that servers as the cache is managed by eBPF programs, which implements
+    the lookup and update logics.
+
+On the aspect of implementation, BMC is a much more complicated program
+    comparing to other common eBPF use cases.
+In order to pass the verifier, the implementation has to be splitted into seven
+    eBPF programs that tail-calls into each other to reduce verification
+    complexity.
+Similar problem also presents when processing the incoming packet data, where
+    the authors had to bound data size to reduce verification complexity for
+    loops.
+
+We re-implement BMC in \projname{} to demonstrate the enhanced usability
+    without losing performance.
+
+%\para{Experiment setup}
+Our evaluation setup consists two machines, with one
     acting as the server and the other one acting as the client.
 The server machine runs the \projname{} custom kernel on an AMD EPYC 7551P
     32-Core processor with 128 GB memory.
