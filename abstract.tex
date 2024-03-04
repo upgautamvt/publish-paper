@@ -20,21 +20,29 @@ In recent years, kernel extension has been increasingly leveraged in the domains
   in the form of large and complex programs.
 The de-facto kernel extension mechanism in the Linux kernel is eBPF.
 However, eBPF is contrained by its static verifier, which provides
-  safety as its core value proposition but at the same time makes it hard to
-  support the increasingly complex use cases due to limited expressiveness.
-The restriction of eBPF on loops or complex logic often leads to splitting the
-  program into small pieces, or limitation in functionality when logic cannot
-  be expressed.
-On the other hand, static verification is fundamentally limited in verifying
-  certain safety properties -- a verified eBPF program can still overflow
-  the kernel stack or hold the CPU for a long time.
+  safety as its core value proposition but at the same time creates usability
+  challenges, especially for the increasingly complex use cases.
+%  makes it hard to
+%  support the increasingly complex use cases due to limited expressiveness.
+% The restriction of eBPF on loops or complex logic often leads to splitting the
+%   program into small pieces, or limitation in functionality when logic cannot
+%   be expressed.
+Developers are often forced to heavily massage their code -- splitting the
+  program into small pieces, inlining functions, and even directly writing
+  eBPF byte codes, in order to pass the verifier.
+% On the other hand, static verification is fundamentally limited in verifying
+%   certain safety properties -- a verified eBPF program can still overflow
+%   the kernel stack or hold the CPU for a long time.
+At the core of the problem is a large gap between the programmer and the
+  verifier.
 
-In this paper, we make the observation that the needed expressiveness and safety
-  can be obtained from a safe language like Rust without the verifier.
+In this paper, we make the observation that the enhanced usuability and the
+  needed safety properties can be obtained from a safe language like Rust
+  without the verifier.
 We design and implement a new Rust-based kernel extension abstraction:
   {\em Rex}, which are safe Rust programs that run in
   the place of verified eBPF programs.
-The use of Rust achieves both Turing-Completeness and runtime-safety.
+% The use of Rust achieves both Turing-Completeness and runtime-safety.
 Our Rust layer provides a \textit{safe} program interface for kernel extension
   programs and runtime safety mechanisms that ensures stack protection, timely
   termination, and exception handling.
