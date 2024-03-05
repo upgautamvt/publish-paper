@@ -107,7 +107,7 @@ We re-implement BMC in \projname{} to demonstrate the enhanced usability
 Our evaluation setup consists two machines, with one
     acting as the server and the other one acting as the client.
 The server machine runs the \projname{} custom kernel on an AMD EPYC 7551P
-    32-Core processor with 128 GB memory.
+    32-Core processor with 112 GB memory.
 SMT and Turbo are turned off for the experiments.
 The client machine runs a vanilla v6.7.8 Linux kernel on AMD Ryzen 9 7900X
     processor with 64 GB memory.
@@ -123,14 +123,14 @@ Both machines are equiped with Mellanox ConnectX-3 Pro 40GbE NICs and are
 We use a workload with the same specs as in BMC.
 Our dictionary contains 100 million Memcached keys following a Zipf
     distribution with 0.99 skewness.
-All keys are 16-byte in size and are paired with 32-byte values in the
+All keys are 16 bytes in size and are paired with 32-byte values in the
     experiments.
 The storage sizes of the Memcached and BMC are set to 10 GB and 2.5 GB,
     respectively.
 According to the calculation in the original work, around 89 million items
     can be stored in Memcached itself and 6.3 million of them can fit in
     BMC.
-Before experiements, the Memcached server is pre-loaded with all keys by
-    sending SET requests for each key in the dictionary from the client.
-The client then sends requests to the server with a 30:1 ratio betweren GET and
-    SET requests and measures the throughput.
+Before experiments, the Memcached server is pre-loaded with all keys by
+    sending TCP SET requests for each key in the dictionary from the client.
+The client then sends requests to the server with a 30:1 ratio betweren UDP GET and
+    TCP SET requests and measures the throughput.
