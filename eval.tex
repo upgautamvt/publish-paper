@@ -100,14 +100,20 @@ Similar problem also presents when processing the incoming packet data, where
     the authors had to bound data size to reduce verification complexity for
     loops.
 
-We re-implement BMC in \projname{} to demonstrate the enhanced usability
-    without losing performance.
+We re-implement BMC in \projname{} (\projname{}-BMC) to demonstrate the
+    enhanced usability without losing performance.
+The resulting program is not a direct translation from the original eBPF
+    version in C, rather, we implement the same high-level logic but with
+    slight deviations from BMC where the enhance usability and expressiveness
+    of Rust allows a simpler implementation.
+\jinghao{should talk about some experience in implementing BMC, especially
+    the parts we do differently.}
 
 %\para{Experiment setup}
 Our evaluation setup consists two machines, with one
     acting as the server and the other one acting as the client.
-The server machine runs the \projname{} custom kernel on an AMD EPYC 7551P
-    32-Core processor with 112 GB memory.
+The server machine runs the \projname{} custom kernel based on Linux v5.15.0 on
+    an AMD EPYC 7551P 32-Core processor with 112 GB memory.
 SMT and Turbo are turned off for the experiments.
 The client machine runs a vanilla v6.7.8 Linux kernel on AMD Ryzen 9 7900X
     processor with 64 GB memory.
@@ -134,3 +140,13 @@ Before experiments, the Memcached server is pre-loaded with all keys by
     sending TCP SET requests for each key in the dictionary from the client.
 The client then sends requests to the server with a 30:1 ratio betweren UDP GET and
     TCP SET requests and measures the throughput.
+
+We evaluate the throughput three setups: Memcached-SR (from BMC),
+    Memcached-SR+BMC, and Memcached-SR+\projname{}-BMC.
+The original open-sourced BMC code targets Linux kernel version 5.3.0 and we
+    port it to the v5.15.0 \projname{} kernel for the evaluation.
+For each setup, we vary the number of processor cores and the number of threads
+    used by the Memcached server and pin each thread onto each core.
+We also adjust the CPU affinity of IRQs associated with the NIC such that the
+    network interrupts are processed on the same set of cores the Memcached
+    server executes on.
