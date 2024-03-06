@@ -21,24 +21,18 @@
 %         allow unbounded loop while ensuring termination)
 % \end{itemize}
 
-We now detail the design goals of a new kernel extension framework beyond eBPF.
-
-\para{Safety} We aim to provide at least the same level of safety as that of
-  eBPF.
-This leads to the requirements of 1) memory safety, 2) control-flow soundness,
-3) safe resource management, and 4) program termination.
-
-\para{Expressiveness} At the same time, the new kernel extension framework
-  should avoid the limitation of eBPF on expressiveness.
-In particular, it should support more complicated programs, including large
-  programs beyond verifier limits as well as programs with unbounded loops
-  and other advanced program constructs.
-
 \subsection{Overview}
 \begin{itemize}
     \item Brings out the Rust based approach (use Jiyuan's property-oriented
         argument: We want these properties, and Rust happens to provide these)
     \item Infrastructure (Need a figure similar to Fig. 5 from HotOS paper)
+\end{itemize}
+
+\subsection{Program load and attachment}
+\begin{itemize}
+    \item kernel loading code and attachment
+    \item relocation fixups for maps and kernel symbols
+    \item libiu
 \end{itemize}
 
 \subsection{Runtime crate as the programming interface}
@@ -50,16 +44,45 @@ In particular, it should support more complicated programs, including large
     \item kconfig-based conditional compilation
 \end{itemize}
 
+\para{Kernel symbol resolution}
+The \projname{} kernel crate serves as an interface for the extension programs
+    to interact with the kernel.
+To accomplish this, the crate will need to access kernel symbols.
+For example, invoking kernel helper functions requires knowing the kernel
+    address of the target helper function symbol.
+These kernel symbols includes not only BPF helper functions, but also other
+    global and per-CPU variables.
+
+Because \projname{} programs are compiled in userspace, the compiler does not
+    have knowledge on any of the required kernel symbols.
+One simple solution is to directly passing kernel symbols and their
+    corresponding addresses to userspace (e.g. through \texttt{/proc/kallsyms})
+However, this is in general considered a dangerous practice as it leaks kernel
+    addresses to userspace.
+At the same time, this solution is not robust against kernel layout changes
+    (e.g. due to kernel rebuild) -- changes of a kernel symbol address requires
+    a recompilation of the \projname{} program that uses it.
+
+Our implementation defers the kernel symbol resolution to program load time,
+    i.e. when the compiled \projname{} program is sent to the kernel.
+At this point, the booted kernel always knows where the symbols are located,
+    even after layout changes.
+At the same time, the sensitive kernel addresses do not need to be leaked to
+    userspace.
+\projname{} implements this kernel symbol resolution scheme the same way
+    dynamic linking works in userspace.
+The compilation process treats all kernel symbols as external and generate
+    relocation entries for these undefined symbols.
+At load time, the loader library parses the executable, compiles a list of
+    kernel sybmols that require resolution with their corresponding entries in
+    the global offset table (GOT), and sends the information to the kernel.
+The kernel then resolves the address for each symbol via the kallsyms subsystem
+    and patches the GOT entries with the resolved addresses and allows programs
+    to correctly referencing these kernel symbols.
+
 \subsection{Entry code generation}
 \begin{itemize}
     \item LLVM pass
-\end{itemize}
-
-\subsection{Program load and attachment}
-\begin{itemize}
-    \item kernel loading code and attachment
-    \item relocation fixups for maps and kernel symbols
-    \item libiu
 \end{itemize}
 
 \subsection{Handle exceptional control flow}
