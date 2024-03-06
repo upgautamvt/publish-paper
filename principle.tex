@@ -40,6 +40,14 @@
 %        \end{itemize}
 %\end{itemize}
 
+% Some small things here and there
+%
+% - no clone impl for objects returned by RT crate to ensure uniqueness
+% - difference between userspace Rust: there are things the compiler cannot see
+%   e.g., we cannot have something like Mutex::get_mut in bpf_spinlock to
+%   access a value w/o lock using the single-mutable-reference rule
+
+
 The goal of \projname{} is to provide enhanced usuability for kernel extensions,
     while ensuring the safety properties of the extension programs.
 In particular, we aim to make \projname{} more usable than eBPF and at least
