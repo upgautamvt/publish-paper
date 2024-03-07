@@ -1,6 +1,6 @@
 \section{Design and Implementation}
 
-\subsection{Design goal}
+% \subsection{Design goal}
 
 %\begin{itemize}
 %     \item Safety
@@ -21,29 +21,50 @@
 %         allow unbounded loop while ensuring termination)
 % \end{itemize}
 
-\subsection{Overview}
-\begin{itemize}
-    \item Brings out the Rust based approach (use Jiyuan's property-oriented
-        argument: We want these properties, and Rust happens to provide these)
-    \item Infrastructure (Need a figure similar to Fig. 5 from HotOS paper)
-\end{itemize}
+% \subsection{Overview}
+% \begin{itemize}
+%     \item Brings out the Rust based approach (use Jiyuan's property-oriented
+%         argument: We want these properties, and Rust happens to provide these)
+%     \item Infrastructure (Need a figure similar to Fig. 5 from HotOS paper)
+% \end{itemize}
 
-\subsection{Program load and attachment}
-\begin{itemize}
-    \item kernel loading code and attachment
-    \item relocation fixups for maps and kernel symbols
-    \item libiu
-\end{itemize}
-
-\subsection{Runtime crate as the programming interface}
+\subsection{\projname{} kernel crate}
 \begin{itemize}
     \item overall structure: program type, kernel binding generation, wrapper
         interface around binding.
+    \item context conversion
     \item kernel helper and symbol bindings (dynamic linking scheme)
     \item kconfig-based conditional compilation
+    \item Map support
 \end{itemize}
 
-\para{Kernel symbol resolution}
+The \projname{} kernel crate is responsible for supporting interactions between
+    kernel and \projname{} programs.
+This library can be divided into support for different program types with
+    intrefaces facing the kernel and the \projname{} program.
+Each of the program type is defined as a Rust struct and with helpers defined
+    as its methods.
+This effectively implements access control on helper functions with respect to
+    program types (e.g., a tracing program should not modify socket buffers
+    through networking helper functions), which is also present in eBPF.
+On the side of \projname{} program, the user defines a program object
+    associated with a Rust function as the extension program and can invoke
+    helper functions through the program object.
+For the kernel interface, we create bindings for the needed kernel definitions
+Specifically, we use Rust-bindgen~\cite{bindgen} to create bindings for kernel
+    structure definitions and constants from kernel header files.
+For required kernel symbols (e.g., kernel helper functions), the kernel crate
+    creates a stub declaration for each symbol without using Rust-bindgen.
+This is because certain kernel symbols -- especially all eBPF helper
+    functions --  do not have a declaration in kernel header files.
+The actual definition of the kernel symbols will be resolved when the program
+    is loaded into the kernel (\S~\ref{impl:crate:symbol-resolv}).
+The crate also has support for maps (\S~\ref{impl:crate:map}) and other
+    miscellaneous utilities for the ease of programming (e.g. wrapping return
+    code in \texttt{Result} to support monadic operations in Rust).
+
+\subsubsection{Kernel symbol resolution}
+\label{impl:crate:symbol-resolv}
 The \projname{} kernel crate serves as an interface for the extension programs
     to interact with the kernel.
 To accomplish this, the crate will need to access kernel symbols.
@@ -68,10 +89,13 @@ At this point, the booted kernel always knows where the symbols are located,
     even after layout changes.
 At the same time, the sensitive kernel addresses do not need to be leaked to
     userspace.
+
 \projname{} implements this kernel symbol resolution scheme the same way
     dynamic linking works in userspace.
-The compilation process treats all kernel symbols as external and generate
-    relocation entries for these undefined symbols.
+The \projname{} kernel crate creates stub declarations for the required kernel
+    symbols.
+During compilation, the compiler treats all kernel symbols as external and\
+    generate relocation entries for these undefined symbols.
 At load time, the loader library parses the executable, compiles a list of
     kernel sybmols that require resolution with their corresponding entries in
     the global offset table (GOT), and sends the information to the kernel.
@@ -79,7 +103,7 @@ The kernel then resolves the address for each symbol via the kallsyms subsystem
     and patches the GOT entries with the resolved addresses and allows programs
     to correctly referencing these kernel symbols.
 
-\para{Kconfig-aware conditional compilation}
+\subsubsection{Kconfig-aware conditional compilation}
 % kernel uses config-based conditional compilation
 % certain functionalities may not be compiled in
 % we also use conditional compilation in kernel crate
@@ -98,6 +122,16 @@ The build script of the crate parses the configuration of the kernel for which
     compiler.
 If a functionality does not have its associated configuration set, its support
     in the kernel crate will not be present, either.
+
+\subsubsection{Supporting eBPF maps}
+\label{impl:crate:map}
+
+\subsection{Program load and attachment}
+\begin{itemize}
+    \item kernel loading code and attachment
+    \item relocation fixups for maps and kernel symbols
+    \item libiu
+\end{itemize}
 
 \subsection{Entry code generation}
 \begin{itemize}
