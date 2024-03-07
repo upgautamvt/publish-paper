@@ -37,9 +37,8 @@
 
 \subsection{Runtime crate as the programming interface}
 \begin{itemize}
-    \item program type (how Rust type system is leveraged) (feels like this
-        should be in Design section, but at the same time this is pretty
-        detailed that fits here)
+    \item overall structure: program type, kernel binding generation, wrapper
+        interface around binding.
     \item kernel helper and symbol bindings (dynamic linking scheme)
     \item kconfig-based conditional compilation
 \end{itemize}
@@ -79,6 +78,26 @@ At load time, the loader library parses the executable, compiles a list of
 The kernel then resolves the address for each symbol via the kallsyms subsystem
     and patches the GOT entries with the resolved addresses and allows programs
     to correctly referencing these kernel symbols.
+
+\para{Kconfig-aware conditional compilation}
+% kernel uses config-based conditional compilation
+% certain functionalities may not be compiled in
+% we also use conditional compilation in kernel crate
+% read config from build script and pass to the compilation process
+The fact that the Linux kernel employs conditional compilation extensively
+    based on kernel configuration values implies that certain functionalities
+    used by \projname{} programs may not be compiled in.
+An example of this is the ability to override the return value of a function in
+    Kprobe programs.
+This is only available if the \texttt{CONFIG\_BPF\_KPROBE\_OVERRIDE} is
+    enabled.
+The \projname{} kernel crate utilizes the conditional compilation counterpart
+    in Rust.
+The build script of the crate parses the configuration of the kernel for which
+    the program is built and send configuration values of interest to the
+    compiler.
+If a functionality does not have its associated configuration set, its support
+    in the kernel crate will not be present, either.
 
 \subsection{Entry code generation}
 \begin{itemize}
