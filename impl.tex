@@ -63,6 +63,36 @@ The crate also has support for maps (\S~\ref{impl:crate:map}) and other
     miscellaneous utilities for the ease of programming (e.g. wrapping return
     code in \texttt{Result} to support monadic operations in Rust).
 
+\subsubsection{Program context conversion}
+Like eBPF, \projname{} programs take in a kernel-provided ``context'' as input
+    argument.
+The context is a pointer to a struct that contains information the program may
+    need.
+For the reason of keeping a stable interface and to hidden unneeded kernel
+    data from the extension program, eBPF keeps a pair of context structs,
+    where one of them is for user-written extension programs and the other one
+    is the internal representation of the kernel.
+The user-facing context is a subset of the associateed kernel
+    representation.
+When a eBPF program is loaded into the kernel, the verifier rewrites accesses
+    to the user context to the corresponding field in the kernel context 
+    through the verifier hook specific to the program type.
+Rewriting the access also avoids the need of copying data and contructing a
+    user context.
+
+In \projname{}, the Rust compiler takes the place of the eBPF verifier and as
+    a result there is no way to rewrite the access to the context the same
+    way eBPF does.
+We choose to take the advantage of the expressive Rust language features.
+In particular, \projname{} defines a user-context struct that just wraps around
+    the pointer to kernel context.
+It implements accesses to the needed fields in the kernel context as methods of
+    the user-context struct, which accesses the kernel struct internally.
+Doing so effectively re-route accesses to the kernel struct.
+At the same time, it also allows controlled access to the kernel context, in
+    particular it easily prevents unwanted writes to the context, which may
+    corrupt kernel data accidentally.
+
 \subsubsection{Kernel symbol resolution}
 \label{impl:crate:symbol-resolv}
 The \projname{} kernel crate serves as an interface for the extension programs
