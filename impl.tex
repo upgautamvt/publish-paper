@@ -275,9 +275,25 @@ In order to solve this problem, the \projname{} kernel crate treats the kernel
 \end{itemize}
 
 \subsection{Entry code generation}
-\begin{itemize}
-    \item LLVM pass
-\end{itemize}
+% \begin{itemize}
+%     \item LLVM pass
+% \end{itemize}
+To allow \projname{} extension code in Rust to be called from the kernel C
+    code, an FFI entry-point function is needed to wrap around the user-defined
+    extension function.
+This wrapper function needs to handle certain unsafe operations, for example,
+    interpreting the context argument supplied by the kernel as a Rust
+    reference and perform context conversion for selected program types.
+Because of this, this entry function should not be implemented by the user.
+For example, interpreting an XDP context as a kernel perf-event context and
+    perform the context conversion specific to perf-event would violate memory
+    and type safety and could result in undefined behavior.
+
+Therefore, \projname{} choose to automatically generate the entry point code
+    during compilation of the Rust extension programs.
+We implement the generation of entry code in the middle-end on LLVM IR, taking
+    the advantage that Rust by default uses LLVM as its code generation
+    backend.
 
 \subsection{Handle exceptional control flow}
 \begin{itemize}
