@@ -29,14 +29,14 @@
 % \end{itemize}
 
 \subsection{\projname{} kernel crate}
-\begin{itemize}
-    \item overall structure: program type, kernel binding generation, wrapper
-        interface around binding.
-    \item context conversion
-    \item kernel helper and symbol bindings (dynamic linking scheme)
-    \item kconfig-based conditional compilation
-    \item Map support
-\end{itemize}
+% \begin{itemize}
+%     \item overall structure: program type, kernel binding generation, wrapper
+%         interface around binding.
+%     \item context conversion
+%     \item kernel helper and symbol bindings (dynamic linking scheme)
+%     \item kconfig-based conditional compilation
+%     \item Map support
+% \end{itemize}
 
 The \projname{} kernel crate is responsible for supporting interactions between
     kernel and \projname{} programs.
@@ -75,7 +75,7 @@ For the reason of keeping a stable interface and to hidden unneeded kernel
 The user-facing context is a subset of the associateed kernel
     representation.
 When a eBPF program is loaded into the kernel, the verifier rewrites accesses
-    to the user context to the corresponding field in the kernel context 
+    to the user context to the corresponding field in the kernel context
     through the verifier hook specific to the program type.
 Rewriting the access also avoids the need of copying data and contructing a
     user context.
@@ -155,10 +155,121 @@ If a functionality does not have its associated configuration set, its support
 
 \subsubsection{Supporting eBPF maps}
 \label{impl:crate:map}
+% maps are important: storage and data sharing
+% supporting map is hard:
+%   2 step of rewritting for the sake of easy programming and hide kernel
+%     pointer
+%   Not directly available in Rust
+%   need to make map interface safe
+%   also need seamless support as eBPF does
+%
+% Use a loader library:
+%   define a ABI of Rust map object in memory (metadata + actual kptr) put in
+%     .map section
+%   loader library parse elf object and find all maps
+%   use the defined ABI to read out metadata and create map via bpf syscall
+%   rewrite kptr in each map in the elf object with map fd (safe because
+%     kptr is 8 byte and can be treated as an int and map fd is 4 byte)
+%   when loading the program, send in the updated elf object and offset of each
+%     map kptr within the object
+%   kernel will use the previously written fd in the kptr to retrieve the real
+%     address of the map and update kptr value.
+%   kptr is initialized to null, since compiler does not see the post
+%     compilation fixups, it will assume the value never changes and
+%     constant-propogate the map kptr, leading to incorrect program behavior
+%   e.g. the map helpers always verifies the kptr is not null before invoking
+%     actual kernel helper, assuming the kptr to be always null makes the map
+%     helper always return error without calling into the kernel
+%   solution: treat the kptr as a volatile variable and force a load before
+%     each map call
+%
+The kernel eBPF maps provide a powerful primitive for extension programs to
+    store data across program runs and to easily share data with userspace.
+Therefore, such a functionality is highly desired in \projname{}.
+However, supporting eBPF maps out-of-box is not trivial due to how maps defined
+    in the programs are handled currently in eBPF.
+
+eBPF allows user to define a eBPF map in the program by defining a struct that
+    contains the map metadata (e.g. key/value type, number of entries) in a
+    specific \texttt{.map} section.
+All map operations in the program on this map is made through this struct
+    defined in the program.
+At program load time, libbpf parses the map metadata from the struct.
+It then creates the map in the kernel through the \texttt{bpf} system call and
+    obtain a file descriptor referring to the map.
+Libbpf rewrites the eBPF byte code such that all references to the created map
+    are updated to the value of the file descriptor.
+When the program is loaded to the kernel, the eBPF verifier performs a second
+    round of rewritting -- for each map file descriptor, it obtains the actual
+    kernel eBPF map struct the file descriptor refers to and updates the
+    references to the address of the kernel internal map struct.
+This two-stage rewritting provides two desired properties: it not only prevents
+    leaking of a kernel map address to userspace but also allows seamless and
+    transparent interaction with the kernel maps from extension programs.
+However, for \projname{}, achieving these two properties is not trivial: the
+    Rust compiler cannot provide these since creating maps is out-of-scope for
+    it, and at the same time the existing two-stage rewritting is specifically
+    for eBPF and cannot be reused for Rust programs directly.
+
+In order to support a safe and convenient map interface, \projname{} defines
+    its own ABI for storing map metadata and implements the rewriting logic in
+    its own program loader library.
+In \projname{} programs, users can define a map by creating a new
+    \texttt{rex\_map} object in the \texttt{.map} section through a convenience
+    macro provided by the \projname{} kernel crate.
+\texttt{rex\_map} is defined in the \projname{} kernel crate, which contains
+    various map parameters, and a private pointer to the kernel map struct.
+The struct is generic with the map type (e.g. array vs. hash), key type, and
+    value type as generic parameters.
+All map helpers in \projname{} are also generic functions with the same set of
+    generic parameters.
+They take \texttt{rex\_map} objects as arguments and internally invokes the
+    kernel map helper functions with the kernel map pointer.
+Doing so ensures safety of map operations -- it prevents mismatches in map
+    types and key/value types.
+
+The ABI is implemented by forcing the \texttt{rex\_map} struct to have
+    C-representation, i.e., the memory layout, alignment, will be the same as
+    a C struct with the same fields.
+Doing so allows the \projname{} loader library to easily parse a
+    \texttt{rex\_map} struct to obtain the map metadata.
+Similar to libbpf, the \projname{} loader library reads and parses the ELF
+    executable created by the Rust compiler.
+The loader library parses and finds all maps in the \texttt{.map} section.
+This is possible because the constructor of \texttt{rex\_map} is defined as
+    a constant expression and therefore the \texttt{rex\_map} objects are
+    initialized at compile time.
+With the metadata for each map, the library creates kernel eBPF maps using the
+    \texttt{bpf} system call and rewrites the kernel pointer field of each
+    \texttt{rex\_map} object to the file descriptor value.
+When loading the program, the loader library sends both the updated ELF
+    executable and a list of offsets of the kernel map pointer field within the
+    executable to the kernel.
+The kernel reads the file descriptor at each offset and update it with the real
+    map address referred by the file descriptor to make all map operations
+    work.
+
+During initialization, the kernel pointer field in \texttt{rex\_map} is set
+    to \texttt{NULL}.
+Since the \texttt{rex\_map} objects are defined as read-only and rewriting
+    happens after compilation, this makes the Rust compiler incorrectly assume
+    the kernel map pointer always stays \texttt{NULL}.
+This in turn causes the compiler to perform constant propagation on the kernel
+    pointer field when optimizations are enabled, leading to incorrect program
+    behavior.
+For example, the \projname{} map helpers in the \projname{} kernel crate always
+    verifies that the kernel pointer is not null before invoking the kernel map
+    helper functions.
+By constant-propagating the \texttt{NULL} pointer value, the compiler believes
+    the check always fails and makes the map helper always to return error
+    without calling into the kernel helper function.
+In order to solve this problem, the \projname{} kernel crate treats the kernel
+    pointer as volatile and forces a load of the pointer value from memory
+    every time it is used by the map helpers.
 
 \subsection{Program load and attachment}
 \begin{itemize}
-    \item kernel loading code and attachment
+    \item kernel loading code and attachment (w/ base program)
     \item relocation fixups for maps and kernel symbols
     \item libiu
 \end{itemize}
