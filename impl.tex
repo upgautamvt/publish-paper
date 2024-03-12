@@ -268,11 +268,75 @@ In order to solve this problem, the \projname{} kernel crate treats the kernel
     every time it is used by the map helpers.
 
 \subsection{Program load and attachment}
-\begin{itemize}
-    \item kernel loading code and attachment (w/ base program)
-    \item relocation fixups for maps and kernel symbols
-    \item libiu
-\end{itemize}
+% \begin{itemize}
+%     \item kernel loading code and attachment (w/ base program)
+%     \item relocation fixups for maps and kernel symbols
+%     \item libiu
+% \end{itemize}
+% Difference between eBPF and Rust programs
+% - native code vs. byte code + JIT
+% - no verifier to fixup relocations for maps and kernel symbols (e.g helpers)
+% Implement kernel side loading logic
+% - allocate page and map all LOAD segments in the ELF executable
+% - fix all relocations for maps and kernel symbols
+% - use the same eBPF insfrastructure
+% problem where programs within the same executable share code
+% - multiple programs calling the same function
+% - one copy per program is ineffcient on memory
+% - solution: first load the ELF executable, then associate individual programs
+%   with extension entry functions in the code
+There are two major differences between eBPF and \projname{} that poses unique
+    challenges to the loading of \projname{} programs in the kernel.
+Firstly, \projname{} is loaded as native code after compilation, of which the
+    kernel does not have control on the layout.
+This means the kernel need to parse and handle different sections in the
+    program differently.
+In contrast, eBPF is loaded as eBPF bytecode and contains only executable code.
+The kernel has complete control over the generated native through the kernel
+    eBPF JIT infrastructure.
+Secondly, \projname{} does not have the in-kernel verifier, which is used in
+    eBPF to fixup the kernel objects the program references (e.g., maps and
+    helpers).
+Therefore, the loading logic also needs to perform fixups needed for
+    \projname{} on relocations.
+
+We extend the \texttt{bpf} system call to support loading of \projname{}
+    programs.
+The system call sends the compiled ELF executable as well as the associated
+    relocation information into the kernel.
+The kernel first parses the ELF executable and locate all the \texttt{LOAD}
+    segments in the executable.
+The kernel then allocate new pages and maps the \texttt{LOAD} segments into the
+    kernel address space based on the size and permissions of the segments.
+With the associated relocation information, the kernel then updates the needed
+    relocation entries with the absolute kernel address.
+The relocations that need fixup are kernel symbols referenced by the
+    \projname{} program (\S~\ref{impl:crate:symbol-resolv}) and eBPF maps
+    (\S~\ref{impl:crate:map}).
+At this point, the program is considered ``loaded''.
+The kernel then wrap the program into a \texttt{bpf\_prog} struct as if it is a
+    JIT-ed program -- reusing the existing eBPF infrastructure for program
+    management greatly reduces engineering efforts and facilitates easy
+    integration with existing eBPF hook points.
+
+One of the problem \projname{} faces is to deal with multiple programs within
+    the same ELF executable.
+Such programs may share common code in the same executable.
+It is obviously not memory efficient if the load of each program requires
+    loading and mapping of the same executable.
+The soluation \projname{} uses is that it separates the steps of mapping the
+    executable into kernel memory and loading of programs.
+The userspace first invokes our extended \texttt{bpf} system call to map the
+    executable into kernel address space and obtain a reference count to the
+    mapped code (behind a file descriptor).
+It then can invoke the syscall again to load the program into the kernel.
+This later step is simple as it only needs to wrap the function associated with
+    the \projname{} program into the \texttt{bpf\_prog} struct.
+The newly created \texttt{bpf\_prog} struct takes the reference count of the
+    mapped executable code so that the kernel will not clean it up before the
+    programs are destroyed.
+This allows multiple programs to effectively share the same executable code and
+    avoid waste of memeory resources.
 
 \subsection{Entry code generation}
 % \begin{itemize}
