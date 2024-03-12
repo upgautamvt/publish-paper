@@ -288,12 +288,29 @@ Because of this, this entry function should not be implemented by the user.
 For example, interpreting an XDP context as a kernel perf-event context and
     perform the context conversion specific to perf-event would violate memory
     and type safety and could result in undefined behavior.
-
 Therefore, \projname{} choose to automatically generate the entry point code
     during compilation of the Rust extension programs.
-We implement the generation of entry code in the middle-end on LLVM IR, taking
-    the advantage that Rust by default uses LLVM as its code generation
-    backend.
+
+We implement the generation of entry code as an LLVM pass, taking the advantage
+    that Rust by default uses LLVM as its code generation backend.
+At the LLVM-IR stage, the entry code generation pass reads out the information
+    related to the program from the program object the user defines.
+This is achieved by enforcing a specific memory layout of the program object
+    struct (e.g., always store the program type in the first integer field) and
+    then constant-initializing the program object, which effectively implements
+    an ABI between the Rust compiler front end and the LLVM middle/back end.
+The pass will create a new entry function for the program with the
+    user-supplied program name.
+The function has the same prototype as the kernel hook point, and therefore,
+    the kernel can directly invoke the function from the place the program is
+    attached.
+Inside the entry function, depending on the type of the program, the pass
+    generates code that invokes the program-type-specific code from the
+    \projname{} kernel crate
+The code reinterprets the context argument supplied by the kernel into a Rust
+    object, performs context conversion if needed, and eventually call into the
+    user-defined extension function that is associated with the \projname{}
+    program object.
 
 \subsection{Handle exceptional control flow}
 \begin{itemize}
