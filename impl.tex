@@ -157,7 +157,7 @@ If a functionality does not have its associated configuration set, its support
 \label{impl:crate:map}
 % maps are important: storage and data sharing
 % supporting map is hard:
-%   2 step of rewritting for the sake of easy programming and hide kernel
+%   2 step of rewriting for the sake of easy programming and hide kernel
 %     pointer
 %   Not directly available in Rust
 %   need to make map interface safe
@@ -200,15 +200,15 @@ It then creates the map in the kernel through the \texttt{bpf} system call and
 Libbpf rewrites the eBPF byte code such that all references to the created map
     are updated to the value of the file descriptor.
 When the program is loaded to the kernel, the eBPF verifier performs a second
-    round of rewritting -- for each map file descriptor, it obtains the actual
+    round of rewriting -- for each map file descriptor, it obtains the actual
     kernel eBPF map struct the file descriptor refers to and updates the
     references to the address of the kernel internal map struct.
-This two-stage rewritting provides two desired properties: it not only prevents
+This two-stage rewriting provides two desired properties: it not only prevents
     leaking of a kernel map address to userspace but also allows seamless and
     transparent interaction with the kernel maps from extension programs.
 However, for \projname{}, achieving these two properties is not trivial: the
     Rust compiler cannot provide these since creating maps is out-of-scope for
-    it, and at the same time the existing two-stage rewritting is specifically
+    it, and at the same time the existing two-stage rewriting is specifically
     for eBPF and cannot be reused for Rust programs directly.
 
 In order to support a safe and convenient map interface, \projname{} defines
