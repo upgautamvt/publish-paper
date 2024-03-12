@@ -206,6 +206,7 @@ The program does not need to explicitly release the lock or drop the loack
     goes out of scope.
 
 \subsection{Runtime exception handling}
+\label{principle:eh}
 While the compiler contributes a lot to the safety of Rust, many safety checks
     happen at runtime in the form of exceptions (i.e., Rust panics).
 In userspace, Rust uses the Itanium exception handling ABI.
@@ -276,7 +277,7 @@ One unique safety requirement the kernel extension programs are facing is the
     usage of kernel stack.
 Unlike the userspace programs, where the stack grows on demand and has a large
     maximum size,
-    the stack in kernel space is fix-sized (4 pages on X86-64) and limited.
+    the stack in kernel space is fix-sized (4 pages on x86-64) and limited.
 Overflowing the kernel stack may result in memory corruptions or kernel panics.
 
 The stack safety property is checked in eBPF.
@@ -311,6 +312,21 @@ Then, before each function call in the extension program, the \projname{}
     current stack depth of the program, if the stack usage exceeds the
     threshold, it will trigger a Rust panic and effectively terminate the
     program.
+
+In order for the \texttt{\_\_rex\_check\_stack} function to have more control
+    on the stack usage of the program and also support programs with slightly
+    large stack usage, \projname{} implements dedicated kernel stack for the
+    extension programs.
+The dedicated kernel stacks are allocated and virtually mapped per-CPU during
+    kernel boot time with the same size as the kernel IRQ and task stacks.
+In the dispatcher function (\S~\ref{principle:eh}), before calling into the
+    \projname{} program, the stack and frame pointers of the current context
+    are saved.
+The dispatcher function then sets the stack and frame pointer registers to the
+    top of the dedicated stack and invokes the program.
+Upon program exit, the original stack and frame pointers are restored, no
+    matter whether a exception is triggered during program execution.
+
 
 \projname{} defines the stack usage threshold to be two pages less than the
     total stack available.
