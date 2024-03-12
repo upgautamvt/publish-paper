@@ -258,7 +258,7 @@ Then, the landingpad function redirects the control flow to a pre-defined label
 This effectively unwinds the stack and resets the context as if the extension
     program returned successfully.
 We implement the program dispatcher function with panic handling in the kernel
-    in 28 lines of X86 assembly code.
+    in 28 lines of x86 assembly code.
 
 For resource cleanup, light-weight mechanisms can be effective.
 Our insight for resource cleanup is that the extension program can only obtain
