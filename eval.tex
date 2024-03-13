@@ -165,10 +165,10 @@ Our evaluation setup consists two machines, with one
 The server machine runs the \projname{} custom kernel based on Linux v5.15.0 on
     an AMD EPYC 7551P 32-Core processor with 112 GB memory.
 SMT and Turbo are turned off for the experiments.
-The client machine runs a vanilla v6.7.8 Linux kernel on AMD Ryzen 9 7900X
-    processor with 64 GB memory.
+The client machine runs a vanilla v6.8.0 Linux kernel on AMD Ryzen 9 7900X
+    processor with 128 GB memory.
 Both machines are equiped with Mellanox ConnectX-3 Pro 40GbE NICs and are
-    connected back-to-back.
+    connected back-to-back using a single port.
 
 % Key: 16 bytes, value: 32 bytes
 % 100 million with Zipf 0.99
@@ -191,8 +191,8 @@ Before experiments, the Memcached server is pre-loaded with all keys by
 The client then sends requests to the server with a 30:1 ratio betweren UDP GET and
     TCP SET requests and measures the throughput.
 
-We evaluate the throughput three setups: Memcached-SR (from BMC),
-    Memcached-SR+BMC, and Memcached-SR+\projname{}-BMC.
+We evaluate the throughput three setups: MemcachedSR (from BMC),
+    MemcachedSR+BMC, and MemcachedSR+\projname{}-BMC.
 The original open-sourced BMC code targets Linux kernel version 5.3.0 and we
     port it to the v5.15.0 \projname{} kernel for the evaluation.
 For each setup, we vary the number of processor cores and the number of threads
@@ -204,8 +204,27 @@ We also adjust the CPU affinity of IRQs associated with the NIC such that the
 \begin{figure}
     \includegraphics[width=1.0\linewidth]{figs/bmc.pdf}
     \centering
-    \vspace{-10pt}
-    \caption{Throughput of BMC under different setups}
+    \vspace{-25pt}
+    \caption{Throughput of BMC on MemcachedSR, eBPF-BMC, and \projname{}-BMC
+        under different number of CPUs/threads.
+    }
     \label{fig:eval-bmc}
     \vspace{-10pt}
 \end{figure}
+
+Figure~\ref{fig:eval-bmc} shows the throughput of the three setups under
+    different numbers of CPUs and threads.
+MemcachedSR processes all requires in userspace and thus its throughput suffers
+    from the overhead of the kernel network stack, achieving only 6.2k requests
+    per second under a single thread and 24.2k requests per second under when
+    using 8 cores.
+On the other hand, both eBPF-based and \projname{}-based BMC are able to
+    achieve a much higher throughput given that they can process a large
+    fraction of requests at NIC level and without the need of going through
+    the expensive kernel network stack.
+With 8 CPU cores and threads, eBPF-BMC and \projname{}-BMC achieve a thoughput
+    of 1.4 million and 1.38 million, respectively.
+It is also clear that \projname{} is able achieve a better usability while
+    keeping the same level of performance and safety guarrantee comparing to
+    eBPF,  as the throughput of \projname{}-BMC is comparable to that of
+    eBPF-BMC under all CPU/thread setups.
