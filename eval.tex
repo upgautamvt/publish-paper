@@ -132,19 +132,57 @@ We implement an empty extension program -- both in eBPF and in \projname{} --
 \jinghao{Need data for discussion, don't know how large the overhead would be.}
 
 \subsubsection{Verifier/JIT-based optimization}
-\begin{itemize}
-    \item inline v.s. out-of-line map helpers
-        \begin{itemize}
-            \item table showing runtime of a map lookup operation in a eBPF and
-                a Rust program
-            \item the kernel will automatically inline lookup in BPF
-            \item Rust version will not get inlined
-            \item measurement can be in ns for now, but better if it could be
-                in cycles
-            \item maps to test: array, hash (htab-lru, xsk-map?)
-        \end{itemize}
-\end{itemize}
-\jinghao{Leave the paragraph to Egor}
+\label{eval:inline}
+
+% The raw data and script used to make the graph (plot2.py)
+% is in the map-test directory under testing/analysis/
+% With the three files: ['elapsed_times_5.15.csv',
+%    'elapsed_times_5.15_non_inlined.csv', 'elapsed_times3-rust.csv']
+% Corresponding to the bars
+% Link to it: https://github.com/rosalab/map-test/tree/main/testing/analysis
+
+\begin{figure}
+    \includegraphics[width=1.0\linewidth]{figs/inline.pdf}
+    \centering
+    \vspace{-25pt}
+    \caption{Time in ns of bpf\_map\_lookup\_elem on various setups}
+    \label{fig:eval-inline}
+    \vspace{-10pt}
+\end{figure}
+
+% \begin{itemize}
+%     \item inline v.s. out-of-line map helpers
+%         \begin{itemize}
+%             \item table showing runtime of a map lookup operation in a eBPF and
+%                 a Rust program
+%             \item the kernel will automatically inline lookup in BPF
+%             \item Rust version will not get inlined
+%             \item measurement can be in ns for now, but better if it could be
+%                 in cycles
+%             \item maps to test: array, hash (htab-lru, xsk-map?)
+%         \end{itemize}
+% \end{itemize}
+
+Figure~\ref{fig:eval-inline} 
+shows the performance of inlining and non-inlining on a vanilla 
+v5.15 kernel as well as the \projname{} implementation. The vanilla non-inlined 
+kernel is achieved by commenting out the lines in the kernel verifier.c file that 
+automatically inlines the bpf\_map\_lookup\_elem method. In the graph, 
+the performance impact of inlining the method is 20-30 nanoseconds. 
+The additional slowdown of 30-40 nanoseconds seen in the rust implementation 
+can be explained by the wrapping performed around the bpf\_map\_lookup\_elem method.
+
+% Egor: Not sure if I should go into more technical details about whats going on
+% in the wrapping
+
+Using libbpf (and libiu in the case of \projname{}) the sample \projname{} or c bpf 
+program is loaded and attached to a tracepoint which is then called by the trigger. 
+In the instance of the inlined and non-inlined tests this tracepoint is getcwd, and 
+in the instance of the rust tests that tracepoint used is sys\_enter\_dup. The 
+triggers consist of a one-line c program that calls the appropriate function such as getcwd(). 
+The bpf program creates the corresponding map and measures the time 
+it takes to execute a single map\_lookup\_elem. This time is measured with 
+bpf\_ktime\_get\_ns() and then printed with bpf\_printk() and recorded.
 
 \subsubsection{Stack-check overhead}
 \begin{itemize}
