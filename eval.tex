@@ -74,14 +74,42 @@
 
 \subsection{Micro-benchmarks}
 \subsubsection{Memory footprint (BPF vs Rust)}
+% definition of memory footprint
+% eBPF only have JIT code
+% Rust have code sections and other sections, e.g. data and GOT sections
+We evaluate on how large the in-kernel memory footprint of \projname{} programs
+    is comparing to that of eBPF programs.
+We define the memory footprint as the number of static memory pages required
+    for program execution.
+For eBPF, this only includes the JIT-ed native code, since eBPF program does
+    not support static data sections.
+For \projname{} this includes all load segments from the compiled ELF
+    executable, which consists not only the text sections, but also the data
+    sections for static variables (e.g., program objects and maps objects) as
+    well as the sections that implement support for position-independent code
+    (e.g., GOT sections).
+
+In this experiment, we compare the number of memeory pages required for both
+    \projname{} programs and their equivalent eBPF programs.
+We select 3 simple eBPF programs from the sample eBPF programs shipped with the
+    kernel -- the trace point program \texttt{syscall\_tp}, the kprobe program
+    \texttt{tracex5} and the perf event program \texttt{trace\_event}.
+We also include the BMC program (\S~\ref{eval:macro}) in the experiment because
+    it represents an example of a complicated eBPF program.
+For all the programs, we implement a \projname{} version with the same
+    overall logic.
+
 \begin{itemize}
-    \item need a figure: Number of progs in the same translation unit vs
-        memory usage for program allocation
-    \item x: Number of progs in a translation unit (empty prog with just a
-        return) 1 to 8
-    \item y: total number of bytes allocated for the loaded object (JIT-ed code
+    \item need a figure: bar graph showing the memory footprint of bpf and
+        \projname{} programs on our sample programs
+    \item sample programs: \texttt{syscall\_tp}, \texttt{tracex5},
+        \texttt{trace\_event}, and BMC.
+    \item y: total number of pages allocated for the loaded object (JIT-ed code
         for BPF, loaded and mapped pages for Rust)
 \end{itemize}
+
+\jinghao{Discussion on the result really needs the result, I am not sure which
+one will have a smaller memory footprint.}
 
 \subsubsection{Startup overhead due to stack switching}
 \begin{itemize}
@@ -102,6 +130,7 @@
             \item maps to test: array, hash (htab-lru, xsk-map?)
         \end{itemize}
 \end{itemize}
+\jinghao{Leave the paragraph to Egor}
 
 \subsubsection{Stack-check overhead}
 \begin{itemize}
@@ -121,6 +150,7 @@
 \end{itemize}
 
 \subsection{Macro-benchmarks}
+\label{eval:macro}
 We now demonstrate that \projname{} can be used to implement complicated,
     real-world kernel extension use cases with enhanced usability but without
 %    losing much performance by implementing BMC and Electrode in \projname{}.
