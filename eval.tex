@@ -117,6 +117,20 @@ one will have a smaller memory footprint.}
         in terms of processor cycles (including the dispatcher function)
 \end{itemize}
 
+\projname{}'s usage of a dedicated stack for execution and the implementation
+    of exception handling support may incur additional overhead during program
+    startup and shutdown.
+This design requires saving of the stack and frame pointer and replacing them
+    with the top address of the dedicated stack before starting the program,
+    and retoring the saved stack and frame pointer after the program exits.
+The manipulation of the stack pointers adds to six more memory instructions to
+    the program execution path.
+In this experiment we measure the overhead of these stack pointer operations.
+We implement an empty extension program -- both in eBPF and in \projname{} --
+    and measure their wall runtime including the program dispatcher function.
+
+\jinghao{Need data for discussion, don't know how large the overhead would be.}
+
 \subsubsection{Verifier/JIT-based optimization}
 \begin{itemize}
     \item inline v.s. out-of-line map helpers
