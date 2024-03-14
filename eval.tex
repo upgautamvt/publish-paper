@@ -155,6 +155,21 @@ We implement an empty extension program -- both in eBPF and in \projname{} --
         from optimizing out the recursion
 \end{itemize}
 
+We then evaluate how much overhead the runtime stack check have on the
+    performance of \projname{} programs.
+The stack instrumentation is added before each
+    function call in the \projname{} program if the program contains indirect
+    or recursive function calls that prevents the compiler from calculating the
+    stack usage statically.
+In this experiment we implement recursive factorial computation program in both
+    eBPF and \projname{}.
+Since eBPF does not natively support recursive functions, we use eBPF tail
+    calls to invoke the same program.
+At same time, because recursive factorial computation can always be tail-call
+    optimized in Rust, this comparison should be able to precisely highlight
+    the performance implication of the runtime stack instrumentation.
+\jinghao{TODO: discuss results.}
+
 \subsubsection{Cleanup overhead on normal execution path}
 \begin{itemize}
     \item table showing runtime of two programs calling reference allocating
@@ -162,6 +177,18 @@ We implement an empty extension program -- both in eBPF and in \projname{} --
     \item right now we only support spinlock (i.e. do a loop where can
         iteration lock and then unlock the spinlock)
 \end{itemize}
+
+The cleanup mechanism employed by \projname{} requires recording the allocated
+    resource at runtime, which comparing to eBPF or Itanium C++ ABI, adds extra
+    runtime overhead.
+We therefore evaluate the runtiem overhead from \projname{}'s cleanup
+    mechanism.
+For this miscrobenchmark, we choose to use a program that acquires and then
+    immediately releases a BPF spinlock, since the acquired spinlocks need to
+    be released upon Rust panics.
+The program is implemented both in eBPF and \projname{} and the time used to
+    acquire and release the spinlocks are measured.
+\jinghao{TODO: discuss results}
 
 \subsection{Macro-benchmarks}
 \label{eval:macro}
