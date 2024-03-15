@@ -183,6 +183,7 @@ triggers consist of a one-line c program that calls the appropriate function suc
 The bpf program creates the corresponding map and measures the time 
 it takes to execute a single map\_lookup\_elem. This time is measured with 
 bpf\_ktime\_get\_ns() and then printed with bpf\_printk() and recorded.
+\milo{Maybe we should talk about why we chose these specific maps. i.e. that array and hash maps are the main ones that support the inlining?}
 
 \subsubsection{Stack-check overhead}
 \begin{itemize}

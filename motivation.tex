@@ -1,25 +1,37 @@
 \section{Motivational Analysis}
 \label{sec:motivation}
 
-While eBPF verification is important for program safety, the eBPF verifier has
-    to place additional constraints on programs, which results in usability
+While eBPF verification is important for program safety, the eBPF verifier
+    places additional constraints on programs, which results in usability
     challenges.
 At the core of the problem is a large gap between the programmer and the
     verifier.
 Typical eBPF development involves implementing programs in a high-level
-    programming langauge (e.g., C, Rust) and compiling to eBPF bytecode.
+    programming language (e.g., C, Rust) and compiling to eBPF bytecode.
 Developers agree to a contract with the high-level language, which is enforced by the compiler.
 When a program fails to compile, the developer will get a message with hints about where they violated
     the contract with the programming language.
-At the same time, there is an implicit agreement between the developer and the eBPF verifier, which is
-    checked by the verifier.
-The verifier will reject programs that do not maintain the agreement.
-Verifier rejections may be from truly unsafe programs, or from false positives.
-Additionally, the cause of verifier rejections may even be unrelated to the code the programmer wrote.
+
+%At the same time, there is an implicit agreement between the developer and the eBPF verifier, which is
+%    checked by the verifier.
+At the same time, the verifier has a set of properties that it ensures are maintained for each program, such as memory safety.
+The verifier will reject programs that do not meet these properties.
+%Verifier rejections may be from truly unsafe programs, or from false positives.
+The compiler does not know the set of properties that the eBPF verifier checks, which 
+    introduces a gap between the compiler and the verifier, and, by extension, the programmer and the verifier.
+
+The problem is compounded by the fact that the verifier operates on code that has undergone
+    translation from a high-level language into eBPF bytecode.
+The cause of verifier rejections may unrelated to the code the programmer wrote and instead
+    be a result of bugs anywhere along the toolchain.
+The verifier is also a moving target, with different versions having different constraints
+    and different completeness guarantees.
 As a result, eBPF developers often have to wrestle with the in-kernel verifier
-    to allow the programs they write to pass.
+    to allow safe programs they write to pass.
 This can manifest itself in needing to write arcane expressions to please the
-    verifier.
+    verifier, or by completely restructuring semantically correct and safe code.
+
+%The compiler does not know the set of properties that the eBPF verifier checks, which makes it more difficult for developers to know if their program will run until they run the verifier.
 
 %This binds developers with a contract not only with the high-level language
 %    that is enforced by the compiler or interpreter, but also with the eBPF
@@ -31,16 +43,13 @@ This can manifest itself in needing to write arcane expressions to please the
 %    error back to source code.
 %Source code goes through a translation to eBPF bytecode before it is verified, which makes mapping the output of the verifier back to the code the programmer wrote difficult.
 
-To better understand this gap and the kinds of usability issues the eBPF
+To better understand this gap and the kinds of usability issues eBPF
     developers face, we carried out an analysis on existing eBPF projects and
-    past research literatures.
+    past research literature.
 %We carried out an analysis of existing eBPF projects and research papers to better understand this gap and the kinds of verifier issues the eBPF developers face.
 % eBPF developers often have to wrestle with the in-kernel verifier to allow the programs they write to pass.
 % This can manifest itself in needing to write arcane expressions to please the verifier.
 We categorize the solutions that programmers need to implement in order to pass the verifier to get a clearer picture of the usability challenges that the current eBPF system has.
-
-\jinghao{@Milo I restructured the preamable, please take a look to see if there
-are any problems}
 
 \subsection{Methodology}
 To collect data, we searched through the git commit logs of Cilium, Aya-rs, and
@@ -61,6 +70,11 @@ To classify the commit into categories, we read the commit message and examined
 Some categories were clear to see and are well documented in the literature (i.e. splitting functions), while other categories were more subtle.
 We created a qualitative analysis of many of the kinds of problems that arise when writing and verifying eBPF programs.
 
+\subsubsection{A note on categories}
+The categorizations that we created are not necessarily mutually exclusive.
+We started with a large set of smaller categories, and then combined categories to
+    create larger categories that represented classes of fixes, as well as picking out 
+    common patterns that are representative.
 \subsection{Results}
 
 \begin{table}[t]
@@ -92,15 +106,15 @@ Table~\ref{fig:commit-table} summarizes the results of our analysis.
 Our analysis classifies the commits into 10 categories.
 Each category represents a class of techniques that developers used to make their programs pass the verifier.
 
-\jinghao{
-Some comments on the table: it is not immediately clear on what exactly
-    the developers are doing for some of the categories, especially the last
-    3. (btw, should it be ``helper functions'' or ``helping functions'').
-At the same time, the categories do not seem to be mutually exclusive,
-    e.g., ``Split eBPF programs for complexity'' vs.
-    ``Refactor code to reduce complexity''.
-We should be clear whether the categories are overlapping.
-}
+%\jinghao{
+%Some comments on the table: it is not immediately clear on what exactly
+%    the developers are doing for some of the categories, especially the last
+%    3. (btw, should it be ``helper functions'' or ``helping functions'').
+%At the same time, the categories do not seem to be mutually exclusive,
+%    e.g., ``Split eBPF programs for complexity'' vs.
+%    ``Refactor code to reduce complexity''.
+%We should be clear whether the categories are overlapping.
+%}
 
 The composition of the categories makes it clear that developers have to change their code in particular ways to get it to pass the verifier.
 It also demonstrates how difficult it can be to reason about the results of the verifier.
@@ -168,12 +182,23 @@ One example of refactoring for complexity involved changing how the code handled
 The current state of the code caused the program to fail verification as it went over the maximum checked instruction limit. 
 The code was refactored to reduce the number of calls to \verb{ctx_load_bytes(){, which solved the complexity issue.
 
-One example of refactoring for expressiveness invovles implementing a switch statement inside of a switch statement which essentially duplicates code.
+One example of refactoring for expressiveness involves implementing a switch statement inside of a switch statement which essentially duplicates code.
 The main reason this was a problem is because the verifier would see the back edge jump to the beginning of the original switch statement.
 The verifier would treat this as a potential infinite loop and reject the program.
 \milo{Work on this and add better explanations/a figure maybe}
 
 \subsubsection{Add specific code to pass verifier}
+Another common fix for verifier complaints involves adding code to please the verifier.
+This can involve several kinds of new specific code:
+
+\begin{enumerate}
+    \item Adding inline functions
+    \item Teaching the verifier information
+    \item Implementing functions in a specific way
+\end{enumerate}
+
+Each of these categories involves writing specific code to pass the verifier.
+
 \textbf{Inlining Functions to Pass Verifier}:
 
 The verifier can lose track of information depending on how eBPF programs are structured.
@@ -198,7 +223,7 @@ policy_check_entry:
 	return CTX_ACT_OK;
 }
     \end{lstlisting}
-    \caption{Block of code reached after a goto \jinghao{This code is not referenced}}
+    \caption{Block of code reached after a goto}
     \label{fig:inline-fig}
 \end{figure}
 
@@ -224,7 +249,36 @@ I think we need something similar to the previous cases where we explicitly
     discuss why it is bad.
 }
 
-%TODO
+\emph{Explicitly teaching the verifier information}
+An example of explicitly teaching the verifier information can be found in the aya-rs project.
+As part of their library, aya contains functions to help log information.
+Throughout the project they have an upper bound on the size of the log buffer.
+In a write string function they needed to add an explicit check on the size of the length of the string against the log buffer max size.
+
+Another example can be found in cilium.
+A line of code assigned a field of a struct to a value.
+Later in the function, that field was accessed.
+The verifier responded to this with an error thinking that reading from this value was a pointer that was spilled to the stack.
+The fix was to get rid of this assignment, and explicitly use the original value in order to teach the verifier where the data was coming from.
+
+\emph{Implementing functions in a specific way}
+The aya-rs project had to implement versions of \verb{memset{ and \verb{memcpy{ which are very simple for the verifier.
+As can be seen in Figure~\ref{fig:aya-memset} the code is as basic as you could get, but it is necessary for the verifier.
+
+\begin{figure}
+    \begin{lstlisting}[language=rust]
+#[no_mangle]
+pub unsafe extern "C" fn memset(s: *mut u8, c: c_int, n: usize) {
+    let base = s as usize;
+    for i in 0..n {
+        *((base + i) as *mut u8) = c as u8;
+    }
+}
+    \end{lstlisting}
+    \caption{Simple and specific implementation of memset}
+    \label{fig:aya-memset}
+\end{figure}
+
 inline functions, explicitly teach info, etc
 
 \subsubsection{Implement kernel-version-specific fixes}
