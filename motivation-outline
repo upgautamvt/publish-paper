@@ -10,3 +10,36 @@
 2.3.2 Examples
 2.4 Conclusion
 
+
+
+
+3. Compiler/Verifier/Programmer  Gap
+(lead in)
+- what is it
+- we will define and [show the existence of]
+  - (hinting at methodology/analysis/study)
+- we are going to categorize challenges
+  - llvm
+  - restructuring
+  - specific code
+  - pruning
+
+3.1 methodolology
+3.2 Categorization overview
+3.3 Category examples
+
+3.4 versioning <-- because of decoupled implementation
+- they could agree, but certain versions don't because of impl details
+- compiler (?), verifier (?), kernel interface (CO-RE)
+- many of these differ depending on version
+- even if compiler/verifier align for version x, no guarantee for version y
+  - CO-RE doesn't solve it
+
+3.4 safety mismatches <-- fundmental in terms of language guarantees
+- they disagree on a property or "extralingual"
+
+3.4 takeaways
+- summary
+- goals/requirements/constraints
+  - programmer contract has to be linked to safety property
+  - programmer contract is with version of PL (there's only 1 "version" that programmer needs to consider), PL-based CO-RE
