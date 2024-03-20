@@ -1,35 +1,44 @@
-\section{Motivational Analysis}
+\section{The eBPF Programmer Gap}
 \label{sec:motivation}
 
 While eBPF verification is important for program safety, the eBPF verifier
     places additional constraints on programs, which results in usability
     challenges.
-At the core of the problem is a large gap between the programmer and the
+The core of the problem is a large gap between the programmer and the
     verifier.
 Typical eBPF development involves implementing programs in a high-level
     programming language (e.g., C, Rust) and compiling to eBPF bytecode.
-Developers agree to a contract with the high-level language, which is enforced by the compiler.
-When a program fails to compile, the developer will get a message with hints about where they violated
+Developers agree to a contract with the high-level language, which is 
+    enforced by the compiler.
+When a program fails to compile, the developer will get a message with 
+    hints about where they violated
     the contract with the programming language.
+If, however, a program fails to pass the verifier it is harder for the programmer
+    to understand why the program failed and how to fix it.
+We analyzed commit messages from popular eBPF projects to see how programmers fix
+    eBPF programs that fail to verify.
+From the commit messages, we created a set of categories of fixes.
+In this section we will describe our methodology and categorization, walk through some illustrative examples, and describe the key high level takeaways.
+Additionally, we describe two fundamental reasons for the programmer gap.
 
-%At the same time, there is an implicit agreement between the developer and the eBPF verifier, which is
-%    checked by the verifier.
-At the same time, the verifier has a set of properties that it ensures are maintained for each program, such as memory safety.
-The verifier will reject programs that do not meet these properties.
-%Verifier rejections may be from truly unsafe programs, or from false positives.
-The compiler does not know the set of properties that the eBPF verifier checks, which 
-    introduces a gap between the compiler and the verifier, and, by extension, the programmer and the verifier.
 
-The problem is compounded by the fact that the verifier operates on code that has undergone
-    translation from a high-level language into eBPF bytecode.
-The cause of verifier rejections may unrelated to the code the programmer wrote and instead
-    be a result of bugs anywhere along the toolchain.
-The verifier is also a moving target, with different versions having different constraints
-    and different completeness guarantees.
-As a result, eBPF developers often have to wrestle with the in-kernel verifier
-    to allow safe programs they write to pass.
-This can manifest itself in needing to write arcane expressions to please the
-    verifier, or by completely restructuring semantically correct and safe code.
+
+
+%At the same time, the verifier has a set of properties that it ensures are maintained for each program, such as memory safety.
+%The verifier will reject programs that do not meet these properties.
+%The compiler does not know the set of properties that the eBPF verifier checks, which 
+%    introduces a gap between the compiler and the verifier, and, by extension, the programmer and the verifier.
+%
+%The problem is compounded by the fact that the verifier operates on code that has undergone
+%    translation from a high-level language into eBPF bytecode.
+%The cause of verifier rejections may unrelated to the code the programmer wrote and instead
+%    be a result of bugs anywhere along the toolchain.
+%The verifier is also a moving target, with different versions having different constraints
+%    and different completeness guarantees.
+%As a result, eBPF developers often have to wrestle with the in-kernel verifier
+%    to allow safe programs they write to pass.
+%This can manifest itself in needing to write arcane expressions to please the
+%    verifier, or by completely restructuring semantically correct and safe code.
 
 %The compiler does not know the set of properties that the eBPF verifier checks, which makes it more difficult for developers to know if their program will run until they run the verifier.
 
@@ -43,39 +52,38 @@ This can manifest itself in needing to write arcane expressions to please the
 %    error back to source code.
 %Source code goes through a translation to eBPF bytecode before it is verified, which makes mapping the output of the verifier back to the code the programmer wrote difficult.
 
-To better understand this gap and the kinds of usability issues eBPF
-    developers face, we carried out an analysis on existing eBPF projects and
-    past research literature.
+%To better understand this gap and the kinds of usability issues eBPF
+%    developers face, we carried out an analysis on existing eBPF projects and
+%    past research literature.
 %We carried out an analysis of existing eBPF projects and research papers to better understand this gap and the kinds of verifier issues the eBPF developers face.
 % eBPF developers often have to wrestle with the in-kernel verifier to allow the programs they write to pass.
 % This can manifest itself in needing to write arcane expressions to please the verifier.
-We categorize the solutions that programmers need to implement in order to pass the verifier to get a clearer picture of the usability challenges that the current eBPF system has.
+%We categorize the solutions that programmers need to implement in order to pass the verifier to get a clearer picture of the usability challenges that the current eBPF system has.
 
 \subsection{Methodology}
 To collect data, we searched through the git commit logs of Cilium, Aya-rs, and
     Katran, which are mature, widely-used eBPF projects, for instances of
     keywords: "error", "reject", "rejects", "issue", and "verifier."
-For each commit log that matched, we manually inspected and classified the commit.% it to try and classify it.
-In total, we collected 216 commit messages \mvle{containing the above keywords}, of which we decided that 73 of them were actually about verifier complaints.
-In addition, we included \mvle{how many?} issues raised in the BMC~\cite{BMC} and Electrode~\cite{Electrode} papers as examples when appropriate.
-\jinghao{Citation needed for all mentioned projects/papers.}
+For each commit log that matched, we manually inspected and classified the commit.
+In total, we collected 216 commit messages containing the above keywords, of which we decided that 73 of them were actually about verifier complaints.
+In addition, we included two issues raised in the BMC~\cite{BMC} and Electrode~\cite{Electrode} papers as examples when appropriate.
 
-88\% of commit messages found were from the Cilium repository.
-Cilium is a mature project that makes extensive use of eBPF as a core part of its architecture.
-Cilium represents a representative set of challenges for large projects with complex eBPF code bases.
-\jinghao{Is this paragraph necessary?}
+%88\% of commit messages found were from the Cilium repository.
+%Cilium is a mature project that makes extensive use of eBPF as a core part of its architecture.
+%Cilium represents a representative set of challenges for large projects with complex eBPF code bases.
+%\jinghao{Is this paragraph necessary?}
 
-To classify the commit into categories, we read the commit message and examined
-    the source code changes.
-Some categories were clear to see and are well documented in the literature (i.e. splitting functions), while other categories were more subtle.
-We created a qualitative analysis of many of the kinds of problems that arise when writing and verifying eBPF programs.
+To classify the commits into categories, we read each of the commit messages and examined
+    their source code changes.
+Some categories were clear to see and are well documented in the literature (i.e. restructuring eBPF programs), while other categories were more subtle.
+We created a qualitative analysis of many of the kinds of fixes that are used when writing and verifying eBPF programs.
 
-\subsubsection{A note on categories}
 The categorizations that we created are not necessarily mutually exclusive.
 We started with a large set of smaller categories, and then combined categories to
     create larger categories that represented classes of fixes, as well as picking out 
     common patterns that are representative.
-\subsection{Results}
+
+\subsection{Categorization Overview}
 
 \begin{table}[t]
     \small
@@ -103,7 +111,7 @@ We started with a large set of smaller categories, and then combined categories 
 \end{table}
 
 Table~\ref{fig:commit-table} summarizes the results of our analysis.
-Our analysis classifies the commits into 10 categories.
+Our analysis classifies the commits into five categories.
 Each category represents a class of techniques that developers used to make their programs pass the verifier.
 
 %\jinghao{
@@ -128,22 +136,24 @@ The classes of solution employed are different ways that developers use to make 
     missing here is an overview of the finding from our study (i.e. beef up the
     previous paragraph)}
 
-\subsection{Examples}
-To better explain our categorization, we will now walk through some characteristic examples for the most important categories.
+\subsection{Category Representative Examples}
+To better explain our categorization, we will now walk through some representative examples for the most important categories.
 
 \subsubsection{Change Source Code to Fix LLVM Codegen}
-One issue found by Cilium was that LLVM may generate 32-bit assignments for accessing \emph{ctx->data, ctx->data\_end, ctx->data\_meta} fields.
-The verifier cannot track the packet pointers through these 32-bit assignments.
+We found that in certain cases, LLVM would generate eBPF bytecode that would cause the program to fail verification.
+One issue found by Cilium was that LLVM may generate 32-bit assignments for 
+    accessing \emph{ctx->data, ctx->data\_end, ctx->data\_meta} fields as 
+    each of the fields are on 32-bit boundaries.
+However, verifier cannot track the packet pointers through these 32-bit assignments and
+    will cause the program to fail to verify.
 The solution was to implement the access through inline assembly code shown in Figure~\ref{fig:inline-asm}.
 This prevents LLVM from generating 32-bit assignments as an optimization.
 \jinghao{can we be more specific on the BPF opcode (e.g., load/store) of the
     assignment as in Figure~\ref{fig:inline-asm}}
 
 
-
 This workaround allows the eBPF program to pass the verifier.
 It is clear that this exposes usability issues of the verifier.
-%It is clear to see that this is not usable code.
 The LLVM compiler is unaware of the verifier's needs, and the programmer must know low level detail about the eBPF system in order to realize this.
 
 Another change that was implemented was to mark certain variables as volatile.
@@ -184,11 +194,13 @@ The code was refactored to reduce the number of calls to \verb{ctx_load_bytes(){
 
 One example of refactoring for expressiveness involves implementing a switch statement inside of a switch statement which essentially duplicates code.
 The main reason this was a problem is because the verifier would see the back edge jump to the beginning of the original switch statement.
-The verifier would treat this as a potential infinite loop and reject the program.
+The verifier would treat this as a potential infinite loop and reject the program despite the fact that the code cannot actually infinitley loop.
+The changes required increase the complexity of the source code without changing the semantics.
 \milo{Work on this and add better explanations/a figure maybe}
 
 \subsubsection{Add specific code to pass verifier}
-Another common fix for verifier complaints involves adding code to please the verifier.
+Another common fix for verifier complaints involves adding specific code to please 
+    the verifier.
 This can involve several kinds of new specific code:
 
 \begin{enumerate}
@@ -197,14 +209,11 @@ This can involve several kinds of new specific code:
     \item Implementing functions in a specific way
 \end{enumerate}
 
-Each of these categories involves writing specific code to pass the verifier.
-
 \textbf{Inlining Functions to Pass Verifier}:
-
 The verifier can lose track of information depending on how eBPF programs are structured.
 One fix for this is to inlined functions for implementing functionality.
-It is not clear what code needs to be made into a inlined function for the verifier.
-%Doing this helps to keep functionality separate from the programmers perspective, while allowing the verifier to see all the code at the same time.
+It is not always clear what code needs to be made into a inlined function for the verifier
+    which makes eBPF less usable.
 
 \begin{figure}
     \begin{lstlisting}[language=myC]
@@ -227,7 +236,6 @@ policy_check_entry:
     \label{fig:inline-fig}
 \end{figure}
 
-
 An example of this was found in Cilium.
 The code in Figure~\ref{fig:inline-fig} was written to check fields in a policy struct.
 Originally, the code would check to see which of the variables, \verb{policy{ or \verb{l4policy{, was set.
@@ -237,19 +245,20 @@ The solution was to convert this block to an inlined function that would take an
 
 The structure of the code before was valid and correct, but it failed to pass the verifier.
 In response to this, the developers had to figure out a workaround to make their valid code pass.
+Additionally, this code is a logical way to structure the task, and it was not entirely clear what needed to be done to make it pass the verifier.
 
 %The developers made this code general across two cases by reassigning the value of policy depending on what the input was before jumping to the common code.
 %This pattern caused the verifier to lose information about what the variable \verb{policy{ was referring to.
 %The fix was to convert this common code into an inlined function.
-\jinghao{
-It is hard to see why this is a problem, especially when you say ``Doing this
-    helps to keep functionality separate from the programmers perspective,
-    while allowing the verifier to see all the code at the same time''.
-I think we need something similar to the previous cases where we explicitly
-    discuss why it is bad.
-}
+%\jinghao{
+%It is hard to see why this is a problem, especially when you say ``Doing this
+%    helps to keep functionality separate from the programmers perspective,
+%    while allowing the verifier to see all the code at the same time''.
+%I think we need something similar to the previous cases where we explicitly
+%    discuss why it is bad.
+%}
 
-\emph{Explicitly teaching the verifier information}
+\textbf{Explicitly teaching the verifier information}
 An example of explicitly teaching the verifier information can be found in the aya-rs project.
 As part of their library, aya contains functions to help log information.
 Throughout the project they have an upper bound on the size of the log buffer.
@@ -261,9 +270,9 @@ Later in the function, that field was accessed.
 The verifier responded to this with an error thinking that reading from this value was a pointer that was spilled to the stack.
 The fix was to get rid of this assignment, and explicitly use the original value in order to teach the verifier where the data was coming from.
 
-\emph{Implementing functions in a specific way}
+\textbf{Implementing functions in a specific way}
 The aya-rs project had to implement versions of \verb{memset{ and \verb{memcpy{ which are very simple for the verifier.
-As can be seen in Figure~\ref{fig:aya-memset} the code is as basic as you could get, but it is necessary for the verifier.
+As can be seen in Figure~\ref{fig:aya-memset}, the code is extremely straightforward, but it is necessary for the verifier.
 
 \begin{figure}
     \begin{lstlisting}[language=rust]
@@ -278,8 +287,6 @@ pub unsafe extern "C" fn memset(s: *mut u8, c: c_int, n: usize) {
     \caption{Simple and specific implementation of memset}
     \label{fig:aya-memset}
 \end{figure}
-
-inline functions, explicitly teach info, etc
 
 \subsubsection{Implement kernel-version-specific fixes}
 Different kernel versions may have different versions of the eBPF verifier, each with different sets of bugs.
@@ -314,31 +321,89 @@ dereference of modified ctx ptr R1 off=48+0,
 
 \subsubsection{Add Pruning Checkpoints}
 Another common fix that Cilium implemented was to introduce a pseudo-helper function \texttt{relax\_verifier}.
-The purpose of this helper is to provide a checkpoint for the verifier to use when does state pruning
-\jinghao{Not sure if it should be ``which does'' or ``when doing''}.
+The purpose of this helper is to provide a checkpoint for the verifier to use when doing state pruning.
 In some cases doing so significantly decreases the complexity of eBPF programs.
 In one commit, doing so reduced the number of instructions checked from 62,569 to 49,669.
 This is more significant on older kernel versions which have a much smaller upper limit to the number of instructions the eBPF verifier could check.
 
-Again, this change is horrible from a usability standpoint.
-With no assistance from their compiler, programmers must know the design and then include code that enables the verifier's state pruning mechanism to kick in.
+With no asistance, programmers are required to have knowledge of low-level 
+    internal details of the eBPF verifier, and then implement fixes that 
+    make use of this knowledge.
+Having to make this change harms the usability of eBPF.
 
 
-
-\subsection{Key Takeaways}
-From our analysis, we believe that there are serious usability challenges to the existing eBPF system that stem from the gap between programmer and verifier.
+\subsection{Analysis Takeaways}
+From our analysis, we believe that there are serious usability challenges to the 
+    existing eBPF system that stem from the gap between programmer and verifier.
 The categories of verifier issue that we found are direct indicators of this problem.
-eBPF programmers have to implement arcane fixes and change the mental model of programming to meet the constraints of the verifier.
-On its own this is not bad, and an expected outcome of using a verifier
-\jinghao{what does this sentence mean?}.
-But with the current system, developers are actively hindered by the system.
+eBPF programmers have to implement arcane fixes and change their mental model of 
+    programming to meet the constraints of the verifier without any assistance.
 If an eBPF program fails to verify there is not always a clear reason why that was the case, e.g.,
 it could be that a programmer's source code was completely safe, but LLVM generated code that the verifier did not understand.
 To programmers, a successful compilation should indicate something about the success of their code, but in the eBPF system that is not the case.
-
 This gap is fundamental to the eBPF system.
-Different kernel versions have different verifiers with different constraints and different properties that they check.
-There would have to be some way to fully expose the specifics of the verifier back to the compiler to close the gap.
-
 \jinghao{would be interesting to talk about saving/reloading computation
     context across tail calls}
+
+%Different kernel versions have different verifiers with different constraints 
+%    and different properties that they check.
+%There would have to be some way to fully expose the specifics of the verifier 
+%    back to the compiler to close the gap.
+
+\subsection{Mismatches Cause the Gap}
+In this section we examine two of the main causes of the programmer gap.
+The programmer gap is a consequence of two mismatches between the verifier and the compiler that arises due to the design of the eBPF system.
+    \begin{enumerate}
+        \item Version mismatches
+        \item Safety mismatches
+    \end{enumerate}
+
+\subsubsection{Version Mismatches}
+There are three sources of versioning that eBPF currently has, that may lead to issues.
+\begin{enumerate}
+    \item Kernel Interface
+    \item Verifier
+    \item Compiler
+\end{enumerate}
+
+Kernel interface version problems are resolved by the use of BTF and CO-RE in BPF.
+However, the version issues differences between the compiler and verifier are not dealt
+    with in any way.
+
+In the current eBPF system, the compiler and the verifier are decoupled.
+As development proceeds, implementation details about the compiler and verifier change.
+As seen in Table~\ref{fig:commit-table} there are examples of differences in implementation
+    between the LLVM compiler toolchain and the eBPF verifier breaking 
+    program verification.
+Figure~\ref{fig:2comp1ver} shows a flowchart of how this might happen.
+
+Problems can also arise from different verifier versions.
+If an eBPF program verifies on one version, there is no guarantee that it verifies on a different version.
+Examples of this include backwards compatibility for features like loops.
+Figure~\ref{fig:1comp2ver} shows a flowchart of how this might happen.
+
+There is no way to fully resolve the issues of versioning in the eBPF system as 
+    each component is a constantly moving target.
+Compilers will continue to evolve, just as the eBPF verifier will continue to evolve, and because they are decoupled, there will be places where they do not align.
+
+\begin{figure}
+    \includegraphics[width=1.0\linewidth]{figs/2comp1verifier}
+    \centering
+    \caption{Version issue between two compiler versions}
+    \label{fig:2comp1ver}
+\end{figure}
+
+\begin{figure}
+    \includegraphics[width=1.0\linewidth]{figs/1comp2verifier}
+    \centering
+    \caption{Version issue between two verifier versions}
+    \label{fig:1comp2ver}
+\end{figure}
+
+\subsubsection{Safety Mismatches}
+The other source of mismatches is that the compiler and the verifier may have
+    different ways of ensuring program properties that are incompatible.
+
+
+
+
