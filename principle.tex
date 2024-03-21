@@ -52,12 +52,12 @@ The goal of \projname{} is to provide enhanced usuability for kernel extensions,
     while ensuring the safety properties of the extension programs.
 In particular, we aim to make \projname{} more usable than eBPF and at least
     as safe as eBPF.
-As discussed in \S~\ref{sec:motivation}, the current problem on usability of
+As discussed in \S~\ref{sec:motivation}, the current problem of usability of
     eBPF is the large semantic gap between the programer, who works on
-    high-level langauges, and the verifier, which operates on compiled bytecode.
+    high-level languages, and the verifier, which operates on compiled bytecode.
 % Our insight is that both the needed expressiveness and safety can be obtained
 %     from a safe programming language without the verifier.
-Our insight is that by using a safe, high-level langauge that directly
+Our insight is that by using a safe, high-level language that directly
     implements the required safety of the kernel, the semantic gap can be
     closed.
 % Specifically, the language should have the following properties:
@@ -70,10 +70,21 @@ Our insight is that by using a safe, high-level langauge that directly
 %         model low-level kernel semantics and simplifies infrastructure needed
 %         to support it.
 % \end{itemize}
+
 \projname{} uses Rust as the language for extension programs.
-This is because Rust happens to provide the desired properties -- its
-    langauge-based safety can be leveraged for safe kernel extensions without a
-    verifier.
+% This is because Rust happens to provide the desired properties -- its
+%     language-based safety can be leveraged for safe kernel extensions without a
+%     verifier.
+This is because Rust provides either the desired properties directly or
+    essential building blocks to ensure the safety properties.
+Specifically, the following are the important safety properties:
+\begin{itemize}
+    \item Type safety
+    \item Safe resource management
+    \item Exception-based runtime safety
+    \item Stack safety
+    \item Program termination
+\end{itemize}
 We now discuss how the safety properties from Rust can be applied to the
     context of kernel extensions to provide a safe programming interface.
 % While the use of Rust automatically provides expressiveness (as it is
