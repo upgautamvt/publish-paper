@@ -182,10 +182,9 @@ The \texttt{bpf\_map\_lookup\_elem} invocation is by defualt inlined by the
     eBPF verifier when possible.
 The setup of eBPF without inlining is achieved by removing the inlining logic
     from the eBPF verifier.
-We selected three widely-used eBPF map types for this experiment: array maps,
-    hash maps, and per-CPU array maps.
-Among them, array maps and hash maps supports inlining while per-CPU array maps
-    does not.
+We selected two commonly-used eBPF map types for this experiment: array maps
+    and hash maps.
+Both of them support lookup inlining.
 
 % Figure~\ref{fig:eval-inline}
 % shows the performance of inlining and non-inlining on a vanilla
@@ -195,7 +194,7 @@ Figure~\ref{fig:eval-inline} shows the performance of map lookups under the
 % The vanilla non-inlined
 % kernel is achieved by commenting out the lines in the kernel verifier.c file that
 % automatically inlines the bpf\_map\_lookup\_elem method.
-For maps that support lookup inlining, i.e. array maps and hash maps, the
+For both array maps and hash maps, the
     runtime of map lookup can be reduced by 20-30 ns compared to eBPF without
     inlining.
 % In the graph,
