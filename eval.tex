@@ -323,7 +323,8 @@ Both machines are equiped with Mellanox ConnectX-3 Pro 40GbE NICs and are
 % Preload all keys
 % GET:SET 30:1
 
-We use a workload with the same specs as in BMC.
+We use the following workload to evaluate our \projname{}-BMC together with the
+    original eBPF-BMC.
 Our dictionary contains 50 million Memcached keys following a Zipf
     distribution with 0.99 skewness.
 All keys are 16 bytes in size and are paired with 32-byte values in the
@@ -338,7 +339,7 @@ Before experiments, the Memcached server is pre-loaded with all keys by
 The client then sends requests to the server with a 30:1 ratio betweren UDP GET and
     TCP SET requests and measures the throughput.
 
-We evaluate the throughput three setups: MemcachedSR (from BMC),
+We evaluate the throughput of three setups: MemcachedSR (from BMC),
     MemcachedSR+BMC, and MemcachedSR+\projname{}-BMC.
 The original open-sourced BMC code targets Linux kernel version 5.3.0 and we
     port it to the v5.15.0 \projname{} kernel for the evaluation.
@@ -362,16 +363,16 @@ We also adjust the CPU affinity of IRQs associated with the NIC such that the
 Figure~\ref{fig:eval-bmc} shows the throughput of the three setups under
     different numbers of CPUs and threads.
 MemcachedSR processes all requires in userspace and thus its throughput suffers
-    from the overhead of the kernel network stack, achieving only 6.2k requests
-    per second under a single thread and 24.2k requests per second under when
-    using 8 cores.
+    from the overhead of the kernel network stack, achieving only 45K requests
+    per second under a single thread and 175K requests per second under 8
+    cores.
 On the other hand, both eBPF-based and \projname{}-based BMC are able to
-    achieve a much higher throughput given that they can process a large
+    achieve a much higher throughput because they can process a large
     fraction of requests at NIC level and without the need of going through
     the expensive kernel network stack.
 With 8 CPU cores and threads, eBPF-BMC and \projname{}-BMC achieve a thoughput
-    of 1.4 million and 1.38 million, and a performance benefit of 5.8x and
-    5.7x, respectively.
+    of 1.106M and 1.111M, and a performance benefit of 6.3x and 6.4x,
+    respectively.
 It is also clear that \projname{} is able achieve a better usability while
     keeping the same level of performance and safety guarrantee comparing to
     eBPF,  as the throughput of \projname{}-BMC is comparable to that of
