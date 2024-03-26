@@ -112,24 +112,39 @@ For all the programs, we implement a \projname{} version with the same
 one will have a smaller memory footprint.}
 
 \subsubsection{Startup overhead due to stack switching}
-\begin{itemize}
-    \item A table showing the runtime of an empty eBPF program and Rust program
-        in terms of processor cycles (including the dispatcher function)
-\end{itemize}
+\begin{table}[t]
+    \small
+    \centering
+    \begin{tabular}{cc}%{|p{6cm}|p{1cm}|}
+        \toprule
+        \textbf{Extension} & \textbf{Runtime of empty program (ns)} \\
+        \midrule
+        eBPF & 43.5 $\pm$ 4.79 \\
+        \projname{} & 44.1 $\pm$ 4.93 \\
+        \bottomrule
+    \end{tabular}
+    \caption{Runtime of an empty program for eBPF and \projname{}}
+    \vspace{-10pt}
+    \label{fig:startup-overhead}
+\end{table}
 
 \projname{}'s usage of a dedicated stack for execution and the implementation
     of exception handling support may incur additional overhead during program
     startup and shutdown.
 This design requires saving of the stack and frame pointer and replacing them
     with the top address of the dedicated stack before starting the program,
-    and retoring the saved stack and frame pointer after the program exits.
+    and restoring the saved stack and frame pointer after the program exits.
 The manipulation of the stack pointers adds to six more memory instructions to
-    the program execution path.
+    the dispatcher function of the \projname{} programs.
 In this experiment we measure the overhead of these stack pointer operations.
-We implement an empty extension program -- both in eBPF and in \projname{} --
-    and measure their wall runtime including the program dispatcher function.
-
-\jinghao{Need data for discussion, don't know how large the overhead would be.}
+We implement an empty kprobe extension program -- both in eBPF and in
+    \projname{} -- and measure their wall runtime including the program
+    dispatcher function.
+The result is shown in Figure~\ref{fig:startup-overhead}.
+On average, the difference of runtime of invoking an empty \projname{} and eBPF
+    program is less than 1ns.
+This shows the additional stack manipulations needed by \projname{} does not
+    contributed to non-negligible overhead.
 
 \subsubsection{Verifier/JIT-based optimization}
 \label{eval:inline}
