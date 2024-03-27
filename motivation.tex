@@ -138,7 +138,7 @@ The classes of solution employed are different ways that developers use to make 
 %    previous paragraph)}
 
 \subsection{Category Representative Examples}
-To better explain our categorization, we will now walk through some representative examples for the most important categories.
+To better explain our categorization, we now walk through some representative examples for the most important categories.
 
 \subsubsection{Change Source Code to Fix LLVM Codegen}
 The LLVM compiler translates eBPF programs written in high-level languages into eBPF bytecode.
@@ -153,7 +153,8 @@ At instruction 3, R6 gets the value of R9, but this is a 32-bit assignment, as i
 Then in the next line we see that R6 has type `inv' which is a scalar value, and \emph{not} a pointer to a packet showing that the verifier lost track of the type of R6.
 The solution was to implement the access through inline assembly code shown in Figure~\ref{fig:inline-asm}.
 This prevents LLVM from generating 32-bit assignments as an optimization, which allows the verifier to track that the register still contains a packet pointer.
-\jinghao{Shouldn't the inline asm be loading a 64-bit value?}
+\jinghao{It is actually not too clear how this fixes the problem -- for
+specifically how is the generated code different?}
 %\jinghao{can we be more specific on the BPF opcode (e.g., load/store) of the
 %    assignment as in Figure~\ref{fig:inline-asm}}
 
@@ -195,6 +196,13 @@ BMC is split into seven different eBPF programs, and Electrode is split into six
 Both of these projects use around 500 lines of C code to program the eBPF programs.
 
 From a software design perspective modularity is good, but when programmers are forced to split functions according to verifier limitations, it becomes less usable.
+\jinghao{Why is this the case?
+I think there are 2 cases, one is that the developers can just
+split the program at the logical boundaries so that they actually get the
+modularity; the other case is that they simply cannot split the program at these
+boundaries and have to break it into fragments, I think this is what we are
+arguing for and we have already seen in the case of BMC where they have to
+keep a ``parse context'' across tail calls.}
 This compounds with the fact that the compiler has no notion of these limits.
 The compiler would happily compile both the split versions of code and the unified version of code, however only one set of code would pass the verifier.
 Additionally, it is not necessarily trivial to split these functions because all safety checks need to be made in each subfunction in order for them to be independently verified.
@@ -205,6 +213,8 @@ One example of refactoring for complexity found in a Cilium commit involved chan
 As seen in Figure~\ref{fig:refactor-fix} the code used an \texttt{\#ifdef} with a default behavior.
 If \texttt{ENABLE\_IPV4\_FRAGMENTS} was enabled, then the code would be compiled with both the \texttt{ipv4\_handle\_fragment} call and the \texttt{ctx\_load\_bytes} call.
 If the packet was a fragment, then the \texttt{ipv4\_handle\_fragment} call would have completed the loading of bytes, and the additional call would have been redundent.
+\jinghao{I recommend removing this last sentence. It makes it sounds like a
+good thing that developers have to remove some redundent code.}
 
 This design however, caused the program to fail verification as it went over the maximum checked instruction limit.
 The code was then refactored to change the \texttt{\#ifdef} and the underlying function.
@@ -218,10 +228,11 @@ This change does not change the safety properties of the program, but it was sti
 
 
 We found an example of refactoring for expressiveness in the Cilium project.
-To implement segment rouding header support, they needed to include code to jump to IP header parsing code while already inside the IP header parsing code.
+To implement segment rouding (\jinghao{smells like a typo here, but I'm not sure what it should be}) header support, they needed to include code to jump to IP header parsing code while already inside the IP header parsing code.
 This would cause a back-edge which gets incorrectly labeled as an infinite loop and the verifier fails.
-Figure~\ref{fig:switch} shows their solution whivch involved creating a switch statement inside of a switch statement which then jumps ahead to the other code in the outer switch statement.
+Figure~\ref{fig:switch} shows their solution which involved creating a switch statement inside of a switch statement which then jumps ahead to the other code in the outer switch statement.
 The changes required increase the complexity of the source code without changing the semantics.
+\jinghao{For this snippet we should show where the two labels are in the source code}
 
 \begin{figure}
     \lstinputlisting[language=myC]{./snippets/s2-switch.c}
@@ -329,7 +340,7 @@ Different kernel versions may have different versions of the eBPF verifier, each
 To maintain compatibility between these versions, developers have to change code to account for the differences.
 A good example of this is found in Cilium.
 The verifier failed the program with the message shown in Figure~\ref{fig:kernel-version}.
-This is a known bug that has been fixed, but the fix is not present in all kernel versions.
+This is a known (jinghao{verifier?}) bug that has been fixed, but the fix is not present in all kernel versions.
 Cilium developers had to implement a simple, but precise fix to ensure that the program would verify on all extensions.
 As shown in Figure~\ref{fig:kernel-version-code} the fix needed was to move line 7 to line 1 before the block of code.
 
@@ -357,6 +368,9 @@ As shown in Figure~\ref{fig:kernel-version-code} the fix needed was to move line
 \subsubsection{Add Pruning Checkpoints}
 Another common fix that Cilium implemented was to introduce a pseudo-helper function \texttt{relax\_verifier}.
 The purpose of this helper is to provide a checkpoint for the verifier to use when doing state pruning.
+\jinghao{Can we put more information here on this helper? It would be great
+to show that the helper itself is complicated and developers have to insert it
+at random places.}
 In some cases doing so significantly decreases the complexity of eBPF programs.
 In one commit, doing so reduced the number of instructions checked from 62,569 to 49,669.
 This is more significant on older kernel versions which have a much smaller upper limit to the number of instructions the eBPF verifier could check.
