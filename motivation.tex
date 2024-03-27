@@ -202,13 +202,12 @@ Additionally, it is not necessarily trivial to split these functions because all
 \noindent\textbf{Refactoring Code}:
 Code may also need to be refactored to reduce its complexity, or to work around limitations in the verifier.
 One example of refactoring for complexity found in a Cilium commit involved changing how the code handled IPv4 fragmentation.
-<<<<<<< HEAD
 As seen in Figure~\ref{fig:refactor-fix} the code used an \texttt{\#ifdef} with a default behavior.
-If \texttt{ENABLE\_IPV4\_FRAGMENTS} was enabled, then the code would be compiled with both the \texttt{ipv4\_handle\_fragment} call and the \texttt{ctx\_load\_bytes} call. 
+If \texttt{ENABLE\_IPV4\_FRAGMENTS} was enabled, then the code would be compiled with both the \texttt{ipv4\_handle\_fragment} call and the \texttt{ctx\_load\_bytes} call.
 If the packet was a fragment, then the \texttt{ipv4\_handle\_fragment} call would have completed the loading of bytes, and the additional call would have been redundent.
 
-This design however, caused the program to fail verification as it went over the maximum checked instruction limit. 
-The code was then refactored to change the \texttt{\#ifdef} and the underlying function. 
+This design however, caused the program to fail verification as it went over the maximum checked instruction limit.
+The code was then refactored to change the \texttt{\#ifdef} and the underlying function.
 This change does not change the safety properties of the program, but it was still needed to verify the program.
 
 \begin{figure}
@@ -409,7 +408,7 @@ This gap is fundamental to the eBPF system.
 %In the current eBPF system, the compiler and the verifier are decoupled.
 %As development proceeds, implementation details about the compiler and verifier change.
 %As seen in Table~\ref{fig:commit-table} there are examples of differences in implementation
-%    between the LLVM compiler toolchain and the eBPF verifier breaking 
+%    between the LLVM compiler toolchain and the eBPF verifier breaking
 %    program verification.
 %Figure~\ref{fig:2comp1ver} shows a flowchart of how this might happen.
 %
@@ -418,7 +417,7 @@ This gap is fundamental to the eBPF system.
 %Examples of this include backwards compatibility for features like loops.
 %Figure~\ref{fig:1comp2ver} shows a flowchart of how this might happen.
 %
-%There is no way to fully resolve the issues of versioning in the eBPF system as 
+%There is no way to fully resolve the issues of versioning in the eBPF system as
 %    each component is a constantly moving target.
 %Compilers will continue to evolve, just as the eBPF verifier will continue to evolve, and because they are decoupled, there will be places where they do not align.
 
