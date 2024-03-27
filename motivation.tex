@@ -7,9 +7,9 @@ The core of the problem is a large gap between the programmer and the
     verifier.
 Typical eBPF development involves implementing programs in a high-level
     programming language (e.g., C, Rust) and compiling to eBPF bytecode.
-Developers agree to a contract with the high-level language, which is 
+Developers agree to a contract with the high-level language, which is
     enforced by the compiler.
-When a program fails to compile, the developer will get a message with 
+When a program fails to compile, the developer will get a message with
     hints about where they violated
     the contract with the programming language.
 If, however, a program fails to pass the verifier it is harder for the programmer
@@ -27,7 +27,7 @@ In the rest of this section we will describe our methodology and categorization,
 
 %At the same time, the verifier has a set of properties that it ensures are maintained for each program, such as memory safety.
 %The verifier will reject programs that do not meet these properties.
-%The compiler does not know the set of properties that the eBPF verifier checks, which 
+%The compiler does not know the set of properties that the eBPF verifier checks, which
 %    introduces a gap between the compiler and the verifier, and, by extension, the programmer and the verifier.
 %
 %The problem is compounded by the fact that the verifier operates on code that has undergone
@@ -81,7 +81,7 @@ Some categories were clear to see and are well documented in the literature (i.e
 
 %The categorizations that we created are not necessarily mutually exclusive.
 %We started with a large set of smaller categories, and then combined categories to
-%    create larger categories that represented classes of fixes, as well as picking out 
+%    create larger categories that represented classes of fixes, as well as picking out
 %    common patterns that are representative.
 
 \subsection{Categorization Overview}
@@ -143,17 +143,17 @@ To better explain our categorization, we will now walk through some representati
 \subsubsection{Change Source Code to Fix LLVM Codegen}
 The LLVM compiler translates eBPF programs written in high-level languages into eBPF bytecode.
 We found that in certain cases, LLVM would generate eBPF bytecode that would cause the program to fail verification.
-One issue found by Cilium was that LLVM may generate 32-bit assignments for 
-    accessing \emph{ctx->data, ctx->data\_end, ctx->data\_meta} fields as 
+One issue found by Cilium was that LLVM may generate 32-bit assignments for
+    accessing \texttt{ctx->data}, \texttt{ctx->data\_end}, \texttt{ctx->data\_meta} fields as
     each of the fields are on 32-bit boundaries.
 However, the verifier cannot track the packet pointers through these 32-bit assignments and
     will cause the program to fail to verify.
 As shown in Figure~\ref{fig:inline-error}, R9 is a pointer to a packet in instruction 2.
-At instruction 3, R6 gets the value of R9, but this is a 32-bit assignment, as indicated by the 'w' prefix.
-Then in the next line we see that R6 has type 'inv' which is a scalar value, and \emph{not} a pointer to a packet showing that the verifier lost track of the type of R6.
+At instruction 3, R6 gets the value of R9, but this is a 32-bit assignment, as indicated by the `w' prefix.
+Then in the next line we see that R6 has type `inv' which is a scalar value, and \emph{not} a pointer to a packet showing that the verifier lost track of the type of R6.
 The solution was to implement the access through inline assembly code shown in Figure~\ref{fig:inline-asm}.
 This prevents LLVM from generating 32-bit assignments as an optimization, which allows the verifier to track that the register still contains a packet pointer.
-
+\jinghao{Shouldn't the inline asm be loading a 64-bit value?}
 %\jinghao{can we be more specific on the BPF opcode (e.g., load/store) of the
 %    assignment as in Figure~\ref{fig:inline-asm}}
 
@@ -166,7 +166,7 @@ Another change that was implemented was to mark certain variables as \texttt{vol
 to keep LLVM from performing other kinds of optimizations that would cause the program to be rejected by the verifier.
 
 \begin{figure}
-    \lstinputlisting[language=myC]{./snippets/s2-codegen-error.c}
+    \lstinputlisting[language=myBPF]{./snippets/s2-codegen-error.c}
     \caption{Verifier log for LLVM generated 32-bit assignment}
     \label{fig:inline-error}
 \end{figure}
@@ -202,9 +202,14 @@ Additionally, it is not necessarily trivial to split these functions because all
 \noindent\textbf{Refactoring Code}:
 Code may also need to be refactored to reduce its complexity, or to work around limitations in the verifier.
 One example of refactoring for complexity found in a Cilium commit involved changing how the code handled IPv4 fragmentation.
+<<<<<<< HEAD
 As seen in Figure~\ref{fig:refactor-fix} the code used an \texttt{\#ifdef} with a default behavior.
 If \texttt{ENABLE\_IPV4\_FRAGMENTS} was enabled, then the code would be compiled with both the \texttt{ipv4\_handle\_fragment} call and the \texttt{ctx\_load\_bytes} call. 
 If the packet was a fragment, then the \texttt{ipv4\_handle\_fragment} call would have completed the loading of bytes, and the additional call would have been redundent.
+=======
+Initially, the code caused the program to fail verification as it went over the maximum checked instruction limit.
+The code was refactored to reduce the number of calls to \verb{ctx_load_bytes(){, which solved the complexity issue.
+>>>>>>> 1461a6c0ccbd0cf84beed0b41bb78cc364e6ce0b
 
 This design however, caused the program to fail verification as it went over the maximum checked instruction limit. 
 The code was then refactored to change the \texttt{\#ifdef} and the underlying function. 
@@ -230,7 +235,7 @@ The changes required increase the complexity of the source code without changing
 \end{figure}
 
 \subsubsection{Add specific code to pass verifier}
-Another common fix for verifier complaints involves adding specific code to please 
+Another common fix for verifier complaints involves adding specific code to please
     the verifier.
 This can involve several kinds of new specific code:
 
@@ -242,13 +247,33 @@ This can involve several kinds of new specific code:
 
 \noindent\textbf{Inlining Functions to Pass Verifier}:
 The verifier can lose track of information depending on how eBPF programs are structured.
-One fix for this is to inlined functions for implementing functionality.
+One fix for this is to inline functions for implementing functionality.
 It is not always clear what code needs to be made into a inlined function for the verifier
     which makes eBPF less usable.
 
 \begin{figure}
+<<<<<<< HEAD
     \lstinputlisting[language=myC]{./snippets/s2-goto.c}
     \caption{Goto transformed to inline function}
+=======
+    \begin{lstlisting}[language=myC]
+policy_check_entry:
+  account(ctx, policy);
+
+  if (unlikely(policy->deny))
+    return DROP_POLICY_DENY;
+
+  *proxy_port = policy->proxy_port;
+  if (unlikely(policy->auth_type)) {
+    if (ext_err)
+      *ext_err = (__s8)policy->auth_type;
+    return DROP_POLICY_AUTH_REQUIRED;
+  }
+  return CTX_ACT_OK;
+}
+    \end{lstlisting}
+    \caption{Block of code reached after a goto}
+>>>>>>> 1461a6c0ccbd0cf84beed0b41bb78cc364e6ce0b
     \label{fig:inline-fig}
 \end{figure}
 
@@ -293,8 +318,8 @@ In response to this, the developers had to figure out a workaround to make their
 %}
 
 \noindent\textbf{Explicitly teaching the verifier information}
-An example of explicitly teaching the verifier information can be found in the aya-rs project.
-As part of their library, aya contains functions to help log information.
+An example of explicitly teaching the verifier information can be found in the Aya-rs project.
+As part of their library, Aya contains functions to help log information.
 Throughout the project they have an upper bound on the size of the log buffer.
 In a write string function they needed to add an explicit check on the size of the length of the string against the log buffer max size.
 
@@ -335,15 +360,14 @@ As shown in Figure~\ref{fig:kernel-version-code} the fix needed was to move line
 
 \milo{Not sure how to format these code snippets}
 \begin{figure}
-    \begin{lstlisting}[language=myC]
+    \begin{lstlisting}[language=myBPF]
 1411: (bf) r1 = r9
 1412: (07) r1 += 48
 1413: (67) r2 <<= 16
 1414: (47) r2 |= 512
 1415: (63) *(u32 *)(r1 +0) = r2
-dereference of modified ctx ptr R1 off=48+0, 
-    ctx+const is allowed, ctx+const+const 
-    is not
+; dereference of modified ctx ptr R1 off=48+0,
+; ctx+const is allowed, ctx+const+const is not
     \end{lstlisting}
     \caption{Verifier output showing error}
     \label{fig:kernel-version}
@@ -362,17 +386,17 @@ In some cases doing so significantly decreases the complexity of eBPF programs.
 In one commit, doing so reduced the number of instructions checked from 62,569 to 49,669.
 This is more significant on older kernel versions which have a much smaller upper limit to the number of instructions the eBPF verifier could check.
 
-With no asistance, programmers are required to have knowledge of low-level 
-    internal details of the eBPF verifier, and then implement fixes that 
+With no asistance, programmers are required to have knowledge of low-level
+    internal details of the eBPF verifier, and then implement fixes that
     make use of this knowledge.
 Having to make this change harms the usability of eBPF.
 
 
 \subsection{Analysis Takeaways}
-From our analysis, we believe that there are serious usability challenges to the 
+From our analysis, we believe that there are serious usability challenges to the
     existing eBPF system that stem from the gap between programmer and verifier.
 The categories of verifier issue that we found are direct indicators of this problem.
-eBPF programmers have to implement arcane fixes and change their mental model of 
+eBPF programmers have to implement arcane fixes and change their mental model of
     programming to meet the constraints of the verifier without any assistance.
 If an eBPF program fails to verify there is not always a clear reason why that was the case, e.g.,
 it could be that a programmer's source code was completely safe, but LLVM generated code that the verifier did not understand.
@@ -381,9 +405,9 @@ This gap is fundamental to the eBPF system.
 \jinghao{would be interesting to talk about saving/reloading computation
     context across tail calls}
 
-%Different kernel versions have different verifiers with different constraints 
+%Different kernel versions have different verifiers with different constraints
 %    and different properties that they check.
-%There would have to be some way to fully expose the specifics of the verifier 
+%There would have to be some way to fully expose the specifics of the verifier
 %    back to the compiler to close the gap.
 
 %\subsection{Mismatches Cause the Gap}
@@ -435,10 +459,6 @@ This gap is fundamental to the eBPF system.
 %    \caption{Version issue between two verifier versions}
 %    \label{fig:1comp2ver}
 %\end{figure}
-
-%\subsubsection{Safety Mismatches}
-%The other source of mismatches is that the compiler and the verifier may have
-%    different ways of ensuring program properties that are incompatible.
 
 
 
