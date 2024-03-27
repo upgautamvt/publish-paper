@@ -206,10 +206,6 @@ One example of refactoring for complexity found in a Cilium commit involved chan
 As seen in Figure~\ref{fig:refactor-fix} the code used an \texttt{\#ifdef} with a default behavior.
 If \texttt{ENABLE\_IPV4\_FRAGMENTS} was enabled, then the code would be compiled with both the \texttt{ipv4\_handle\_fragment} call and the \texttt{ctx\_load\_bytes} call. 
 If the packet was a fragment, then the \texttt{ipv4\_handle\_fragment} call would have completed the loading of bytes, and the additional call would have been redundent.
-=======
-Initially, the code caused the program to fail verification as it went over the maximum checked instruction limit.
-The code was refactored to reduce the number of calls to \verb{ctx_load_bytes(){, which solved the complexity issue.
->>>>>>> 1461a6c0ccbd0cf84beed0b41bb78cc364e6ce0b
 
 This design however, caused the program to fail verification as it went over the maximum checked instruction limit. 
 The code was then refactored to change the \texttt{\#ifdef} and the underlying function. 
@@ -252,28 +248,8 @@ It is not always clear what code needs to be made into a inlined function for th
     which makes eBPF less usable.
 
 \begin{figure}
-<<<<<<< HEAD
     \lstinputlisting[language=myC]{./snippets/s2-goto.c}
     \caption{Goto transformed to inline function}
-=======
-    \begin{lstlisting}[language=myC]
-policy_check_entry:
-  account(ctx, policy);
-
-  if (unlikely(policy->deny))
-    return DROP_POLICY_DENY;
-
-  *proxy_port = policy->proxy_port;
-  if (unlikely(policy->auth_type)) {
-    if (ext_err)
-      *ext_err = (__s8)policy->auth_type;
-    return DROP_POLICY_AUTH_REQUIRED;
-  }
-  return CTX_ACT_OK;
-}
-    \end{lstlisting}
-    \caption{Block of code reached after a goto}
->>>>>>> 1461a6c0ccbd0cf84beed0b41bb78cc364e6ce0b
     \label{fig:inline-fig}
 \end{figure}
 
