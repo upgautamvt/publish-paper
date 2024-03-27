@@ -19,7 +19,8 @@ In order to quantify the impact of this gap,
     eBPF programs that fail to verify.
 From the commit messages, we created a set of categories of fixes.
 In the rest of this section we will describe our methodology and categorization, walk through some illustrative examples, and describe the key high level takeaways.
-Additionally, we describe two fundamental reasons for the programmer gap.
+
+%Additionally, we describe two fundamental reasons for the programmer gap.
 \milo{succinctly say them here.}
 
 
@@ -161,7 +162,7 @@ This workaround allows the eBPF program to pass the verifier.
 It is clear that this exposes usability issues of the verifier.
 The LLVM compiler is unaware of the verifier's needs, and the programmer must know low level detail about the eBPF system and LLVM bytecode generation in order to realize this.
 
-Another change that was implemented was to mark certain variables as \emph{volatile}
+Another change that was implemented was to mark certain variables as \texttt{volatile}
 to keep LLVM from performing other kinds of optimizations that would cause the program to be rejected by the verifier.
 
 \begin{figure}
@@ -201,14 +202,32 @@ Additionally, it is not necessarily trivial to split these functions because all
 \noindent\textbf{Refactoring Code}:
 Code may also need to be refactored to reduce its complexity, or to work around limitations in the verifier.
 One example of refactoring for complexity found in a Cilium commit involved changing how the code handled IPv4 fragmentation.
-Initially, the code caused the program to fail verification as it went over the maximum checked instruction limit. 
-The code was refactored to reduce the number of calls to \verb{ctx_load_bytes(){, which solved the complexity issue.
+As seen in Figure~\ref{fig:refactor-fix} the code used an \texttt{\#ifdef} with a default behavior.
+If \texttt{ENABLE\_IPV4\_FRAGMENTS} was enabled, then the code would be compiled with both the \texttt{ipv4\_handle\_fragment} call and the \texttt{ctx\_load\_bytes} call. 
+If the packet was a fragment, then the \texttt{ipv4\_handle\_fragment} call would have completed the loading of bytes, and the additional call would have been redundent.
 
-One example of refactoring for expressiveness involves implementing a switch statement inside of a switch statement which essentially duplicates code.
-The main reason this was a problem is because the verifier would see the back edge jump to the beginning of the original switch statement.
-The verifier would treat this as a potential infinite loop and reject the program despite the fact that the code cannot actually infinitley loop.
+This design however, caused the program to fail verification as it went over the maximum checked instruction limit. 
+The code was then refactored to change the \texttt{\#ifdef} and the underlying function. 
+This change does not change the safety properties of the program, but it was still needed to verify the program.
+
+\begin{figure}
+    \lstinputlisting[language=myC]{./snippets/s2-refactor.c}
+    \caption{Refactor for Code Complexity}
+    \label{fig:refactor-fix}
+\end{figure}
+
+
+We found an example of refactoring for expressiveness in the Cilium project.
+To implement segment rouding header support, they needed to include code to jump to IP header parsing code while already inside the IP header parsing code.
+This would cause a back-edge which gets incorrectly labeled as an infinite loop and the verifier fails.
+Figure~\ref{fig:switch} shows their solution whivch involved creating a switch statement inside of a switch statement which then jumps ahead to the other code in the outer switch statement.
 The changes required increase the complexity of the source code without changing the semantics.
-\milo{Work on this and add better explanations/a figure maybe}
+
+\begin{figure}
+    \lstinputlisting[language=myC]{./snippets/s2-switch.c}
+    \caption{Refactor for Expressiveness}
+    \label{fig:switch}
+\end{figure}
 
 \subsubsection{Add specific code to pass verifier}
 Another common fix for verifier complaints involves adding specific code to please 
@@ -228,39 +247,42 @@ It is not always clear what code needs to be made into a inlined function for th
     which makes eBPF less usable.
 
 \begin{figure}
-    \begin{lstlisting}[language=myC]
-policy_check_entry:
-	account(ctx, policy);
-
-	if (unlikely(policy->deny))
-		return DROP_POLICY_DENY;
-
-	*proxy_port = policy->proxy_port;
-	if (unlikely(policy->auth_type)) {
-		if (ext_err)
-			*ext_err = (__s8)policy->auth_type;
-		return DROP_POLICY_AUTH_REQUIRED;
-	}
-	return CTX_ACT_OK;
-}
-    \end{lstlisting}
-    \caption{Block of code reached after a goto}
+    \lstinputlisting[language=myC]{./snippets/s2-goto.c}
+    \caption{Goto transformed to inline function}
     \label{fig:inline-fig}
 \end{figure}
 
-An example of this was found in Cilium.
-The code in Figure~\ref{fig:inline-fig} was written to check fields in a policy struct.
-Originally, the code would check to see which of the variables, \verb{policy{ or \verb{l4policy{, was set.
-It would then set \verb{policy{ to whichever was defined and jump to the block of code.
-At that point however, the verifier was confused about the state of the \verb{policy{ variable.
-The solution was to convert this block to an inlined function that would take an argument for \verb{policy{.
+%\begin{figure}
+%    \begin{lstlisting}[language=myC]
+%policy_check_entry:
+%	account(ctx, policy);
+%
+%	if (unlikely(policy->deny))
+%		return DROP_POLICY_DENY;
+%
+%	*proxy_port = policy->proxy_port;
+%	if (unlikely(policy->auth_type)) {
+%		if (ext_err)
+%			*ext_err = (__s8)policy->auth_type;
+%		return DROP_POLICY_AUTH_REQUIRED;
+%	}
+%	return CTX_ACT_OK;
+%}
+%    \end{lstlisting}
+%    \caption{Block of code reached after a goto}
+%    \label{fig:inline-fig}
+%\end{figure}
 
-The structure of the code before was valid and correct, but it failed to pass the verifier.
+We found an example of this in Cilium.
+Code that performed policy checks used goto statements to prevent code duplication.
+As seen in Figure~\ref{fig:inline-fig} the \texttt{policy} variable could be used to refer to \texttt{policy} or \texttt{l4policy} before jumping to the checking logic.
+This caused the verifier to reject the program because it lost track of what the \texttt{policy} variable refered to.
+The developers fixed this by converting the policy check logic from a labeled block of code, to an inline function.
+The original structure of the code before was valid and correct, but it failed to pass the verifier.
 In response to this, the developers had to figure out a workaround to make their valid code pass.
-Additionally, this code is a logical way to structure the task, and it was not entirely clear what needed to be done to make it pass the verifier.
 
 %The developers made this code general across two cases by reassigning the value of policy depending on what the input was before jumping to the common code.
-%This pattern caused the verifier to lose information about what the variable \verb{policy{ was referring to.
+%This pattern caused the verifier to lose information about what the variable \{policy{ was referring to.
 %The fix was to convert this common code into an inlined function.
 %\jinghao{
 %It is hard to see why this is a problem, especially when you say ``Doing this
@@ -281,10 +303,12 @@ A line of code assigned a field of a struct to a value.
 Later in the function, that field was accessed.
 The verifier responded to this with an error thinking that reading from this value was a pointer that was spilled to the stack.
 The fix was to get rid of this assignment, and explicitly use the original value in order to teach the verifier where the data was coming from.
+\milo{Haven't fully built this out yet.}
 
 \noindent\textbf{Implementing functions in a specific way}
-The aya-rs project had to implement versions of \verb{memset{ and \verb{memcpy{ which are very simple for the verifier.
+The aya-rs project had to implement versions of \texttt{memset} and \texttt{memcpy} which are very simple for the verifier.
 As can be seen in Figure~\ref{fig:aya-memset}, the code is extremely straightforward, but it is necessary for the verifier.
+\milo{Haven't fully built this out yet}
 
 \begin{figure}
     \begin{lstlisting}[language=rust]
@@ -362,59 +386,59 @@ This gap is fundamental to the eBPF system.
 %There would have to be some way to fully expose the specifics of the verifier 
 %    back to the compiler to close the gap.
 
-\subsection{Mismatches Cause the Gap}
-In this section we examine two of the main causes of the programmer gap.
-The programmer gap is a consequence of two mismatches between the verifier and the compiler that arises due to the design of the eBPF system.
-    \begin{enumerate}
-        \item Version mismatches
-        \item Safety mismatches
-    \end{enumerate}
+%\subsection{Mismatches Cause the Gap}
+%In this section we examine two of the main causes of the programmer gap.
+%The programmer gap is a consequence of two mismatches between the verifier and the compiler that arises due to the design of the eBPF system.
+%    \begin{enumerate}
+%        \item Version mismatches
+%        \item Safety mismatches
+%    \end{enumerate}
 
-\subsubsection{Version Mismatches}
-There are three sources of versioning that eBPF currently has, that may lead to issues.
-\begin{enumerate}
-    \item Kernel Interface
-    \item Verifier
-    \item Compiler
-\end{enumerate}
+%\subsubsection{Version Mismatches}
+%There are three sources of versioning that eBPF currently has, that may lead to issues.
+%\begin{enumerate}
+%    \item Kernel Interface
+%    \item Verifier
+%    \item Compiler
+%\end{enumerate}
+%
+%Kernel interface version problems are resolved by the use of BTF and CO-RE in BPF.
+%However, the version issues differences between the compiler and verifier are not dealt
+%    with in any way.
+%
+%In the current eBPF system, the compiler and the verifier are decoupled.
+%As development proceeds, implementation details about the compiler and verifier change.
+%As seen in Table~\ref{fig:commit-table} there are examples of differences in implementation
+%    between the LLVM compiler toolchain and the eBPF verifier breaking 
+%    program verification.
+%Figure~\ref{fig:2comp1ver} shows a flowchart of how this might happen.
+%
+%Problems can also arise from different verifier versions.
+%If an eBPF program verifies on one version, there is no guarantee that it verifies on a different version.
+%Examples of this include backwards compatibility for features like loops.
+%Figure~\ref{fig:1comp2ver} shows a flowchart of how this might happen.
+%
+%There is no way to fully resolve the issues of versioning in the eBPF system as 
+%    each component is a constantly moving target.
+%Compilers will continue to evolve, just as the eBPF verifier will continue to evolve, and because they are decoupled, there will be places where they do not align.
 
-Kernel interface version problems are resolved by the use of BTF and CO-RE in BPF.
-However, the version issues differences between the compiler and verifier are not dealt
-    with in any way.
+%\begin{figure}
+%    \includegraphics[width=1.0\linewidth]{figs/2comp1verifier}
+%    \centering
+%    \caption{Version issue between two compiler versions}
+%    \label{fig:2comp1ver}
+%\end{figure}
+%
+%\begin{figure}
+%    \includegraphics[width=1.0\linewidth]{figs/1comp2verifier}
+%    \centering
+%    \caption{Version issue between two verifier versions}
+%    \label{fig:1comp2ver}
+%\end{figure}
 
-In the current eBPF system, the compiler and the verifier are decoupled.
-As development proceeds, implementation details about the compiler and verifier change.
-As seen in Table~\ref{fig:commit-table} there are examples of differences in implementation
-    between the LLVM compiler toolchain and the eBPF verifier breaking 
-    program verification.
-Figure~\ref{fig:2comp1ver} shows a flowchart of how this might happen.
-
-Problems can also arise from different verifier versions.
-If an eBPF program verifies on one version, there is no guarantee that it verifies on a different version.
-Examples of this include backwards compatibility for features like loops.
-Figure~\ref{fig:1comp2ver} shows a flowchart of how this might happen.
-
-There is no way to fully resolve the issues of versioning in the eBPF system as 
-    each component is a constantly moving target.
-Compilers will continue to evolve, just as the eBPF verifier will continue to evolve, and because they are decoupled, there will be places where they do not align.
-
-\begin{figure}
-    \includegraphics[width=1.0\linewidth]{figs/2comp1verifier}
-    \centering
-    \caption{Version issue between two compiler versions}
-    \label{fig:2comp1ver}
-\end{figure}
-
-\begin{figure}
-    \includegraphics[width=1.0\linewidth]{figs/1comp2verifier}
-    \centering
-    \caption{Version issue between two verifier versions}
-    \label{fig:1comp2ver}
-\end{figure}
-
-\subsubsection{Safety Mismatches}
-The other source of mismatches is that the compiler and the verifier may have
-    different ways of ensuring program properties that are incompatible.
+%\subsubsection{Safety Mismatches}
+%The other source of mismatches is that the compiler and the verifier may have
+%    different ways of ensuring program properties that are incompatible.
 
 
 
