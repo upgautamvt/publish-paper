@@ -328,7 +328,7 @@ We re-implement BMC in \projname{} (\projname{}-BMC) to demonstrate the
     enhanced usability without losing performance.
 The resulting program is not a direct translation from the original eBPF
     version in C, rather, we implement the same high-level logic but with
-    slight deviations from BMC where the enhance usability and expressiveness
+    slight deviations from BMC where the enhanced usability and expressiveness
     of Rust allows a simpler implementation.
 
 % The BMC has many places where for loops are nested into different ifs.
@@ -338,13 +338,17 @@ The resulting program is not a direct translation from the original eBPF
 
 In the initial design of \projname{}-BMC, the underlying assumption was that
     we should follow the logic of BMC.
-But the function \texttt{bmc\_invalidate\_cache} within BMC employs
-    for loops with cumbersome conditions checks, further
-    complicated by the nesting of multiple if statements. The complexity is
-    exacerbated by introducing two additional variables to track special states.
+But the cache invalidation function in BMC employs
+    for loops with cumbersome condition checks, and is further
+    complicated by the nesting of multiple if statements.
+The complexity is exacerbated by introducing two additional variables to track
+    special states.
+\jinghao{What states? It does not need to be too detailed.}
 Such complex conditional judgments will significantly undermine the readability
     of the BMC code, and it may lead to ambiguities in some places regarding
     the intended functionality.
+\jinghao{Can we make the claim that this complexity is for passing the
+    verifier?}
 % During implementation of function \texttt{bmc\_invalidate\_cache},
 %     we assume that each pcket
 
@@ -355,18 +359,28 @@ Such complex conditional judgments will significantly undermine the readability
 %     in the original code structure, primarily due to the complex judgment
 %     conditions buried within nested if statements.
 
-To address these challenges, \projname{}-BMC
-    utilize \texttt{filter\_map} for lazy evaluation.
+To address these challenges, \projname{}-BMC utilizes the lazy-evaluated
+    \texttt{filter\_map} function from Rust iterators.
+\jinghao{What are these challenges -- are we still in the context of cache
+    invalidation? By the way, can we abstract this out to all ``loops'' in BMC?
+At the same time, we probably need to explain what \texttt{filter\_map} does.}
 This approach facilitates the creation of an iterator, which is instrumental in identifying
-    the quantity of set commands present in the current packet payload.
+    the quantity of SET commands present in the current packet payload.
 Further enhancing the readability, Rust's syntactic sugar is employed for
-    iterating over the identified memcached set commands, streamlining the process.
+    iterating over the identified memcached SET commands, streamlining the process.
 The complexity of the original code, characterized by four levels of nesting,
     is significantly reduced by converting a for-loop with intricate conditions
     into a lambda function.
+\jinghao{lambda function -> a clean chain of higher-order functions with
+    lambda function?}
 This conversion is achieved through the utilization of \texttt{take\_while}
     combined with generated iterator, thus dividing the code into three distinct
     sequential parts and markedly improving its expressiveness.
+\jinghao{Also should explain what \texttt{take\_while} does.}
+
+\jinghao{Now it feels like we should make part larger, i.e., include code
+    examples and show how Rust helps with that.
+We can then move this part into the new qualitative evaluation.}
 
 %\para{Experiment setup}
 Our evaluation setup consists two machines, with one
