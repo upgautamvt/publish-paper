@@ -326,10 +326,43 @@ The resulting program is not a direct translation from the original eBPF
     slight deviations from BMC where the enhance usability and expressiveness
     of Rust allows a simpler implementation.
 
-The implementation for the BMC is kind of wired.
-\jinghao{@Ruowen should talk about some experience in implementing BMC, especially
-    the parts we do differently.}
+% The BMC has many places where for loops are nested into different ifs. 
+% And, due to the limitations of C, many operations do not have built-in functions 
+%     that can be used directly. 
 
+
+In the initial design of \projname{}-BMC, the underlying assumption was that 
+    we should follow the logic of BMC.
+But the function \texttt{bmc\_invalidate\_cache} within BMC employs 
+    for loops with cumbersome conditions checks, further 
+    complicated by the nesting of multiple if statements. The complexity is 
+    exacerbated by introducing two additional variables to track special states. 
+Such complex conditional judgments will significantly undermine the readability 
+    of the BMC code, and it may lead to ambiguities in some places regarding 
+    the intended functionality. 
+% During implementation of function \texttt{bmc\_invalidate\_cache}, 
+%     we assume that each pcket 
+
+% However, subsequent testing revealed the possibility of multiple set commands 
+%     within a single packet. 
+
+% This discovery highlighted the obscurity and susceptibility to errors inherent 
+%     in the original code structure, primarily due to the complex judgment 
+%     conditions buried within nested if statements.
+
+To address these challenges, \projname{}-BMC 
+    utilize \texttt{filter\_map} for lazy evaluation. 
+This approach facilitates the creation of an iterator, which is instrumental in identifying 
+    the quantity of set commands present in the current packet payload. 
+Further enhancing the readability, Rust's syntactic sugar is employed for 
+    iterating over the identified memcached set commands, streamlining the process. 
+The complexity of the original code, characterized by four levels of nesting, 
+    is significantly reduced by converting a for-loop with intricate conditions 
+    into a lambda function. 
+This conversion is achieved through the utilization of \texttt{take\_while} 
+    combined with generated iterator, thus dividing the code into three distinct 
+    sequential parts and markedly improving its expressiveness.
+    
 %\para{Experiment setup}
 Our evaluation setup consists two machines, with one
     acting as the server and the other one acting as the client.
