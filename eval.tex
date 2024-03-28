@@ -125,7 +125,7 @@ one will have a smaller memory footprint.}
     \end{tabular}
     \caption{Runtime of an empty program for eBPF and \projname{}}
     \vspace{-10pt}
-    \label{fig:startup-overhead}
+    \label{tab:startup-overhead}
 \end{table}
 
 \projname{}'s usage of a dedicated stack for execution and the implementation
@@ -140,7 +140,7 @@ In this experiment we measure the overhead of these stack pointer operations.
 We implement an empty kprobe extension program -- both in eBPF and in
     \projname{} -- and measure their wall runtime including the program
     dispatcher function.
-The result is shown in Figure~\ref{fig:startup-overhead}.
+The result is shown in Figure~\ref{tab:startup-overhead}.
 On average, the difference of runtime of invoking an empty \projname{} and eBPF
     program is less than 1ns.
 This shows the additional stack manipulations needed by \projname{} does not
@@ -271,22 +271,27 @@ At same time, because recursive factorial computation can always be tail-call
         \projname{} & 254.5 $\pm$ 192.3 \\
         \bottomrule
     \end{tabular}
-    \caption{Runtime of an empty program for eBPF and \projname{}}
+    \caption{Runtime of spinlock acquire and release for eBPF and \projname{}}
     \vspace{-10pt}
-    \label{fig:startup-overhead}
+    \label{tab:cleanup-overhead}
 \end{table}
 
 The cleanup mechanism employed by \projname{} requires recording the allocated
     resource at runtime, which comparing to eBPF or Itanium C++ ABI, adds extra
     runtime overhead.
-We therefore evaluate the runtiem overhead from \projname{}'s cleanup
+We therefore evaluate the runtime overhead from \projname{}'s cleanup
     mechanism.
 For this miscrobenchmark, we choose to use a program that acquires and then
-    immediately releases a BPF spinlock, since the acquired spinlocks need to
-    be released upon Rust panics.
+    immediately releases a BPF spinlock.
+Since the acquired spinlock is a resource that needs to be released upon Rust
+    panics, \projname{}'s cleanup mechanism needs to record it in its per-CPU
+    buffer.
 The program is implemented both in eBPF and \projname{} and the time used to
     acquire and release the spinlocks are measured.
-\jinghao{TODO: discuss results}
+As shown in Table~\ref{tab:cleanup-overhead}, the runtime difference between
+    eBPF and \projname{} is less than 2ns with \projname{} being the faster
+    one, implying the overhead of \projname{}'s cleanup mechanism is
+    negligible.
 
 \subsection{Macro-benchmarks}
 \label{eval:macro}
@@ -326,43 +331,43 @@ The resulting program is not a direct translation from the original eBPF
     slight deviations from BMC where the enhance usability and expressiveness
     of Rust allows a simpler implementation.
 
-% The BMC has many places where for loops are nested into different ifs. 
-% And, due to the limitations of C, many operations do not have built-in functions 
-%     that can be used directly. 
+% The BMC has many places where for loops are nested into different ifs.
+% And, due to the limitations of C, many operations do not have built-in functions
+%     that can be used directly.
 
 
-In the initial design of \projname{}-BMC, the underlying assumption was that 
+In the initial design of \projname{}-BMC, the underlying assumption was that
     we should follow the logic of BMC.
-But the function \texttt{bmc\_invalidate\_cache} within BMC employs 
-    for loops with cumbersome conditions checks, further 
-    complicated by the nesting of multiple if statements. The complexity is 
-    exacerbated by introducing two additional variables to track special states. 
-Such complex conditional judgments will significantly undermine the readability 
-    of the BMC code, and it may lead to ambiguities in some places regarding 
-    the intended functionality. 
-% During implementation of function \texttt{bmc\_invalidate\_cache}, 
-%     we assume that each pcket 
+But the function \texttt{bmc\_invalidate\_cache} within BMC employs
+    for loops with cumbersome conditions checks, further
+    complicated by the nesting of multiple if statements. The complexity is
+    exacerbated by introducing two additional variables to track special states.
+Such complex conditional judgments will significantly undermine the readability
+    of the BMC code, and it may lead to ambiguities in some places regarding
+    the intended functionality.
+% During implementation of function \texttt{bmc\_invalidate\_cache},
+%     we assume that each pcket
 
-% However, subsequent testing revealed the possibility of multiple set commands 
-%     within a single packet. 
+% However, subsequent testing revealed the possibility of multiple set commands
+%     within a single packet.
 
-% This discovery highlighted the obscurity and susceptibility to errors inherent 
-%     in the original code structure, primarily due to the complex judgment 
+% This discovery highlighted the obscurity and susceptibility to errors inherent
+%     in the original code structure, primarily due to the complex judgment
 %     conditions buried within nested if statements.
 
-To address these challenges, \projname{}-BMC 
-    utilize \texttt{filter\_map} for lazy evaluation. 
-This approach facilitates the creation of an iterator, which is instrumental in identifying 
-    the quantity of set commands present in the current packet payload. 
-Further enhancing the readability, Rust's syntactic sugar is employed for 
-    iterating over the identified memcached set commands, streamlining the process. 
-The complexity of the original code, characterized by four levels of nesting, 
-    is significantly reduced by converting a for-loop with intricate conditions 
-    into a lambda function. 
-This conversion is achieved through the utilization of \texttt{take\_while} 
-    combined with generated iterator, thus dividing the code into three distinct 
+To address these challenges, \projname{}-BMC
+    utilize \texttt{filter\_map} for lazy evaluation.
+This approach facilitates the creation of an iterator, which is instrumental in identifying
+    the quantity of set commands present in the current packet payload.
+Further enhancing the readability, Rust's syntactic sugar is employed for
+    iterating over the identified memcached set commands, streamlining the process.
+The complexity of the original code, characterized by four levels of nesting,
+    is significantly reduced by converting a for-loop with intricate conditions
+    into a lambda function.
+This conversion is achieved through the utilization of \texttt{take\_while}
+    combined with generated iterator, thus dividing the code into three distinct
     sequential parts and markedly improving its expressiveness.
-    
+
 %\para{Experiment setup}
 Our evaluation setup consists two machines, with one
     acting as the server and the other one acting as the client.
