@@ -260,12 +260,21 @@ At same time, because recursive factorial computation can always be tail-call
 \jinghao{TODO: discuss results.}
 
 \subsubsection{Cleanup overhead on normal execution path}
-\begin{itemize}
-    \item table showing runtime of two programs calling reference allocating
-        helpers in a loop
-    \item right now we only support spinlock (i.e. do a loop where can
-        iteration lock and then unlock the spinlock)
-\end{itemize}
+\begin{table}[t]
+    \small
+    \centering
+    \begin{tabular}{cc}%{|p{6cm}|p{1cm}|}
+        \toprule
+        \textbf{Extension} & \textbf{Runtime of acquiring \& release a lock (ns)} \\
+        \midrule
+        eBPF & 256.8 $\pm$ 142.4 \\
+        \projname{} & 254.5 $\pm$ 192.3 \\
+        \bottomrule
+    \end{tabular}
+    \caption{Runtime of an empty program for eBPF and \projname{}}
+    \vspace{-10pt}
+    \label{fig:startup-overhead}
+\end{table}
 
 The cleanup mechanism employed by \projname{} requires recording the allocated
     resource at runtime, which comparing to eBPF or Itanium C++ ABI, adds extra
