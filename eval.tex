@@ -335,6 +335,16 @@ The resulting program is not a direct translation from the original eBPF
 % And, due to the limitations of C, many operations do not have built-in functions
 %     that can be used directly.
 
+\begin{figure}
+    \lstinputlisting[language=myC]{./snippets/s6-bmc.c}
+    \caption{BMC version function}
+    \label{fig:bmc-code}
+\end{figure}
+\begin{figure}
+    \lstinputlisting[language=Rust]{./snippets/s6-rust.rs}
+    \caption{Rust version function}
+    \label{fig:rust-code}
+\end{figure}
 
 In the initial design of \projname{}-BMC, the underlying assumption was that
     we should follow the logic of BMC.
@@ -381,6 +391,8 @@ This conversion is achieved through the utilization of \texttt{take\_while}
 \jinghao{Now it feels like we should make part larger, i.e., include code
     examples and show how Rust helps with that.
 We can then move this part into the new qualitative evaluation.}
+\ref{fig:bmc-code}
+\ref{fig:rust-code}
 
 %\para{Experiment setup}
 Our evaluation setup consists two machines, with one
