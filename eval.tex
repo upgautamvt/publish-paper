@@ -349,14 +349,15 @@ The resulting program is not a direct translation from the original eBPF
 In the initial design of \projname{}-BMC, the underlying assumption was that
     we should follow the logic of BMC.
 But the cache invalidation function Figure~\ref{fig:bmc-code} in BMC employs
-    for loops with cumbersome condition checks, and is further
-    complicated by the nesting of multiple if statements.
+    \texttt{for} loops with cumbersome condition checks, and is further
+    complicated by the nesting of multiple \texttt{if} statements.
 The complexity is exacerbated by introducing two additional variables to track
     the state of key and SET command.
-Such complex conditional judgments are intentionally designed for passing the 
-    verifier, but constraints of verifier will significantly undermine the readability 
-    of the BMC code, which may lead to ambiguities in some places regarding
+Such complex checks are intentionally designed to pass the
+    verifier, but they significantly increase the programming burden
+    of BMC, while also leading to readability issues in some places regarding
     the intended functionality.
+\jinghao{Add some sentence saying this is a prevalent pattern in BMC?}
 % \jinghao{Can we make the claim that this complexity is for passing the
 %     verifier?}
 % During implementation of function \texttt{bmc\_invalidate\_cache},
@@ -367,25 +368,28 @@ Such complex conditional judgments are intentionally designed for passing the
 %     conditions buried within nested if statements.
 
 To address all ``loops'' in BMC, \projname{}-BMC utilizes the lazy-evaluated
-    \texttt{windows}, \texttt{enumerate} and \texttt{filter\_map} from slice iterators. 
-These methods in Figure~\ref{fig:rust-code} split the whole payload into chunks 
-    with 4 bytes, and collects the results for which the chunk equals the keyword 
-    of SET commands 
+    \texttt{windows}, \texttt{enumerate} and \texttt{filter\_map} from slice iterators.
+\jinghao{refer back to eBPF code: The same logic is implemented in
+    \projname{}-BMC as shown in Figure bla}
+These methods in Figure~\ref{fig:rust-code} split the whole payload into chunks
+    with 4 bytes, and collects the results for which the chunk equals the keyword
+    of SET commands
 % \jinghao{What are these challenges -- are we still in the context of cache
 %     invalidation? By the way, can we abstract this out to all ``loops'' in BMC?
 % At the same time, we probably need to explain what \texttt{filter\_map} does.}
 This approach facilitates the creation of an iterator, which is instrumental in identifying
     the quantity of SET commands present in the current packet payload.
-Further enhancing the readability, Rust's syntactic sugar is employed for
+Further enhancing the ease of programming and the readability, Rust's syntactic sugar is employed for
     iterating over the identified memcached SET commands, streamlining the process.
+\jinghao{The four levels of nesting in the original code is significantly...}
 The complexity of the original code, characterized by four levels of nesting,
     is significantly reduced by converting a for-loop with intricate conditions
-    into a clean chain of higher-order functions with lambda function.
+    into a clean chain of higher-order functions with closures.
 % \jinghao{lambda function -> a clean chain of higher-order functions with
 %     lambda function?}
-This conversion is achieved through the utilization of \texttt{take\_while}. 
-    With generated \texttt{filter\_map} iterator, \texttt{take\_while} will 
-    filters the memcached SET key from the payload, and then search the eBPF map for 
+This conversion is achieved through the utilization of \texttt{take\_while}.
+    With generated \texttt{filter\_map} iterator, \texttt{take\_while} will
+    filters the memcached SET key from the payload, and then search the eBPF map for
     the corresponding entry, thus dividing the code into three distinct
     sequential parts and markedly improving its expressiveness.
 % \jinghao{Also should explain what \texttt{take\_while} does.}
