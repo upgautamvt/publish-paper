@@ -74,6 +74,15 @@
 
 \subsection{Micro-benchmarks}
 \subsubsection{Memory footprint (BPF vs Rust)}
+\begin{figure}
+    \includegraphics[width=1.0\linewidth]{figs/mem-footprint.png}
+    \centering
+    \vspace{-25pt}
+    \caption{Amount of static memory used by various eBPF and \projname{}
+        programs \jinghao{TODO: replot}}
+    \label{fig:eval-mem-footprint}
+    \vspace{-10pt}
+\end{figure}
 % definition of memory footprint
 % eBPF only have JIT code
 % Rust have code sections and other sections, e.g. data and GOT sections
