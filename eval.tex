@@ -72,6 +72,98 @@
 %         \end{itemize}
 % \end{itemize}
 \subsection{Usability evaluation}
+\subsubsection{\projname{}-BMC}
+BPF Memcached Cache (BMC)~\cite{BMC} is an in-kernel cache for Memcached based
+    on eBPF.
+It stores recently queried key-value pairs in an eBPF map to accelerate the
+    processing of GET requests to the Memcached server.
+If a GET is hit in the cache, the queried value can be sent in a reply without
+    going through the expensive network stack in the Linux kernel.
+The map that servers as the cache is managed by eBPF programs, which implements
+    the lookup and update logics.
+
+On the aspect of implementation, BMC is a much more complicated program
+    comparing to other common eBPF use cases.
+In order to pass the verifier, the implementation has to be splitted into seven
+    eBPF programs that tail-calls into each other to reduce verification
+    complexity.
+Similar problem also presents when processing the incoming packet data, where
+    the authors had to bound data size to reduce verification complexity for
+    loops.
+
+We re-implement BMC in \projname{} (\projname{}-BMC) to demonstrate the
+    enhanced usability without losing performance.
+The resulting program is not a direct translation from the original eBPF
+    version in C, rather, we implement the same high-level logic but with
+    slight deviations from BMC where the enhanced usability and expressiveness
+    of Rust allows a simpler implementation.
+
+% The BMC has many places where for loops are nested into different ifs.
+% And, due to the limitations of C, many operations do not have built-in functions
+%     that can be used directly.
+
+\begin{figure}
+    \lstinputlisting[language=myC]{./snippets/s6-bmc.c}
+    \caption{Packet parsing code for cache invalidation in BMC}
+    \label{fig:bmc-code}
+\end{figure}
+\begin{figure}
+    \lstinputlisting[language=Rust]{./snippets/s6-rust.rs}
+    \caption{Packet parsing code for cache invalidation in \projname{}}
+    \label{fig:rust-code}
+\end{figure}
+
+In the initial design of \projname{}-BMC, the underlying assumption was that
+    we should follow the logic of BMC.
+But the cache invalidation function Figure~\ref{fig:bmc-code} in BMC employs
+    \texttt{for} loops with cumbersome condition checks, and is further
+    complicated by the nesting of multiple \texttt{if} statements.
+The complexity is exacerbated by introducing two additional variables to track
+    the state of key and SET command.
+Such complex checks are intentionally designed to pass the
+    verifier, but they significantly increase the programming burden
+    of BMC, while also leading to readability issues in some places regarding
+    the intended functionality.
+\jinghao{Add some sentence saying this is a prevalent pattern in BMC?}
+% \jinghao{Can we make the claim that this complexity is for passing the
+%     verifier?}
+% During implementation of function \texttt{bmc\_invalidate\_cache},
+%     we assume that each pcket
+
+% This discovery highlighted the obscurity and susceptibility to errors inherent
+%     in the original code structure, primarily due to the complex judgment
+%     conditions buried within nested if statements.
+
+To address all ``loops'' in BMC, \projname{}-BMC utilizes the lazy-evaluated
+    \texttt{windows}, \texttt{enumerate} and \texttt{filter\_map} from slice iterators.
+\jinghao{refer back to eBPF code: The same logic is implemented in
+    \projname{}-BMC as shown in Figure bla}
+These methods in Figure~\ref{fig:rust-code} split the whole payload into chunks
+    with 4 bytes, and collects the results for which the chunk equals the keyword
+    of SET commands
+% \jinghao{What are these challenges -- are we still in the context of cache
+%     invalidation? By the way, can we abstract this out to all ``loops'' in BMC?
+% At the same time, we probably need to explain what \texttt{filter\_map} does.}
+This approach facilitates the creation of an iterator, which is instrumental in identifying
+    the quantity of SET commands present in the current packet payload.
+Further enhancing the ease of programming and the readability, Rust's syntactic sugar is employed for
+    iterating over the identified memcached SET commands, streamlining the process.
+\jinghao{The four levels of nesting in the original code is significantly...}
+The complexity of the original code, characterized by four levels of nesting,
+    is significantly reduced by converting a for-loop with intricate conditions
+    into a clean chain of higher-order functions with closures.
+% \jinghao{lambda function -> a clean chain of higher-order functions with
+%     lambda function?}
+This conversion is achieved through the utilization of \texttt{take\_while}.
+    With generated \texttt{filter\_map} iterator, \texttt{take\_while} will
+    filters the memcached SET key from the payload, and then search the eBPF map for
+    the corresponding entry, thus dividing the code into three distinct
+    sequential parts and markedly improving its expressiveness.
+% \jinghao{Also should explain what \texttt{take\_while} does.}
+
+% \jinghao{Now it feels like we should make part larger, i.e., include code
+%     examples and show how Rust helps with that.
+% We can then move this part into the new qualitative evaluation.}
 \subsection{Performance evaluation}
 \subsubsection{Memory footprint (BPF vs Rust)}
 \begin{figure}
@@ -164,7 +256,7 @@ The \projname{}-BMC does not need to be split due to the absence of the
     \caption{Empty program runtime as well as spinlock acquire and release
         runtime for eBPF and \projname{} in nanoseconds}
     \vspace{-10pt}
-    \label{tab:startup-overhead}
+    \label{tab:startup-cleanup}
 \end{table}
 
 \projname{}'s usage of a dedicated stack for execution and the implementation
@@ -179,7 +271,7 @@ In this experiment we measure the overhead of these stack pointer operations.
 We implement an empty kprobe extension program -- both in eBPF and in
     \projname{} -- and measure their wall runtime including the program
     dispatcher function.
-The result is shown in Figure~\ref{tab:startup-overhead}.
+The result is shown in Figure~\ref{tab:startup-cleanup}.
 On average, the difference of runtime of invoking an empty \projname{} and eBPF
     program is less than 1ns.
 This shows the additional stack manipulations needed by \projname{} does not
@@ -326,7 +418,7 @@ Since the acquired spinlock is a resource that needs to be released upon Rust
     buffer.
 The program is implemented both in eBPF and \projname{} and the time used to
     acquire and release the spinlocks are measured.
-As shown in Table~\ref{tab:cleanup-overhead}, the runtime difference between
+As shown in Table~\ref{tab:startup-cleanup}, the runtime difference between
     eBPF and \projname{} is less than 2ns with \projname{} being the faster
     one, implying the overhead of \projname{}'s cleanup mechanism is
     negligible.
@@ -334,107 +426,16 @@ As shown in Table~\ref{tab:cleanup-overhead}, the runtime difference between
 \subsubsection{\projname{}-BMC}
 \label{eval:macro}
 We now demonstrate that \projname{} can be used to implement complicated,
-    real-world kernel extension use cases with enhanced usability but without
+    performance-sensitive kernel extension use cases in real world with enhanced
+    usability but without
 %    losing much performance by implementing BMC and Electrode in \projname{}.
-    losing much performance by implementing the BPF Memcached Cache (BMC) in
-    \projname{}.
+    compromising performance through our \projname{}-BMC implementation.
 
 % \subsubsection{\projname{}-based BMC}
 % \jinghao{TODO: Preamable}
 % BMC implements in-kernel memcached cache -- how it works
 % Compilcated program, original paper splits into 7 programs and uses tail calls
 %
-
-BMC~\cite{BMC} is an in-kernel cache for Memcached based on eBPF.
-It stores recently queried key-value pairs in an eBPF map to accelerate the
-    processing of GET requests to the Memcached server.
-If a GET is hit in the cache, the queried value can be sent in a reply without
-    going through the expensive network stack in the Linux kernel.
-The map that servers as the cache is managed by eBPF programs, which implements
-    the lookup and update logics.
-
-On the aspect of implementation, BMC is a much more complicated program
-    comparing to other common eBPF use cases.
-In order to pass the verifier, the implementation has to be splitted into seven
-    eBPF programs that tail-calls into each other to reduce verification
-    complexity.
-Similar problem also presents when processing the incoming packet data, where
-    the authors had to bound data size to reduce verification complexity for
-    loops.
-
-We re-implement BMC in \projname{} (\projname{}-BMC) to demonstrate the
-    enhanced usability without losing performance.
-The resulting program is not a direct translation from the original eBPF
-    version in C, rather, we implement the same high-level logic but with
-    slight deviations from BMC where the enhanced usability and expressiveness
-    of Rust allows a simpler implementation.
-
-% The BMC has many places where for loops are nested into different ifs.
-% And, due to the limitations of C, many operations do not have built-in functions
-%     that can be used directly.
-
-\begin{figure}
-    \lstinputlisting[language=myC]{./snippets/s6-bmc.c}
-    \caption{Packet parsing code for cache invalidation in BMC}
-    \label{fig:bmc-code}
-\end{figure}
-\begin{figure}
-    \lstinputlisting[language=Rust]{./snippets/s6-rust.rs}
-    \caption{Packet parsing code for cache invalidation in \projname{}}
-    \label{fig:rust-code}
-\end{figure}
-
-In the initial design of \projname{}-BMC, the underlying assumption was that
-    we should follow the logic of BMC.
-But the cache invalidation function Figure~\ref{fig:bmc-code} in BMC employs
-    \texttt{for} loops with cumbersome condition checks, and is further
-    complicated by the nesting of multiple \texttt{if} statements.
-The complexity is exacerbated by introducing two additional variables to track
-    the state of key and SET command.
-Such complex checks are intentionally designed to pass the
-    verifier, but they significantly increase the programming burden
-    of BMC, while also leading to readability issues in some places regarding
-    the intended functionality.
-\jinghao{Add some sentence saying this is a prevalent pattern in BMC?}
-% \jinghao{Can we make the claim that this complexity is for passing the
-%     verifier?}
-% During implementation of function \texttt{bmc\_invalidate\_cache},
-%     we assume that each pcket
-
-% This discovery highlighted the obscurity and susceptibility to errors inherent
-%     in the original code structure, primarily due to the complex judgment
-%     conditions buried within nested if statements.
-
-To address all ``loops'' in BMC, \projname{}-BMC utilizes the lazy-evaluated
-    \texttt{windows}, \texttt{enumerate} and \texttt{filter\_map} from slice iterators.
-\jinghao{refer back to eBPF code: The same logic is implemented in
-    \projname{}-BMC as shown in Figure bla}
-These methods in Figure~\ref{fig:rust-code} split the whole payload into chunks
-    with 4 bytes, and collects the results for which the chunk equals the keyword
-    of SET commands
-% \jinghao{What are these challenges -- are we still in the context of cache
-%     invalidation? By the way, can we abstract this out to all ``loops'' in BMC?
-% At the same time, we probably need to explain what \texttt{filter\_map} does.}
-This approach facilitates the creation of an iterator, which is instrumental in identifying
-    the quantity of SET commands present in the current packet payload.
-Further enhancing the ease of programming and the readability, Rust's syntactic sugar is employed for
-    iterating over the identified memcached SET commands, streamlining the process.
-\jinghao{The four levels of nesting in the original code is significantly...}
-The complexity of the original code, characterized by four levels of nesting,
-    is significantly reduced by converting a for-loop with intricate conditions
-    into a clean chain of higher-order functions with closures.
-% \jinghao{lambda function -> a clean chain of higher-order functions with
-%     lambda function?}
-This conversion is achieved through the utilization of \texttt{take\_while}.
-    With generated \texttt{filter\_map} iterator, \texttt{take\_while} will
-    filters the memcached SET key from the payload, and then search the eBPF map for
-    the corresponding entry, thus dividing the code into three distinct
-    sequential parts and markedly improving its expressiveness.
-% \jinghao{Also should explain what \texttt{take\_while} does.}
-
-% \jinghao{Now it feels like we should make part larger, i.e., include code
-%     examples and show how Rust helps with that.
-% We can then move this part into the new qualitative evaluation.}
 
 %\para{Experiment setup}
 Our evaluation setup consists two machines, with one
@@ -459,7 +460,7 @@ Our dictionary contains 50 million Memcached keys following a Zipf
     distribution with 0.99 skewness.
 All keys are 16 bytes in size and are paired with 32-byte values in the
     experiments.
-The storage sizes of the Memcached and BMC are set to 10 GB and 2.5 GB,
+The storage sizes of the Memcached and BMC are set to 10 GB andBMC 2.5 GB,
     respectively.
 According to the calculation in the original work, all items
     can be stored in Memcached itself but only 6.3 million of them can fit in
