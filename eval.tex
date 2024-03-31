@@ -109,7 +109,9 @@ The resulting program is not a direct translation from the original eBPF
 \end{figure}
 \begin{figure}
     \lstinputlisting[language=Rust]{./snippets/s6-rust.rs}
-    \caption{Packet parsing code for cache invalidation in \projname{}}
+    \caption{Packet parsing code for cache invalidation in \projname{}
+    \jinghao{Just realized: where is the corresponding check on
+    \texttt{BMC\_MAX\_PACKET\_LENGTH}}}
     \label{fig:rust-code}
 \end{figure}
 
