@@ -135,6 +135,11 @@ Doing so makes each program occupy its own pages.
 The \projname{}-BMC does not need to be split due to the absence of the
     verifier, and therefore utilizes the memory more efficiently.
 
+\jinghao{Took a look at the packed allocation mechanism for eBPF in newer
+    kernels, looks like we need to include the result from the newer kernels
+    where multiple eBPF programs are packed onto the same page. This is also
+    going to change the story here a little bit.}
+
 % \begin{itemize}
 %     \item need a figure: bar graph showing the memory footprint of bpf and
 %         \projname{} programs on our sample programs
