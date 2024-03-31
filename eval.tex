@@ -92,11 +92,15 @@ We define the memory footprint as the number of static memory pages required
     for program execution.
 For eBPF, this only includes the JIT-ed native code, since eBPF program does
     not support static data sections.
+% For \projname{} this includes all load segments from the compiled ELF
+%     executable, which consists not only the text sections, but also the data
+%     sections for static variables (e.g., program objects and maps objects) as
+%     well as the sections that implement support for position-independent code
+%     (e.g., GOT sections).
 For \projname{} this includes all load segments from the compiled ELF
-    executable, which consists not only the text sections, but also the data
-    sections for static variables (e.g., program objects and maps objects) as
-    well as the sections that implement support for position-independent code
-    (e.g., GOT sections).
+    executable.
+A compiled \projname{} program has four load segments, which generally maps to
+    relocations, text, read-only data, and the GOT.
 
 In this experiment, we compare the number of memeory pages required for both
     \projname{} programs and their equivalent eBPF programs.
@@ -108,17 +112,37 @@ We also include the BMC program (\S~\ref{eval:macro}) in the experiment because
 For all the programs, we implement a \projname{} version with the same
     overall logic.
 
-\begin{itemize}
-    \item need a figure: bar graph showing the memory footprint of bpf and
-        \projname{} programs on our sample programs
-    \item sample programs: \texttt{syscall\_tp}, \texttt{tracex5},
-        \texttt{trace\_event}, and BMC.
-    \item y: total number of pages allocated for the loaded object (JIT-ed code
-        for BPF, loaded and mapped pages for Rust)
-\end{itemize}
+The memory footprint and the internal breakdowns of various eBPF and
+    \projname{} programs are shown in Figure~\ref{fig:eval-mem-footprint}.
+In general, the memory footprint becomes more efficient for \projname{} when
+    more programs are defined in the same source file. \jinghao{or should we
+    say ``project''}
+This is because, for eBPF, each program is loaded independently and occupies its
+    own pages; \projname{}, on the other hand, allows multiple programs to be
+    loaded at once in the same executable, which is in a more condensed form.
+\texttt{trace\_event} represents a cases where only a single extension program
+    is defined.
+For such cases, \projname{} would exhibit a larger memory footprint, because
+    its executable contains other sections (e.g., data and relocations) in
+    addition to code.
+\texttt{tracex5} and \texttt{syscall\_tp} uses the same number of memory pages
+    since each of them consists of 4 programs, and one papge per program for
+    the eBPF implementation.
+For BMC, \projname{} achieves a more efficient memory footprint.
+The original eBPF-BMC has to be split into 7 programs in order to keep it
+    within the instruction limit of the verifier.
+Doing so makes each program occupy its own pages.
+The \projname{}-BMC does not need to be split due to the absence of the
+    verifier, and therefore utilizes the memory more efficiently.
 
-\jinghao{Discussion on the result really needs the result, I am not sure which
-one will have a smaller memory footprint.}
+% \begin{itemize}
+%     \item need a figure: bar graph showing the memory footprint of bpf and
+%         \projname{} programs on our sample programs
+%     \item sample programs: \texttt{syscall\_tp}, \texttt{tracex5},
+%         \texttt{trace\_event}, and BMC.
+%     \item y: total number of pages allocated for the loaded object (JIT-ed code
+%         for BPF, loaded and mapped pages for Rust)
+% \end{itemize}
 
 \subsubsection{Startup overhead due to stack switching}
 \begin{table}[t]
