@@ -141,6 +141,7 @@ The classes of solution employed are different ways that developers use to make 
 To better explain our categorization, we now walk through some representative examples for the most important categories.
 
 \subsubsection{Change Source Code to Fix LLVM Codegen}
+\label{motivation:llvm-codegen}
 The LLVM compiler translates eBPF programs written in high-level languages into eBPF bytecode.
 We found that in certain cases, LLVM would generate eBPF bytecode that would cause the program to fail verification.
 One issue found by Cilium was that LLVM may generate 32-bit assignments for
