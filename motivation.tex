@@ -228,11 +228,10 @@ This change does not change the safety properties of the program, but it was sti
 
 
 We found an example of refactoring for expressiveness in the Cilium project.
-To implement segment rouding (\jinghao{smells like a typo here, but I'm not sure what it should be}) header support, they needed to include code to jump to IP header parsing code while already inside the IP header parsing code.
+To implement segment routing header support, they needed to include code to jump to IP header parsing code while already inside the IP header parsing code.
 This would cause a back-edge which gets incorrectly labeled as an infinite loop and the verifier fails.
 Figure~\ref{fig:switch} shows their solution which involved creating a switch statement inside of a switch statement which then jumps ahead to the other code in the outer switch statement.
 The changes required increase the complexity of the source code without changing the semantics.
-\jinghao{For this snippet we should show where the two labels are in the source code}
 
 \begin{figure}
     \lstinputlisting[language=myC]{./snippets/s2-switch.c}
