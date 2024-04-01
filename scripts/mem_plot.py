@@ -78,9 +78,9 @@ ax.set_xticklabels(bpf_programs.keys())
 
 # Simplified legend
 ax.legend(handles=[
+    mpatches.Patch(color='tab:orange', label='BPF Packed'),
     mpatches.Patch(color='tab:blue', label='BPF'),
     mpatches.Patch(color='tab:green', label='REX'),
-    mpatches.Patch(color='tab:orange', label='BPF Packed'),
 ], loc='upper left')
 
 sec_ax = ax.secondary_yaxis('right', functions=(lambda x: x / page_size, lambda x: x * page_size))
@@ -94,5 +94,5 @@ sec_ax.set_ylim(ax.get_ylim())
 # ax.legend(loc='upper left', fontsize='small')
 
 plt.tight_layout()
-plt.show()
+# plt.show()
 plt.savefig("mem.pdf", bbox_inches="tight")
