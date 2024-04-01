@@ -108,13 +108,15 @@ For example, the \texttt{data} field is exported to extension programs as a
     character data slice, since it points to the data content of a packet.
 In this way, all operations assocaited with these fields are visible to the
     compiler, which in turn could generate correct code.
+
 \subsubsection{\projname{}-BMC}
-BPF Memcached Cache (BMC)~\cite{BMC} is an in-kernel cache for Memcached based
-    on eBPF.
+The BPF Memcached Cache (BMC)~\cite{BMC} is an in-kernel cache for Memcached
+    based on eBPF.
 BMC stores recently queried key-value pairs in an eBPF map (i.e. the cache) to
     accelerate the processing of GET requests to the Memcached server.
-If a GET is hit in the cache, BMC can directly draft a reply with the queried
-    value without going through the expensive network stack in the Linux kernel.
+If a GET is hit in the cache, BMC can directly draft a reply to send back the
+    queried value without going through the expensive network stack in the
+    Linux kernel.
 % The map that serves as the cache is managed by eBPF programs, which implements
 %     the lookup and update logics.impl:ctx-converison
 
@@ -147,24 +149,32 @@ The resulting program is not a direct translation from the original eBPF
     \lstinputlisting[language=Rust]{./snippets/s6-rust.rs}
     \caption{Packet parsing code for cache invalidation in \projname{}
     \jinghao{Just realized: where is the corresponding check on
-    \texttt{BMC\_MAX\_PACKET\_LENGTH}}}
+    \texttt{BMC\_MAX\_PACKET\_LENGTH}
+    Update: I saw the new commits in main repo, now this code needs update}
+    }
     \label{fig:rust-code}
 \end{figure}
 
-In the initial design of \projname{}-BMC, the underlying assumption was that
-    we should follow the logic of BMC.
-But the cache invalidation function Figure~\ref{fig:bmc-code} in BMC employs
-    \texttt{for} loops with cumbersome condition checks, and is further
-    complicated by the nesting of multiple \texttt{if} statements.
+%In the initial design of \projname{}-BMC, the underlying assumption was that
+%    we should follow the logic of BMC.
+%But the cache invalidation function Figure~\ref{fig:bmc-code} in BMC employs
+%    \texttt{for} loops with cumbersome condition checks, and is further
+%    complicated by the nesting of multiple \texttt{if} statements.
+A representative example where BMC suffers from the verifier is its cache
+    invalidation function, shown in Figure~\ref{fig:bmc-code}.
+The cache invalidation code employs \texttt{for} loops with cumbersome
+    condition checks, and is further complicated by the nesting of multiple
+    \texttt{if} statements.
 The complexity is exacerbated by introducing two additional variables to track
-    the state of key and SET command.
+    the state of the key and the SET command.
 Such complex checks are intentionally designed to pass the
     verifier, but they significantly increase the programming burden
-    of BMC, while also leading to readability issues in some places regarding
-    the intended functionality.
-This situations is a prevalent pattern within the BMC structure, which is 
-    notably observed within the functions \texttt{bmc\_hash\_keys\_main} 
-    and \texttt{bmc\_write\_reply\_main}.
+    of BMC, while at the same time leads to readability issues in some places
+    regarding the intended functionality.
+This situations is a prevalent pattern within the BMC structure, which is
+%    notably observed within the functions \texttt{bmc\_hash\_keys\_main}
+%    and \texttt{bmc\_write\_reply\_main}.
+    notably also present in the code that hashes the key and drafts the reply.
 
 % \jinghao{Add some sentence saying this is a prevalent pattern in BMC?}
 % \jinghao{Can we make the claim that this complexity is for passing the
@@ -176,12 +186,17 @@ This situations is a prevalent pattern within the BMC structure, which is
 %     in the original code structure, primarily due to the complex judgment
 %     conditions buried within nested if statements.
 
-To address all ``loops'' in BMC, \projname{}-BMC utilizes the lazy-evaluated
-    \texttt{windows}, \texttt{enumerate} and \texttt{filter\_map} from slice iterators.
-Refer back to BMC code, the similar logic is implemented in \projname{}-BMC as shown in Figure~\ref{fig:rust-code}.
+\projname{}-BMC is able to avoid the complexities caused by the verifier.
+The equivalent cache invalidation code is shown in Figure~\ref{fig:rust-code}.
+For the loops in the original implementation, \projname{}-BMC utilizes the
+    lazy-evaluated \texttt{windows}, \texttt{enumerate} and
+    \texttt{filter\_map} from slice iterators.
+% Refer back to BMC code, the similar logic is implemented in \projname{}-BMC as shown in Figure~\ref{fig:rust-code}.
 These methods split the whole payload into chunks
     with 4 bytes, and collects the results for which the chunk equals the keyword
     of SET commands.
+\jinghao{Need a few sentences to explain why a bunch of checks are no
+    longer needed and why we are safe even without these checks.}
 % \jinghao{What are these challenges -- are we still in the context of cache
 %     invalidation? By the way, can we abstract this out to all ``loops'' in BMC?
 % At the same time, we probably need to explain what \texttt{filter\_map} does.}
@@ -190,15 +205,15 @@ This approach facilitates the creation of an iterator, which is instrumental in 
 Further enhancing the ease of programming and the readability, Rust's syntactic sugar is employed for
     iterating over the identified memcached SET commands, streamlining the process.
 % \jinghao{The four levels of nesting in the original code is significantly...}
-The four levels of nesting in the original code is significantly reduced by 
-    converting a for-loop with intricate conditions into a clean chain 
+The four levels of nesting in the original code is significantly reduced by
+    converting a for-loop with intricate conditions into a clean chain
     of higher-order functions with closures.
 % \jinghao{lambda function -> a clean chain of higher-order functions with
 %     lambda function?}
 This conversion is achieved through the utilization of \texttt{take\_while}.
-    With generated \texttt{filter\_map} iterator, \texttt{take\_while} will
-    filters the memcached SET key from the payload, and then search the eBPF map for
-    the corresponding entry, thus dividing the code into three distinct
+    With the iterator from \texttt{filter\_map}, \texttt{take\_while} will
+    filter the memcached SET key from the payload, and then search the eBPF map for
+    the corresponding entry \jinghao{this is not in the code}, thus dividing the code into three distinct
     sequential parts and markedly improving its expressiveness.
 % \jinghao{Also should explain what \texttt{take\_while} does.}
 
