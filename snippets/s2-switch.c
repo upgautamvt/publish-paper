@@ -17,4 +17,3 @@ parse_outer_ipv4: __maybe_unused
   break;
 case IPPROTO_IPV6:
 parse_outer_ipv6: __maybe_unused
-  ...
