@@ -168,11 +168,7 @@ The resulting program is not a direct translation from the original eBPF
 \end{figure}
 \begin{figure}
     \lstinputlisting[language=Rust]{./snippets/s6-rust.rs}
-    \caption{Packet parsing code for cache invalidation in \projname{}
-    \jinghao{Just realized: where is the corresponding check on
-    \texttt{BMC\_MAX\_PACKET\_LENGTH}
-    Update: I saw the new commits in main repo, now this code needs update}
-    }
+    \caption{Packet parsing code for cache invalidation in \projname{}}
     \label{fig:rust-code}
 \end{figure}
 
@@ -216,6 +212,8 @@ For the loops in the original implementation, \projname{}-BMC utilizes the
 These methods split the whole payload into chunks
     with 4 bytes, and collects the results for which the chunk equals the keyword
     of SET commands.
+    1. part of checks are converting to lambda and closures
+    2. another part of are checked by Rust language feature (slice),
 \jinghao{Need a few sentences to explain why a bunch of checks are no
     longer needed and why we are safe even without these checks.}
 % \jinghao{What are these challenges -- are we still in the context of cache
@@ -233,8 +231,7 @@ The four levels of nesting in the original code is significantly reduced by
 %     lambda function?}
 This conversion is achieved through the utilization of \texttt{take\_while}.
     With the iterator from \texttt{filter\_map}, \texttt{take\_while} will
-    filter the memcached SET key from the payload, and then search the eBPF map for
-    the corresponding entry \jinghao{this is not in the code}, thus dividing the code into three distinct
+    filter the memcached SET key from the payload, thus dividing the code into three distinct
     sequential parts and markedly improving its expressiveness.
 
 \jinghao{Can we also write maybe one paragraph on the need to store the parsing
