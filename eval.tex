@@ -136,8 +136,7 @@ The BPF Memcached Cache (BMC)~\cite{BMC} is an in-kernel cache for Memcached
 BMC stores recently queried key-value pairs in an eBPF map (i.e. the cache) to
     accelerate the processing of GET requests to the Memcached server.
 If a GET is hit in the cache, BMC can directly draft a reply to send back the
-    queried value without going through the expensive network stack in the
-    Linux kernel.
+    queried value without going through the expensive Linux network stack.
 % The map that serves as the cache is managed by eBPF programs, which implements
 %     the lookup and update logics.impl:ctx-converison
 
@@ -149,13 +148,6 @@ In order to pass the verifier, it has to be split into seven
 Similar problem also presents when processing the incoming packet data, where
     the authors had to bound data size to reduce verification complexity of
     loops.
-
-We re-implement BMC in \projname{} (\projname{}-BMC) to demonstrate the
-    enhanced usability.
-The resulting program is not a direct translation from the original eBPF
-    version in C, rather, we implement the same high-level logic but with
-    slight deviations from BMC where the enhanced usability and expressiveness
-    of Rust allows a simpler implementation.
 
 % The BMC has many places where for loops are nested into different ifs.
 % And, due to the limitations of C, many operations do not have built-in functions
@@ -186,8 +178,8 @@ The cache invalidation code employs \texttt{for} loops with cumbersome
 The complexity is exacerbated by introducing two additional variables to track
     the state of the key, the SET command and the end of packet.
 Such complex checks are intentionally designed to pass the
-    verifier. 
-Without these checks, the program produces an excessive number of jmp instructions, 
+    verifier.
+Without these checks, the program produces an excessive number of jump instructions,
     leading the verifier to reject loading the program.
 Nonetheless, this approach significantly increase the programming burden
     of BMC, while at the same time leads to readability issues in some places
@@ -197,7 +189,7 @@ Nonetheless, this approach significantly increase the programming burden
 This situations is a prevalent pattern within the BMC structure, which is
 %    notably observed within the functions \texttt{bmc\_hash\_keys\_main}
 %    and \texttt{bmc\_write\_reply\_main}.
-    notably also present in the code that hashes the key and drafts the reply.
+    notably also present in the code that hashes the Memcached key and drafts the reply.
 
 % \jinghao{Add some sentence saying this is a prevalent pattern in BMC?}
 % \jinghao{Can we make the claim that this complexity is for passing the
@@ -209,11 +201,21 @@ This situations is a prevalent pattern within the BMC structure, which is
 %     in the original code structure, primarily due to the complex judgment
 %     conditions buried within nested if statements.
 
-\projname{}-BMC is able to avoid the complexities caused by the verifier.
-The equivalent cache invalidation code is shown in Figure~\ref{fig:rust-code}.
-In the \projname{}-BMC, specific checks such as those for identified SET commands and the key\_found 
-    state are being translated to utilize built-in lambda functions and closures. 
-Meanwhile, other checks, including those for offset and data\_end limits, are being restrict via 
+We re-implement BMC in \projname{} (\projname{}-BMC) to demonstrate the
+    enhanced usability.
+The resulting program is not a direct translation from the original eBPF
+    version in C, rather, we implement the same high-level logic but with
+    slight deviations from BMC where the enhanced usability and expressiveness
+    of Rust allows a simpler implementation.
+
+% \projname{}-BMC is able to avoid the complexities caused by the verifier.
+The equivalent cache invalidation code in \projname{} is shown in
+    Figure~\ref{fig:rust-code}.
+    In the \projname{}-BMC, specific checks such as those for identified SET commands and the \texttt{key\_found}
+    state are being translated to utilize built-in lambda functions and closures.
+\jinghao{We will need to show where the \texttt{key\_found} and \texttt{set\_found} are assigned in the
+original C code. We should also talk about \texttt{BMC\_MAX\_PACKET\_LENGTH}.}
+Meanwhile, other checks, including those for offset and \texttt{data\_end} limits, are being restrict via
     the inherent language features of Rust, such as the slice functionality.
 % \jinghao{Need a few sentences to explain why a bunch of checks are no
 %     longer needed and why we are safe even without these checks.}
@@ -234,7 +236,7 @@ Further enhancing the ease of programming and the readability, Rust's syntactic 
     iterating over the identified memcached SET commands, streamlining the process.
 % \jinghao{The four levels of nesting in the original code is significantly...}
 The four levels of nesting in the original code is significantly reduced by
-    converting a for-loop with intricate conditions into a clean chain
+converting a \texttt{for}-loop with intricate conditions into a clean chain
     of higher-order functions with closures.
 % \jinghao{lambda function -> a clean chain of higher-order functions with
 %     lambda function?}
