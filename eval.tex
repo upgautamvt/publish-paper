@@ -161,12 +161,12 @@ The resulting program is not a direct translation from the original eBPF
 % And, due to the limitations of C, many operations do not have built-in functions
 %     that can be used directly.
 
-\begin{figure}
+\begin{figure}[t]
     \lstinputlisting[language=myC]{./snippets/s6-bmc.c}
     \caption{Packet parsing code for cache invalidation in BMC}
     \label{fig:bmc-code}
 \end{figure}
-\begin{figure}
+\begin{figure}[t]
     \lstinputlisting[language=Rust]{./snippets/s6-rust.rs}
     \caption{Packet parsing code for cache invalidation in \projname{}}
     \label{fig:rust-code}
@@ -188,6 +188,8 @@ Such complex checks are intentionally designed to pass the
     verifier, but they significantly increase the programming burden
     of BMC, while at the same time leads to readability issues in some places
     regarding the intended functionality.
+\jinghao{One or two sentence explain why conditions are needed for
+    verification, based on our experiment on removing one of these.}
 This situations is a prevalent pattern within the BMC structure, which is
 %    notably observed within the functions \texttt{bmc\_hash\_keys\_main}
 %    and \texttt{bmc\_write\_reply\_main}.
