@@ -182,14 +182,18 @@ A representative example where BMC suffers from the verifier is its cache
 The cache invalidation code employs \texttt{for} loops with cumbersome
     condition checks, and is further complicated by the nesting of multiple
     \texttt{if} statements.
+
 The complexity is exacerbated by introducing two additional variables to track
-    the state of the key and the SET command.
+    the state of the key, the SET command and the end of packet.
 Such complex checks are intentionally designed to pass the
-    verifier, but they significantly increase the programming burden
+    verifier. 
+Without these checks, the program produces an excessive number of jmp instructions, 
+    leading the verifier to reject loading the program.
+Nonetheless, this approach significantly increase the programming burden
     of BMC, while at the same time leads to readability issues in some places
     regarding the intended functionality.
-\jinghao{One or two sentence explain why conditions are needed for
-    verification, based on our experiment on removing one of these.}
+% \jinghao{One or two sentence explain why conditions are needed for
+%     verification, based on our experiment on removing one of these.}
 This situations is a prevalent pattern within the BMC structure, which is
 %    notably observed within the functions \texttt{bmc\_hash\_keys\_main}
 %    and \texttt{bmc\_write\_reply\_main}.
@@ -207,6 +211,13 @@ This situations is a prevalent pattern within the BMC structure, which is
 
 \projname{}-BMC is able to avoid the complexities caused by the verifier.
 The equivalent cache invalidation code is shown in Figure~\ref{fig:rust-code}.
+In the \projname{}-BMC, specific checks such as those for identified SET commands and the key\_found 
+    state are being translated to utilize built-in lambda functions and closures. 
+Meanwhile, other checks, including those for offset and data\_end limits, are being restrict via 
+    the inherent language features of Rust, such as the slice functionality.
+% \jinghao{Need a few sentences to explain why a bunch of checks are no
+%     longer needed and why we are safe even without these checks.}
+% \jinghao{The four levels of nesting in the original code is significantly...}
 For the loops in the original implementation, \projname{}-BMC utilizes the
     lazy-evaluated \texttt{windows}, \texttt{enumerate} and
     \texttt{filter\_map} from slice iterators.
@@ -214,10 +225,6 @@ For the loops in the original implementation, \projname{}-BMC utilizes the
 These methods split the whole payload into chunks
     with 4 bytes, and collects the results for which the chunk equals the keyword
     of SET commands.
-    1. part of checks are converting to lambda and closures
-    2. another part of are checked by Rust language feature (slice),
-\jinghao{Need a few sentences to explain why a bunch of checks are no
-    longer needed and why we are safe even without these checks.}
 % \jinghao{What are these challenges -- are we still in the context of cache
 %     invalidation? By the way, can we abstract this out to all ``loops'' in BMC?
 % At the same time, we probably need to explain what \texttt{filter\_map} does.}
