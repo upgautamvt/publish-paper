@@ -144,8 +144,8 @@ If a GET is hit in the cache, BMC can directly draft a reply to send back the
 On the aspect of implementation, BMC is a much more complicated program
     comparing to other common eBPF use cases.
 In order to pass the verifier, it has to be split into seven
-    eBPF programs that tail-calls into each other to reduce verification
-    complexity.
+    eBPF programs that use eBPF tail calls to transfer control to each other to
+    reduce verification complexity.
 Similar problem also presents when processing the incoming packet data, where
     the authors had to bound data size to reduce verification complexity of
     loops.
@@ -248,7 +248,7 @@ This conversion is achieved through the utilization of \texttt{take\_while}.
 \jinghao{TODO: Need preamble}
 \subsubsection{Memory footprint (BPF vs Rust)}
 \begin{figure}
-    \includegraphics[width=1.0\linewidth]{figs/mem-footprint.png}
+    \includegraphics[width=1.0\linewidth]{figs/mem.pdf}
     \centering
     \vspace{-25pt}
     \caption{Amount of static memory used by various eBPF and \projname{}
