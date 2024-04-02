@@ -28,71 +28,61 @@ bpf_programs_new = {
 }
 page_size = 4096
 
-# Plotting
-fig, ax = plt.subplots()
-
 bar_width = 0.20
 pair_gap = 0.0
 group_gap = 1.0
 
 xticks = []
 
-for group_index, name in enumerate(bpf_programs.keys()):
-    # Calculate the used and unused space for BPF programs
-    used_bpf = sum(bpf_programs[name])
-    unused_bpf = len(bpf_programs[name]) * page_size - used_bpf
-    
-    # Calculate the used and unused space for Rust programs
-    rust_sizes_dec = [size for size in rust_programs.get(name, [])]
-    used_rust = sum(rust_sizes_dec)
-    unused_rust = len(rust_sizes_dec) * page_size - used_rust
-    
-    # Calculate the used and unused space for the new BPF programs
-    used_bpf_new = sum(bpf_programs_new[name])
-    unused_bpf_new = len(bpf_programs_new[name]) * page_size - used_bpf_new
-    
-    # Determine bar positions
-    bpf_new_position = group_index * (3 * bar_width + 2 * pair_gap + group_gap)
-    bpf_position = bpf_new_position + bar_width + pair_gap
-    rust_position = bpf_position + bar_width + pair_gap
+def process_one_category(data):
+    used = np.array(list(map(sum, data.values())))
+    unused = np.array(list(map(lambda x: len(x) * page_size,
+                          bpf_programs.values()))) - used
+    return used, unused
 
-    # Plot BPF used and unused space
-    ax.bar(bpf_position, used_bpf, width=bar_width, color='tab:blue', align='edge', label='BPF')
-    ax.bar(bpf_position, unused_bpf, bottom=used_bpf, width=bar_width, color='tab:blue', align='edge', alpha = .3)
-    
-    # Plot Rust used and unused space, if present
-    ax.bar(rust_position, used_rust, width=bar_width, color='tab:green', align='edge', label='REX')
-    ax.bar(rust_position, unused_rust, bottom=used_rust, width=bar_width, color='tab:green', align='edge', alpha = .3)
-    
-    # Plot new BPF used and unused space
-    ax.bar(bpf_new_position, used_bpf_new, width=bar_width, color='tab:orange', align='edge', label='BPF Packed')
-    ax.bar(bpf_new_position, unused_bpf_new, bottom=used_bpf_new, width=bar_width, color='tab:orange', align='edge', alpha = .3)
-    
-    # Add midpoint for xticks
-    xticks.append((rust_position + bpf_position) / 2)
+data = {
+    'BPF': process_one_category(bpf_programs),
+    'BPF-packed': process_one_category(bpf_programs_new),
+    'REX': process_one_category(rust_programs)
+}
 
-# Labels and formatting
-ax.set_ylabel('Bytes')
-ax.set_xticks(xticks)
-ax.set_xticklabels(bpf_programs.keys())
+with plt.style.context('seaborn-v0_8-paper'):
+    x = np.arange(len(bpf_programs))
+    width = bar_width
+    multiplier = 0
 
-# Simplified legend
-ax.legend(handles=[
-    mpatches.Patch(color='tab:orange', label='BPF Packed'),
-    mpatches.Patch(color='tab:blue', label='BPF'),
-    mpatches.Patch(color='tab:green', label='REX'),
-], loc='upper left')
+    fig, ax = plt.subplots(layout='tight')
+    fig.set_size_inches(4.5, 2.7)
 
-sec_ax = ax.secondary_yaxis('right', functions=(lambda x: x / page_size, lambda x: x * page_size))
-sec_ax.set_ylabel('Number of Pages')
-sec_ax.set_ylim(ax.get_ylim())
+    for cat, (used, unused) in data.items():
+        offset = width * multiplier
+        rects = ax.bar(x + offset, used, width, label=cat)
+        c = (*rects.patches[0]._facecolor[:-1], 0.3)
+        ax.bar(x + offset, used, width, bottom=used, color=c)
+        multiplier += 1
 
-# ax.set_xticklabels(ax.get_xticklabels(), size='large')
-# ax.set_yticklabels(ax.get_yticklabels(), size='large')
-# sec_ax.set_yticklabels(sec_ax.get_yticklabels(), size='large')
+    # Labels and formatting
+    #ax.set_ylabel('Bytes')
+    #ax.set_xticks(xticks)
+    #ax.set_xticklabels(bpf_programs.keys())
 
-# ax.legend(loc='upper left', fontsize='small')
+    # Simplified legend
+    #ax.legend(handles=[
+    #    mpatches.Patch(color='tab:orange', label='BPF Packed'),
+    #    mpatches.Patch(color='tab:blue', label='BPF'),
+    #    mpatches.Patch(color='tab:green', label='REX'),
+    #], loc='upper left')
 
-plt.tight_layout()
-# plt.show()
-plt.savefig("mem.pdf", bbox_inches="tight")
+    sec_ax = ax.secondary_yaxis('right', functions=(lambda x: x / page_size, lambda x: x * page_size))
+    sec_ax.set_ylabel('Number of Pages')
+    sec_ax.set_ylim(ax.get_ylim())
+
+    # ax.set_xticklabels(ax.get_xticklabels(), size='large')
+    # ax.set_yticklabels(ax.get_yticklabels(), size='large')
+    # sec_ax.set_yticklabels(sec_ax.get_yticklabels(), size='large')
+
+    # ax.legend(loc='upper left', fontsize='small')
+
+    plt.tight_layout()
+    # plt.show()
+    plt.savefig("mem.pdf", bbox_inches="tight")
