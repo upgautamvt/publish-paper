@@ -340,7 +340,7 @@ Different kernel versions may have different versions of the eBPF verifier, each
 To maintain compatibility between these versions, developers have to change code to account for the differences.
 A good example of this is found in Cilium.
 The verifier failed the program with the message shown in Figure~\ref{fig:kernel-version}.
-This is a known (jinghao{verifier?}) bug that has been fixed, but the fix is not present in all kernel versions.
+This is a known (\jinghao{verifier?}) bug that has been fixed, but the fix is not present in all kernel versions.
 Cilium developers had to implement a simple, but precise fix to ensure that the program would verify on all extensions.
 As shown in Figure~\ref{fig:kernel-version-code} the fix needed was to move line 7 to line 1 before the block of code.
 
