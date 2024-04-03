@@ -20,7 +20,7 @@ Kernel extension is an essential component of modern operating systems and has
 %  of file systems, consensus protocols, key-value storage, and security, often
 %  in the form of large and complex programs.
 The de-facto kernel extension mechanism in the Linux kernel is eBPF.
-However, eBPF is contrained by its static verifier, which provides
+However, eBPF is constrained by its static verifier, which provides
   safety as its core value proposition but at the same time creates usability
   challenges.
 %, especially with the increasingly complex use cases.
@@ -30,19 +30,20 @@ However, eBPF is contrained by its static verifier, which provides
 %   program into small pieces, or limitation in functionality when logic cannot
 %   be expressed.
 Developers are often forced to heavily massage their code -- splitting the
-  program into small pieces and even directly writing eBPF bytecode, in order
+  program into small pieces and implementing cumbersome conditions, in order
   to pass the verifier.
 % On the other hand, static verification is fundamentally limited in verifying
 %   certain safety properties -- a verified eBPF program can still overflow
 %   the kernel stack or hold the CPU for a long time.
 % At the core of the problem is a large gap between the programmer and the
 %   verifier.
-The core problem is a large gap between the programming language and the
+The core problem is a large \jinghao{semantic?} gap between the programming language and the
   verifier.
 
 In this paper, we make the observation that the enhanced usuability and the
-  needed safety properties can be obtained from a safe language like Rust
-  effectively eliminating the verifier and closing the gap.
+  needed safety properties can be obtained from a safe language,
+%   effectively eliminating the verifier and closing the gap.
+  effectively closing the gap by eliminating the extra layer of verification.
 We design and implement a new Rust-based kernel extension abstraction:
   \projname{}, where safe Rust programs run in
   the place of verified eBPF programs.
@@ -53,5 +54,6 @@ Our Rust layer provides a \textit{safe} program interface for kernel extension
 We implement several state of the art eBPF programs with comparable
   performance to JITed eBPF programs, demonstrating there is no need to split
   programs or limit their processing data size.
+\jinghao{Shall we mention BMC specifically here?}
 
 \end{abstract}
