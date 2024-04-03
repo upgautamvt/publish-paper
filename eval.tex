@@ -267,11 +267,11 @@ This conversion is achieved through the utilization of \texttt{take\_while}.
 % definition of memory footprint
 % eBPF only have JIT code
 % Rust have code sections and other sections, e.g. data and GOT sections
-We evaluate on how large the in-kernel memory footprint of \projname{} programs
-    is comparing to that of eBPF programs.
+We evaluate on how the in-kernel memory footprint of \projname{} programs
+    compares to that of eBPF programs.
 We define the memory footprint as the number of static memory pages required
     for program execution.
-For eBPF, this only includes the JIT-ed native code, since eBPF program does
+For eBPF, this only includes the post-JIT native code, since eBPF program does
     not support static data sections.
 % For \projname{} this includes all load segments from the compiled ELF
 %     executable, which consists not only the text sections, but also the data
@@ -280,56 +280,57 @@ For eBPF, this only includes the JIT-ed native code, since eBPF program does
 %     (e.g., GOT sections).
 For \projname{}, this includes all \texttt{LOAD} segments from the compiled ELF
     executable.
-A compiled \projname{} program generally has four \texttt{LOAD} segments, which
-    map to relocations, text, read-only data, and the GOT.
+A compiled \projname{} program generally has four \texttt{LOAD} segments that
+%     map to relocations, text, read-only data, and the GOT.
+    map to different sections (e.g. text, rodata, etc).
 
-In this experiment, we compare the number of memeory pages required for both
+In this experiment, we compare the memeory required for both
     \projname{} programs and their equivalent eBPF programs.
 We select 3 simple eBPF programs from the sample eBPF programs shipped with the
     kernel -- the trace point program \texttt{syscall\_tp}, the kprobe program
     \texttt{tracex5} and the perf event program \texttt{trace\_event}.
 We also include the BMC program (\S~\ref{eval:bmc-case-study}) in the
-    experiment because it represents an example of a more complicated eBPF
-    program.
+    experiment because it represents an example of a more complicated use case.
 We implement a \projname{} version for each of the programs.
 
-The number of pages allocated for and the fractions occupied by of the eBPF
+The number of pages allocated for and the actual amount used by the eBPF
     programs and their \projname{} counterparts are shown in
     Figure~\ref{fig:eval-mem-footprint}.
 % In general, the memory footprint becomes more efficient for \projname{} when
 %     more programs are defined in the same source file. \jinghao{or should we
 %     say ``project''}
-Before Linux 5.18, each eBPF program is loaded independently and
-    occupies its own pages.
+Before Linux 5.18, each eBPF program occupies its own pages.
 eBPF introduced the ``packed allocation'' feature since Linux 5.18, which
     tries to pack different programs into the same page to use memory more
-    efficiently and is labeled in Figure~\ref{fig:eval-mem-footprint} as
-    ``BPF-Packed''.
+    efficiently.
+% and is labeled in Figure~\ref{fig:eval-mem-footprint} as
+%     ``BPF-Packed''.
 For \projname{}, multiple programs in the same project are
     loaded together in the same executable.
-However, different segments of the executable have to reside in different
+However, different segments of the executable have to reside in their own
     pages since they require different memory permissions.
 
 Because each segment of a \projname{} program needs its own page, \projname{}
     exhibits a higher static memory footprint for all programs when compared to
     eBPF with packed allocation.
-When comparing to eBPF without packed allocation, the situation depends on the
-    number of programs in the same project.
+When comparing to eBPF without packed allocation, \projname{} is more efficient
+    when more programs are defined in the same project.
 \texttt{trace\_event} represents a case where only a single extension program
     is defined.
 For such cases, \projname{} would exhibit a larger memory footprint, because of
     its extra segments in addition to code.
 %     its executable contains other sections (e.g., data and relocations) in
 %     addition to code.
-\texttt{tracex5} and \texttt{syscall\_tp} uses the same number of memory pages
-    since each of them consists of 4 programs, and one page per program is
-    allocated for without packed allocation.
+For \texttt{tracex5} and \texttt{syscall\_tp}, eBPF and \projname{} uses the
+    same number of memory pages
+    since both of them consist of 4 programs, and one page per program is
+    allocated without packed allocation.
 For BMC, \projname{} achieves a more efficient memory footprint.
 The original eBPF-BMC has to be split into 7 programs in order to keep it
-    within the instruction limit of the verifier.
+    within the limit of the verifier.
 Doing so without packed allocation makes each program occupy its own pages.
-The \projname{}-BMC does not need to be split due to the absence of the
-    verifier, and therefore utilizes the memory more efficiently.
+The \projname{}-BMC has all the code packed in the text section, and therefore
+    utilizes the memory more efficiently.
 
 % \begin{itemize}
 %     \item need a figure: bar graph showing the memory footprint of bpf and
@@ -578,7 +579,7 @@ We also adjust the CPU affinity of IRQs associated with the NIC such that the
     \includegraphics[width=1.0\linewidth]{figs/bmc.pdf}
     \centering
     \vspace{-25pt}
-    \caption{Throughput of BMC on MemcachedSR, eBPF-BMC, and \projname{}-BMC
+    \caption{Throughput of MemcachedSR, eBPF-BMC, and \projname{}-BMC
         under different number of CPUs/threads.
     }
     \label{fig:eval-bmc}
