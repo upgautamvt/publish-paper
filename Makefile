@@ -2,8 +2,8 @@ NAME := paper
 TEXS := $(wildcard *.tex)
 TABLES := $(wildcard tables/*.tex)
 NUMBERS := $(wildcard numbers/*.tex)
-PLOTS := $(wildcard data/plots/*.eps)
-CODE := $(wildcard code/*.java)
+PLOTS := $(wildcard figs/*.pdf)
+CODE := $(wildcard snippets/*)
 BIBS := $(wildcard *.bib)
 
 %.pdf: %.fig 

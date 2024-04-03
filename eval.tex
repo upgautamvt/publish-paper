@@ -255,7 +255,7 @@ This conversion is achieved through the utilization of \texttt{take\_while}.
 \subsection{Performance evaluation}
 \jinghao{TODO: Need preamble}
 \subsubsection{Static memory footprint}
-\begin{figure}
+\begin{figure}[t]
     \includegraphics[width=1.0\linewidth]{figs/mem.pdf}
     \centering
     \vspace{-25pt}
@@ -381,7 +381,7 @@ This shows the additional stack manipulations needed by \projname{} does not
 
 % The raw data and script used to make the graph (plot2.py)
 % is in the map-test directory under testing/analysis/impl:ctx-converison
-\begin{figure}
+\begin{figure}[t]
     \includegraphics[width=1.0\linewidth]{figs/inline.pdf}
     \centering
     \vspace{-25pt}
@@ -574,7 +574,7 @@ We also adjust the CPU affinity of IRQs associated with the NIC such that the
     network interrupts are processed on the same set of cores the Memcached
     server executes on.
 
-\begin{figure}
+\begin{figure}[t]
     \includegraphics[width=1.0\linewidth]{figs/bmc.pdf}
     \centering
     \vspace{-25pt}
