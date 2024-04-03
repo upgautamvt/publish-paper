@@ -313,7 +313,7 @@ In response to this, the developers had to figure out a workaround to make their
 We found an example in Cilium where the developer needed to explicitly teach the verifier
     information.
 The verifier lost track of the value of \texttt{nh\_params.nh\_family}, which caused it to reject the program.
-In Figure~\ref{fig:teach-verifier} we can see that the developers needed to slightly change the code in order to ensure the verifier knew what the value was.
+In Figure~\ref{fig:teach-verifier}, we can see that the developers needed to slightly change the code in order to ensure the verifier knew what the value was.
 The original code was fully safe, but the verifier rejected it.
 The required fix is also counter-intuitive, which makes it less usable.
 
@@ -387,6 +387,8 @@ All the function does it call a helper function, which then introduces a new sta
 %\jinghao{Can we put more information here on this helper? It would be great
 %to show that the helper itself is complicated and developers have to insert it
 %at random places.}
+\jinghao{My understanding is that this calls a \textit{kernel helper} so that the
+state is reset?}
 In some cases doing so significantly decreases the complexity of eBPF programs.
 In one commit, doing so reduced the number of instructions checked from 62,569 to 49,669.
 This is more significant on older kernel versions which have a much smaller upper limit to the number of instructions the eBPF verifier could check.
@@ -408,8 +410,8 @@ it could be that a programmer's source code was completely safe, but LLVM genera
 To programmers, a successful compilation should indicate something about the success of their code, but in the eBPF system that is not the case.
 This gap is fundamental to the eBPF system.
 A system that closes this gap by moving the verifier and the compiler closer together may be able to avoid the challenges discovered in the existing eBPF system.
-\jinghao{would be interesting to talk about saving/reloading computation
-    context across tail calls}
+% \jinghao{would be interesting to talk about saving/reloading computation
+%     context across tail calls}
 
 %Different kernel versions have different verifiers with different constraints
 %    and different properties that they check.
