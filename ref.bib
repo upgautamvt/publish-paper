@@ -1838,6 +1838,27 @@ title = {{PortLand: A Scalable Fault-Tolerant Layer 2 Data Center Network Fabric
   month = MAY,
 }
 
+@inproceedings{untenableVerification,
+    author = {Jia, Jinghao and Sahu, Raj and Oswald, Adam and Williams, Dan and Le, Michael V. and Xu, Tianyin},
+    title = {Kernel extension verification is untenable},
+    year = {2023},
+    isbn = {9798400701955},
+    publisher = {Association for Computing Machinery},
+    address = {New York, NY, USA},
+    url = {https://doi.org/10.1145/3593856.3595892},
+    doi = {10.1145/3593856.3595892},
+    abstract = {The emergence of verified eBPF bytecode is ushering in a new era of safe kernel extensions. In this paper, we argue that eBPF's verifier---the source of its safety guarantees---has become a liability. In addition to the well-known bugs and vulnerabilities stemming from the complexity and ad hoc nature of the in-kernel verifier, we highlight a concerning trend in which escape hatches to unsafe kernel functions (in the form of helper functions) are being introduced to bypass verifier-imposed limitations on expressiveness, unfortunately also bypassing its safety guarantees. We propose safe kernel extension frameworks using a balance of not just static but also lightweight runtime techniques. We describe a design centered around kernel extensions in safe Rust that will eliminate the need of the in-kernel verifier, improve expressiveness, allow for reduced escape hatches, and ultimately improve the safety of kernel extensions.},
+    booktitle = {Proceedings of the 19th Workshop on Hot Topics in Operating Systems},
+    pages = {150–157},
+    numpages = {8},
+    keywords = {operating system, kernel extension, eBPF, verification, safety},
+    location = {Providence, RI, USA},
+    series = {HOTOS '23}
+}
+
+
+
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%   PROC-HOTSDN %%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -5245,4 +5266,15 @@ month = jul,
   title={{bindgen}},
   howpublished={\url{https://github.com/rust-lang/rust-bindgen}},
   note={(Accessed on 2024-03-07)},
+}
+
+@inproceedings {slic,
+  author = {Douglas P. Ghormley and David Petrou and Steven H. Rodrigues and Thomas E. Anderson},
+  title = {{SLIC}: An Extensibility System for Commodity Operating Systems},
+  booktitle = {1998 USENIX Annual Technical Conference (USENIX ATC 98)},
+  year = {1998},
+  address = {New Orleans, LA},
+  url = {https://www.usenix.org/conference/1998-usenix-annual-technical-conference/slic-extensibility-system-commodity-operating},
+  publisher = {USENIX Association},
+  month = jun
 }

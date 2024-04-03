@@ -1,13 +1,19 @@
 \section{Background}
 
 \subsection{eBPF}
+eBPF is a Linux kernel subsystem that allows for safe and dynamic kernel extension.
+Developers write programs that get compiled to eBPF bytecode before being verified by an in-kernel verifier.
+The verifier ensures certain safety properties about the programs such as termination and memory safety.
+eBPF programs have access to a set of helper functions inside the kernel, which allow them to interact with kernel state.
+The execution of eBPF programs follows an event based mechanism, where control flow will transfer to the extension when certain events happen in the system.
+Recent work has argued that the safety guarantees of the eBPF verifier are not as strong as claimed, especially in respect to the helper function interface \cite{untenableVerification}.
 
-\begin{itemize}
-    \item extension program model
-    \item verification
-    \item helpers
-    \item eBPF problems, echo the HotOS paper
-\end{itemize}
+%\begin{itemize}
+%    \item extension program model
+%    \item verification
+%    \item helpers
+%    \item eBPF problems, echo the HotOS paper
+%\end{itemize}
 
 \subsection{Rust}
 
