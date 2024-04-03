@@ -4,8 +4,8 @@
 eBPF is a Linux kernel subsystem that allows for safe and dynamic kernel extension.
 Developers write programs that get compiled to eBPF bytecode before being verified by an in-kernel verifier.
 The verifier ensures certain safety properties about the programs such as termination and memory safety.
-eBPF programs have access to a set of helper functions inside the kernel, which allow them to interact with kernel state.
 The execution of eBPF programs follows an event based mechanism, where control flow will transfer to the extension when certain events happen in the system.
+eBPF programs also have access to a set of helper functions inside the kernel, which allow them to interact with kernel state.
 Recent work has argued that the safety guarantees of the eBPF verifier are not as strong as claimed, especially in respect to the helper function interface \cite{untenableVerification}.
 
 %\begin{itemize}
@@ -22,15 +22,15 @@ Recent work has argued that the safety guarantees of the eBPF verifier are not a
     \item expressiveness
 \end{itemize}
 
-\subsection{Rust v.s. eBPF}
-
-\begin{itemize}
-    \item Probably has a better place
-    \item Sets and examples we discussed
-        \begin{itemize}
-            \item Rust and eBPF: Small, simple programs
-            \item eBPF but not Rust: certain code is unsafe in Rust but safe in
-                eBPF, e.g. reinterpreting bytes in a packet into another struct
-            \item Rust but not eBPF: Expressiveness argument
-        \end{itemize}
-\end{itemize}
+% \subsection{Rust v.s. eBPF}
+%
+% \begin{itemize}
+%     \item Probably has a better place
+%     \item Sets and examples we discussed
+%         \begin{itemize}
+%             \item Rust and eBPF: Small, simple programs
+%             \item eBPF but not Rust: certain code is unsafe in Rust but safe in
+%                 eBPF, e.g. reinterpreting bytes in a packet into another struct
+%             \item Rust but not eBPF: Expressiveness argument
+%         \end{itemize}
+% \end{itemize}
