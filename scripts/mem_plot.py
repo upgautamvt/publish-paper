@@ -72,7 +72,8 @@ with plt.style.context('seaborn-v0_8-paper'):
     ax.set_ylabel('KBs', size='large')
     ax.set_yticklabels(ax.get_yticklabels(), size='large')
 
-    # Somehow secondary_yaxis does work well with set_yticks and set_yticklabels
+    # Somehow secondary_yaxis does not work well with set_yticks and
+    # set_yticklabels
     #sec_ax = ax.secondary_yaxis('right', functions=(lambda x: x / page_size,
     #                                                lambda x: x * page_size))
     #sec_ax.set_ylabel('Number of Pages', size='large')
