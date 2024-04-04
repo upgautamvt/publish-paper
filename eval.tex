@@ -140,14 +140,13 @@ If a GET is hit in the cache, BMC can directly draft a reply to send back the
 % The map that serves as the cache is managed by eBPF programs, which implements
 %     the lookup and update logics.impl:ctx-converison
 
-On the aspect of implementation, BMC is a much more complicated program
+Implementation-wise, BMC is much more complicated
     comparing to other common eBPF use cases.
 In order to pass the verifier, it has to be split into seven
     eBPF programs that use eBPF tail calls to transfer control to each other to
     reduce verification complexity.
 Similar problem also presents when processing the incoming packet data, where
-    the authors had to bound data size to reduce verification complexity of
-    loops.
+    the authors had to bound data size to simplify verification of loops.
 
 % The BMC has many places where for loops are nested into different ifs.
 % And, due to the limitations of C, many operations do not have built-in functions
@@ -176,17 +175,20 @@ The cache invalidation code employs \texttt{for} loops with cumbersome
     \texttt{if} statements.
 
 The complexity is exacerbated by introducing two additional variables to track
-    the state of the key, the SET command and the end of packet.
+    the state of the key, the SET command.
+\jinghao{Let me know if removing this makes sense: ``and the end of packet''.}
 Such complex checks are intentionally designed to pass the
     verifier.
 Without these checks, the program produces an excessive number of jump instructions,
-    leading the verifier to reject loading the program.
-Nonetheless, this approach significantly increase the programming burden
+    leading to verification failure.
+% the verifier to reject loading the program.
+This approach significantly increase the programming burden
     of BMC, while at the same time leads to readability issues in some places
     regarding the intended functionality.
 % \jinghao{One or two sentence explain why conditions are needed for
 %     verification, based on our experiment on removing one of these.}
-This situations is a prevalent pattern within the BMC structure, which is
+% This situations is a prevalent pattern within the BMC structure, which is
+Such pattern is prevalent in the BMC implementation, which is
 %    notably observed within the functions \texttt{bmc\_hash\_keys\_main}
 %    and \texttt{bmc\_write\_reply\_main}.
     notably also present in the code that hashes the Memcached key and drafts the reply.
@@ -211,33 +213,36 @@ The resulting program is not a direct translation from the original eBPF
 % \projname{}-BMC is able to avoid the complexities caused by the verifier.
 The equivalent cache invalidation code in \projname{} is shown in
     Figure~\ref{fig:rust-code}.
-    In the \projname{}-BMC, specific checks such as those for identified SET commands and the \texttt{key\_found}
-    state are being translated to utilize built-in lambda functions and closures.
+In the \projname{}-BMC, specific checks such as the ones for identified SET commands and the \texttt{key\_found}
+    state are being translated to utilize built-in functions and closures.
 % \jinghao{ We should also talk about \texttt{BMC\_MAX\_PACKET\_LENGTH}.}
 Meanwhile, other checks, including those for offset and \texttt{data\_end} limits, are being restrict via
-    the inherent language features of Rust, such as the slice functionality.
-The \texttt{BMC\_MAX\_PACKET\_LENGTH}, served as a constraint to minimize the number 
-    of jump instructions thereby circumventing eBPF verifier, is no longer necessary 
-    in the Rust code. 
+    the inherent language features of Rust, such as the \texttt{slice} that implements bound checks.
+The check on \texttt{BMC\_MAX\_PACKET\_LENGTH}, served as a constraint to minimize the number
+    of jump instructions thereby circumventing eBPF verifier, is no longer necessary
+    in the Rust code.
 % \jinghao{Need a few sentences to explain why a bunch of checks are no
 %     longer needed and why we are safe even without these checks.}
 % \jinghao{The four levels of nesting in the original code is significantly...}
-\juowen{break as two paragraphs}
+% \juowen{break as two paragraphs}
 
 For the loops in the original implementation, \projname{}-BMC utilizes the
     lazy-evaluated \texttt{windows}, \texttt{enumerate} and
     \texttt{filter\_map} from slice iterators.
 % Refer back to BMC code, the similar logic is implemented in \projname{}-BMC as shown in Figure~\ref{fig:rust-code}.
 These methods split the whole payload into chunks
-    with 4 bytes, and collects the results for which the chunk equals the keyword
-    of SET commands.
+    of 4 bytes, and collects the results for which the chunk equals the keyword
+    of SET commands into iterators.
 % \jinghao{What are these challenges -- are we still in the context of cache
 %     invalidation? By the way, can we abstract this out to all ``loops'' in BMC?
 % At the same time, we probably need to explain what \texttt{filter\_map} does.}
-This approach facilitates the creation of an iterator, which is instrumental in identifying
-    the quantity of SET commands present in the current packet payload.
+% This approach facilitates the creation of an iterator, which is instrumental in identifying
+%     the quantity of SET commands present in the current packet payload.
+With the creation of the iterators, the number of SET commands present in the
+    current packet payload can be easily identified.
 Further enhancing the ease of programming and the readability, Rust's syntactic sugar is employed for
     iterating over the identified memcached SET commands, streamlining the process.
+\jinghao{Just realized that we are not using any special syntactic sugar here}
 % \jinghao{The four levels of nesting in the original code is significantly...}
 The four levels of nesting in the original code is significantly reduced by
 converting a \texttt{for}-loop with intricate conditions into a clean chain
@@ -250,18 +255,33 @@ This conversion is achieved through the utilization of \texttt{take\_while}.
     sequential parts and markedly improving its expressiveness.
 
 \juowen{ How to connect what we mentioned before ralated to limit of verifier? }
+\jinghao{I think the current writing is good, just need some more polishing}
 
-Due to the instruction count limitation imposed on each eBPF program,
-    BMC has to adapt a strategy of creating seven seperated eBPF
-    programs to function as a Memcached cache layer.
-To pass messages between functions, BMC employed a specific struct
-    called \texttt{parsing\_context} for storing the metadata and
-    put the struct in the map named \texttt{map\_parsing\_context}.
-In the \projname{}-BMC, constraints associated with the verifier are nonexistento.
-Therefore, program doesn't have to put the metadata in a seperated map, 
-    which significantly obscure the logic of program and may undermine the performance.
+Another example that the verifier creates programming burden for BMC is its
+    instruction count limit.
+% Due to the instruction count limitation imposed on each eBPF program,
+%     BMC has to adapt a strategy of creating seven seperated eBPF
+%     programs to function as a Memcached cache layer.
+Due this limit, BMC has to be split into seven seperated eBPF program, while
+    ideally only two are required (egress and ingress hooks).
+Unfortunately, this leaves program fragments that are not self-contained and
+    BMC sometimes has to pass computation states across tail calls.
+% To pass messages across tail calls, BMC employed a specific struct
+%     called \texttt{parsing\_context} for storing the metadata and
+%     put the struct in the map named \texttt{map\_parsing\_context}.
+BMC utilizes a map to pass current computation state across tail calls.
+This is because tail-called eBPF programs can only take the regular eBPF
+    context as arguments.
+The computation state is stored before the tail call and reloaded afterwards.
+% In the \projname{}-BMC, constraints associated with the verifier are nonexistento.
+In the \projname{}-BMC, due to the absence of the program size limit,
+% Therefore, program doesn't have to put the metadata in a seperated map,
+%     which significantly obscure the logic of program and may undermine the performance.
+    programs no longer have to put the metadata in a seperated map, which leads
+    to clearer and potentially more efficient programs.
 
-\juowen{It feels weird leaving this thing here, feels like not convincing}
+\jinghao{@Ruowen pls take a look.}
+% \juowen{It feels weird leaving this thing here, feels like not convincing}
 
 % \jinghao{Can we also write maybe one paragraph on the need to store the parsing
 %     context across tail calls?}
