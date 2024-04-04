@@ -1,3 +1,4 @@
+int set_found = 0, key_found = 0;
 #pragma clang loop unroll(disable)
 for (unsigned int off = 0;
   off < BMC_MAX_PACKET_LENGTH &&

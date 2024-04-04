@@ -213,13 +213,17 @@ The equivalent cache invalidation code in \projname{} is shown in
     Figure~\ref{fig:rust-code}.
     In the \projname{}-BMC, specific checks such as those for identified SET commands and the \texttt{key\_found}
     state are being translated to utilize built-in lambda functions and closures.
-\jinghao{We will need to show where the \texttt{key\_found} and \texttt{set\_found} are assigned in the
-original C code. We should also talk about \texttt{BMC\_MAX\_PACKET\_LENGTH}.}
+% \jinghao{ We should also talk about \texttt{BMC\_MAX\_PACKET\_LENGTH}.}
 Meanwhile, other checks, including those for offset and \texttt{data\_end} limits, are being restrict via
     the inherent language features of Rust, such as the slice functionality.
+The \texttt{BMC\_MAX\_PACKET\_LENGTH}, served as a constraint to minimize the number 
+    of jump instructions thereby circumventing eBPF verifier, is no longer necessary 
+    in the Rust code. 
 % \jinghao{Need a few sentences to explain why a bunch of checks are no
 %     longer needed and why we are safe even without these checks.}
 % \jinghao{The four levels of nesting in the original code is significantly...}
+\juowen{break as two paragraphs}
+
 For the loops in the original implementation, \projname{}-BMC utilizes the
     lazy-evaluated \texttt{windows}, \texttt{enumerate} and
     \texttt{filter\_map} from slice iterators.
@@ -245,10 +249,23 @@ This conversion is achieved through the utilization of \texttt{take\_while}.
     filter the memcached SET key from the payload, thus dividing the code into three distinct
     sequential parts and markedly improving its expressiveness.
 
-\jinghao{Can we also write maybe one paragraph on the need to store the parsing
-    context across tail calls?}
-% \jinghao{Also should explain what \texttt{take\_while} does.}
+\juowen{ How to connect what we mentioned before ralated to limit of verifier? }
 
+Due to the instruction count limitation imposed on each eBPF program,
+    BMC has to adapt a strategy of creating seven seperated eBPF
+    programs to function as a Memcached cache layer.
+To pass messages between functions, BMC employed a specific struct
+    called \texttt{parsing\_context} for storing the metadata and
+    put the struct in the map named \texttt{map\_parsing\_context}.
+In the \projname{}-BMC, constraints associated with the verifier are nonexistento.
+Therefore, program doesn't have to put the metadata in a seperated map, 
+    which significantly obscure the logic of program and may undermine the performance.
+
+\juowen{It feels weird leaving this thing here, feels like not convincing}
+
+% \jinghao{Can we also write maybe one paragraph on the need to store the parsing
+%     context across tail calls?}
+% \jinghao{Also should explain what \texttt{take\_while} does.}
 % \jinghao{Now it feels like we should make part larger, i.e., include code
 %     examples and show how Rust helps with that.
 % We can then move this part into the new qualitative evaluation.}
