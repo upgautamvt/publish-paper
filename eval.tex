@@ -175,8 +175,8 @@ The cache invalidation code employs \texttt{for} loops with cumbersome
     \texttt{if} statements.
 
 The complexity is exacerbated by introducing two additional variables to track
-    the state of the key, the SET command.
-\jinghao{Let me know if removing this makes sense: ``and the end of packet''.}
+    the state of the key and the SET command.
+% \jinghao{Let me know if removing this makes sense: ``and the end of packet''.}
 Such complex checks are intentionally designed to pass the
     verifier.
 Without these checks, the program produces an excessive number of jump instructions,
@@ -242,7 +242,6 @@ With the creation of the iterators, the number of SET commands present in the
     current packet payload can be easily identified.
 Further enhancing the ease of programming and the readability, Rust's syntactic sugar is employed for
     iterating over the identified memcached SET commands, streamlining the process.
-\jinghao{Just realized that we are not using any special syntactic sugar here}
 % \jinghao{The four levels of nesting in the original code is significantly...}
 The four levels of nesting in the original code is significantly reduced by
 converting a \texttt{for}-loop with intricate conditions into a clean chain
@@ -263,7 +262,7 @@ Another example that the verifier creates programming burden for BMC is its
 %     BMC has to adapt a strategy of creating seven seperated eBPF
 %     programs to function as a Memcached cache layer.
 Due this limit, BMC has to be split into seven seperated eBPF program, while
-    ideally only two are required (egress and ingress hooks).
+    ideally only two are required (at egress and ingress hooks).
 Unfortunately, this leaves program fragments that are not self-contained and
     BMC sometimes has to pass computation states across tail calls.
 % To pass messages across tail calls, BMC employed a specific struct
@@ -277,7 +276,7 @@ The computation state is stored before the tail call and reloaded afterwards.
 In the \projname{}-BMC, due to the absence of the program size limit,
 % Therefore, program doesn't have to put the metadata in a seperated map,
 %     which significantly obscure the logic of program and may undermine the performance.
-    programs no longer have to put the metadata in a seperated map, which leads
+    programs no longer have to put the computation state in a seperated map, which leads
     to clearer and potentially more efficient programs.
 
 \jinghao{@Ruowen pls take a look.}
