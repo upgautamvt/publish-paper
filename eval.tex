@@ -632,7 +632,7 @@ MemcachedSR processes all requires in userspace and thus its throughput suffers
     cores.
 On the other hand, both eBPF-based and \projname{}-based BMC are able to
     achieve a much higher throughput because they can process a large
-    fraction of requests at NIC level and without the need of going through
+    fraction of requests at NIC driver level and without the need of going through
     the expensive kernel network stack.
 With 8 CPU cores and threads, eBPF-BMC and \projname{}-BMC achieve a thoughput
     of 1.106M and 1.111M, and a performance benefit of 6.3x and 6.4x,
