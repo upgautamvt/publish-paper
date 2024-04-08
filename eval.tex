@@ -519,13 +519,15 @@ This is because of the wrapping code around the kernel
 % \milo{Maybe we should talk about why we chose these specific maps. i.e. that array and hash maps are the main ones that support the inlining?}
 
 \subsubsection{Stack-check overhead}
-\begin{itemize}
-    \item table showing runtime of two programs using small recursion
-    \item eBPF: use tail calls for recursion
-    \item Rust: just a recursive function
-    \item The recursion count should not be statically known to prevent llvm
-        from optimizing out the recursion
-\end{itemize}
+\begin{figure}[t]
+    \includegraphics[width=1.0\linewidth]{figs/recursive.pdf}
+    \centering
+    \vspace{-25pt}
+    \caption{Runtime of eBPF tail calls and \projname{} recursive calls with
+    stack instrumentation}
+    \label{fig:eval-recursion}
+    \vspace{-10pt}
+\end{figure}
 
 We then evaluate how much overhead the runtime stack check have on the
     performance of \projname{} programs.
