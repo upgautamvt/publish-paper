@@ -209,6 +209,10 @@ Such pattern is prevalent in the BMC implementation, which is
 %     in the original code structure, primarily due to the complex judgment
 %     conditions buried within nested if statements.
 
+% Rex-BMC
+% 1. eliminates verifier-related checks
+% 2. simplifies the code bc of Rust core library
+
 We re-implement BMC in \projname{} (\projname{}-BMC) to demonstrate the
     enhanced usability.
 The resulting program is not a direct translation from the original eBPF
@@ -217,50 +221,59 @@ The resulting program is not a direct translation from the original eBPF
     of Rust allows a simpler implementation.
 
 % \projname{}-BMC is able to avoid the complexities caused by the verifier.
+In \projname{}-BMC, the builtin language features and libraries of Rust not
+    only allows the revmoval of verifier-specific checks but also faciliates
+    cleaner and simpler code.
 The equivalent cache invalidation code in \projname{} is shown in
     Figure~\ref{fig:rust-code}.
-In the \projname{}-BMC, specific checks such as the ones for identified SET commands and the \texttt{key\_found}
-    state are being translated to utilize built-in functions and closures.
-% \jinghao{ We should also talk about \texttt{BMC\_MAX\_PACKET\_LENGTH}.}
-Meanwhile, other checks, including those for offset and \texttt{data\_end} limits, are being restrict via
-    the inherent language features of Rust, such as the \texttt{slice} that implements bound checks.
-The check on \texttt{BMC\_MAX\_PACKET\_LENGTH}, served as a constraint to minimize the number
-    of jump instructions thereby circumventing eBPF verifier, is no longer necessary
+The checks required previously by the verifier, including those for offset and
+    \texttt{data\_end} limits, are now being enforced via the inherent language
+    features of Rust, such as the \texttt{slice} that implements bound checks
+    (L2 and L10).
+The check on \texttt{BMC\_MAX\_PACKET\_LENGTH}, serving as a constraint to minimize the number
+    of jump instructions to circumvente the eBPF verifier, is no longer necessary
     in the Rust code.
+At the same time, specific checks such as the ones for identified SET commands
+    and the \texttt{key\_found} state can implemented with built-in
+    functions and closures in a easy and clean way (L4-L6 and L11).
+% \jinghao{ We should also talk about \texttt{BMC\_MAX\_PACKET\_LENGTH}.}
+% Meanwhile, other checks, including those for offset and \texttt{data\_end} limits, are being enforced via
+%     the inherent language features of Rust, such as the \texttt{slice} that implements bound checks.
+
 % \jinghao{Need a few sentences to explain why a bunch of checks are no
 %     longer needed and why we are safe even without these checks.}
 % \jinghao{The four levels of nesting in the original code is significantly...}
 % \juowen{break as two paragraphs}
 
-For the loops in the original implementation, \projname{}-BMC utilizes the
-    lazy-evaluated \texttt{windows}, \texttt{enumerate} and
-    \texttt{filter\_map} from slice iterators.
-% Refer back to BMC code, the similar logic is implemented in \projname{}-BMC as shown in Figure~\ref{fig:rust-code}.
-These methods split the whole payload into chunks
-    of 4 bytes, and collects the results for which the chunk equals the keyword
-    of SET commands into iterators.
-% \jinghao{What are these challenges -- are we still in the context of cache
-%     invalidation? By the way, can we abstract this out to all ``loops'' in BMC?
-% At the same time, we probably need to explain what \texttt{filter\_map} does.}
-% This approach facilitates the creation of an iterator, which is instrumental in identifying
-%     the quantity of SET commands present in the current packet payload.
-With the creation of the iterators, the number of SET commands present in the
-    current packet payload can be easily identified.
-Further enhancing the ease of programming and the readability, Rust's syntactic sugar is employed for
-    iterating over the identified memcached SET commands, streamlining the process.
-% \jinghao{The four levels of nesting in the original code is significantly...}
-The four levels of nesting in the original code is significantly reduced by
-converting a \texttt{for}-loop with intricate conditions into a clean chain
-    of higher-order functions with closures.
-% \jinghao{lambda function -> a clean chain of higher-order functions with
-%     lambda function?}
-This conversion is achieved through the utilization of \texttt{take\_while}.
-    With the iterator from \texttt{filter\_map}, \texttt{take\_while} will
-    filter the memcached SET key from the payload, thus dividing the code into three distinct
-    sequential parts and markedly improving its expressiveness.
+% For the loops in the original implementation, \projname{}-BMC utilizes the
+%     lazily evaluated \texttt{windows}, \texttt{enumerate} and
+%     \texttt{filter\_map} from slice iterators.
+% % Refer back to BMC code, the similar logic is implemented in \projname{}-BMC as shown in Figure~\ref{fig:rust-code}.
+% These methods split the whole payload into chunks
+%     of 4 bytes, and collects the results for which the chunk equals the keyword
+%     of SET commands into iterators.
+% % \jinghao{What are these challenges -- are we still in the context of cache
+% %     invalidation? By the way, can we abstract this out to all ``loops'' in BMC?
+% % At the same time, we probably need to explain what \texttt{filter\_map} does.}
+% % This approach facilitates the creation of an iterator, which is instrumental in identifying
+% %     the quantity of SET commands present in the current packet payload.
+% With the creation of the iterators, the number of SET commands present in the
+%     current packet payload can be easily identified.
+% Further enhancing the ease of programming and the readability, Rust's syntactic sugar is employed for
+%     iterating over the identified memcached SET commands, streamlining the process.
+% % \jinghao{The four levels of nesting in the original code is significantly...}
+% The four levels of nesting in the original code is significantly reduced by
+% converting a \texttt{for}-loop with intricate conditions into a clean chain
+%     of higher-order functions with closures.
+% % \jinghao{lambda function -> a clean chain of higher-order functions with
+% %     lambda function?}
+% This conversion is achieved through the utilization of \texttt{take\_while}.
+%     With the iterator from \texttt{filter\_map}, \texttt{take\_while} will
+%     filter the memcached SET key from the payload, thus dividing the code into three distinct
+%     sequential parts and markedly improving its expressiveness.
 
-\juowen{ How to connect what we mentioned before ralated to limit of verifier? }
-\jinghao{I think the current writing is good, just need some more polishing}
+% \juowen{ How to connect what we mentioned before ralated to limit of verifier? }
+% \jinghao{I think the current writing is good, just need some more polishing}
 
 Another example that the verifier creates programming burden for BMC is its
     instruction count limit.
@@ -285,7 +298,7 @@ In the \projname{}-BMC, due to the absence of the program size limit,
     programs no longer have to put the computation state in a seperated map, which leads
     to clearer and potentially more efficient programs.
 
-\jinghao{@Ruowen pls take a look.}
+% \jinghao{@Ruowen pls take a look.}
 % \juowen{It feels weird leaving this thing here, feels like not convincing}
 
 % \jinghao{Can we also write maybe one paragraph on the need to store the parsing
