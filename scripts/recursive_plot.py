@@ -1,58 +1,68 @@
 import csv
 
+from matplotlib import rc
 import matplotlib.pyplot as plt
 import numpy as np
+import os
 
-# NOTE: don't change 
-from matplotlib import rc
-rc('font',**{'family':'serif','serif':['Times']})
-rc('text', usetex=True)
 
-with open('bmc-results.csv', newline='') as csvfile:
-    reader = csv.reader(csvfile)
+def read_data(folder_path: str, prog_type: str) -> dict:
+    all_data = {}
+    for i in range(0, 33):
+        filename = prog_type + str(i)
+        # print(filename)
+        file_path = os.path.join(folder_path, filename)
+        # Check if it is a file
+        if os.path.isfile(file_path):
+            with open(file_path, "r") as file:
+                col = []
+                for line in file:
+                    col.append(int(line.strip()))
+                all_data[i] = np.average(np.array(col))
+    return all_data
 
-    data = [row for row in reader][1:]
-    nr_cpu = [float(row[0]) for row in data]
-    vanilla = [float(row[1]) for row in data]
-    bpf = [float(row[2]) for row in data]
-    rust = [float(row[3]) for row in data]
-    vanilla_stdev = [float(row[4]) for row in data]
-    bpf_stdev = [float(row[5]) for row in data]
-    rust_stdev = [float(row[6]) for row in data]
 
-max_val = max(*vanilla, *bpf, *rust) / 1000000
+# NOTE: don't change
 
-bmc_results = {
-    'MemcachedSR': np.array(vanilla) / 1000000,
-    'eBPF-BMC': np.array(bpf) / 1000000,
-    'REX-BMC': np.array(rust) / 1000000,
+rc("font", **{"family": "serif", "serif": ["Times"]})
+rc("text", usetex=True)
+
+bpf_data = read_data("./recursive_bench/", "bpf_")
+rust_data = read_data("./recursive_bench/", "rust_")
+
+sorted_keys = sorted(bpf_data.keys())
+sorted_bpf = [bpf_data[key] for key in sorted_keys]
+sorted_rust = [rust_data[key] for key in sorted_keys]
+max_val = max(*sorted_bpf, *sorted_rust)
+
+recursive_results = {
+    "BPF tail call": sorted_bpf,
+    "Rust function call": sorted_rust,
 }
 
-bmc_results_stdev = {
-    'MemcachedSR': np.array(vanilla_stdev) / 1000000,
-    'eBPF-BMC': np.array(bpf_stdev) / 1000000,
-    'REX-BMC': np.array(rust_stdev) / 1000000,
-}
 
-# NOTE: don't change 
-with plt.style.context('seaborn-v0_8-paper'):
-    x = np.arange(len(data))  # the label locations
+# NOTE: don't change
+with plt.style.context("seaborn-v0_8-paper"):
+    x = np.arange(len(sorted_keys))  # the label locations
     width = 0.25  # the width of the bars
     multiplier = 0
     y = np.arange(0, max_val, 0.2)
 
     # NOTE: don't change
-    fig, ax = plt.subplots(layout='tight')
+    fig, ax = plt.subplots(layout="tight")
     # fig.set_size_inches(8, 4.8) # for slides
     fig.set_size_inches(4.5, 2.7)
 
-    for setup, throughput in bmc_results.items():
-        offset = width * multiplier
-    # NOTE: change to plot
-        rects = ax.bar(x + offset, throughput, width, label=setup,
-                       yerr=bmc_results_stdev[setup], capsize=1,
-                       error_kw={"elinewidth": 0.6, "mew": 0.6})
-        multiplier += 1
+    for setup, time_consume in recursive_results.items():
+        # offset = width * multiplier
+        # NOTE: change to plot
+        rects = ax.plot(
+            sorted_keys,
+            time_consume,
+            label=setup,
+        )
+        print("time_consume")
+        # multiplier += 1
 
     y_min, y_max = ax.get_ylim()
     ax.set_ylim(y_min, y_max * 1.12)
@@ -60,13 +70,14 @@ with plt.style.context('seaborn-v0_8-paper'):
 
     # Add some text for labels, title and custom x-axis tick labels, etc.
     # NOTE: size=large
-    ax.set_xlabel(r'\# of cores', size='large')
-    ax.set_ylabel('Throughput\n(MReq/s)', size='large')
-    ax.set_xticks(x + width, x + 1)
-    ax.set_xticklabels(ax.get_xticklabels(), size='large')
-    ax.set_yticks(y, list(map(lambda x: '%.1f' % x, y)))
-    ax.set_yticklabels(ax.get_yticklabels(), size='large')
-    ax.legend(loc='upper left', ncols=3, fontsize='small')
+    ax.set_xlabel(r"\# of stack depth", size="large")
+    ax.set_ylabel("Run Time (ns)", size="large")
+    # ax.set_xticks(x + width, x + 1)
+    # ax.set_xticklabels(ax.get_xticklabels(), size="large")
+    # ax.set_yticks(y, list(map(lambda x: "%.1f" % x, y)))
+    # ax.set_yticklabels(ax.get_yticklabels(), size="large")
+    ax.legend(loc="upper left", ncols=3, fontsize="small")
 
-    # NOTE: don't change 
-    plt.savefig("bmc.pdf", bbox_inches="tight")
+    # NOTE: don't change
+    plt.savefig("./recursive.pdf", bbox_inches="tight")
+    plt.close()
