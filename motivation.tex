@@ -152,6 +152,19 @@ However, the verifier cannot track the packet pointers through these 32-bit assi
 As shown in Figure~\ref{fig:inline-error}, R9 is a pointer to a packet in instruction 2.
 At instruction 3, R6 gets the value of R9, but this is a 32-bit assignment, as indicated by the `w' prefix.
 Then in the next line we see that R6 has type `inv' which is a scalar value, and \emph{not} a pointer to a packet showing that the verifier lost track of the type of R6.
+
+The \texttt{data} field is a result of the information hiding techique that
+    eBPF employs.
+The kernel exports a context interface to the extension program with only
+    the fields that program may need, and at verification time all accesses to
+    these fields are rewritten by the verifier to the actual kernel-internal
+    data structure.
+Since the \texttt{data} field is defined as a 32-bit integer in the dummy
+    interface the kernel exports, the compiler, which does not see the
+    subsequent rewriting and kernel-internal definition, treats it as a real
+    32-bit integer and performs code generation, even though \texttt{data} is
+    supposely a 64-bit pointer.
+
 The solution was to implement the access through inline assembly code shown in Figure~\ref{fig:inline-asm}.
 This prevents LLVM from generating 32-bit assignments as an optimization because it must leave the assembly as it is.
 This then allows the verifier to track that the register still contains a packet pointer, and not a scalar value.

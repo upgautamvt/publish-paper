@@ -71,6 +71,20 @@
 %                 \end{itemize}
 %         \end{itemize}
 % \end{itemize}
+
+\projname{} provides a new Linux extension framework that utilizes a safe
+    programming language rather than the verifier.
+In this section, we evaluate the usability as well as performance guided by the
+    following questions:
+\begin{enumerate}
+    \item How does \projname{} provides better usability than eBPF and solve the
+        verifier problems?
+    \item Does the enhanced usability come at a cost of performance, especially
+        for real world performance-sensitive programs?
+    \item Are there other possible performance cost stemming from the design
+        choices?
+\end{enumerate}
+
 \subsection{Usability evaluation}
 \jinghao{TODO: preamble}
 %We also take BMC~\cite{BMC} and implement it in \projname{} as a case study.
@@ -89,20 +103,12 @@ We now revisit the verifier issues identified in our motivational study and
 % Talk a bit about how we handle this thing.
 \para{LLVM codegen fix.} \S~\ref{motivation:llvm-codegen} demonstrates that
     user intervention needed to fix problems where sometimes the code generated
-    by the compile is not taken by the verifier.
-The core of the problem, is the extra verification layer of eBPF, which causes
-    the semantic gap between the developer/compiler and the verifier.
-The \texttt{data} field is a result of the information hidding techique that
-    eBPF employs (\S~\ref{impl:ctx-converison}).
-The kernel exports a context interface to the extension program with only
-    the fields that program may need, and at verification time all accesses to
-    these fields are rewritten by the verifier to the actual kernel-internal
-    data structure.
-Since the \texttt{data} field is defined as a 32-bit integer in the dummy
-    interface the kernel exports, the compiler, which does not see the
-    subsequent rewriting and kernel-internal definition, treats it as a real
-    32-bit integer and performs code generation, even though \texttt{data} is
-    supposely a 64-bit pointer (on x86-64).
+    by the compiler is not taken by the verifier.
+The core of the problem, is the extra verification layer of eBPF, which creates
+    a gap between the developer/compiler and the verifier.
+The field being accessed is only visible to the compiler as a 32-bit integer,
+    rather than its underlying 64-bit pointer type hiden by the verification
+    step (\S~\ref{motivation:llvm-codegen}).
 
 This problem will not manifest in \projname{}.
 This is because \projname{} implements information hidding without the use of
@@ -112,7 +118,7 @@ Instead, \projname{} utilizes private fields of Rust structs to hide the unused
     they are supposed to be used in extension programs.
 For example, the \texttt{data} field is exported to extension programs as a
     character data slice, since it points to the data content of a packet.
-In this way, all operations assocaited with these fields are visible to the
+In this way, all operations associated with these fields are visible to the
     compiler, which in turn could generate correct code.
 
 \para{Program restructuring for verifier}
@@ -124,10 +130,10 @@ One of the representative example of these cases is the BMC project~\cite{BMC},
     where the authors have to not only write seven small programs but also
     bound the data size through the use of cumbersome loop conditions.
 
-Theortically, none of such problems would appear in \projname{}, which does not
+None of these problems would appear in \projname{}, which does not
     have a verifier and does not limit the size of extension programs.
-We demonstrate the benefit of \projname{} through our case study on BMC
-    (\S~\ref{eval:bmc-case-study}).
+% We demonstrate the benefit of \projname{} through our case study on BMC
+%     (\S~\ref{eval:bmc-case-study}).
 
 \subsubsection{Case study: \projname{}-BMC}
 \label{eval:bmc-case-study}
