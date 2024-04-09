@@ -178,67 +178,12 @@ This will not be a problem of \projname{}, because switching to Rust means that
 
 \subsubsection{Case study: \projname{}-BMC}
 \label{eval:bmc-case-study}
-The BPF Memcached Cache (BMC)~\cite{BMC} is an in-kernel cache for Memcached
-    based on eBPF.
-BMC stores recently queried key-value pairs in an eBPF map (i.e. the cache) to
-    accelerate the processing of GET requests to the Memcached server.
-If a GET is hit in the cache, BMC can directly draft a reply to send back the
-    queried value without going through the expensive Linux network stack.
-% The map that serves as the cache is managed by eBPF programs, which implements
-%     the lookup and update logics.impl:ctx-converison
 
-Implementation-wise, BMC is much more complicated
-    comparing to other common eBPF use cases.
-In order to pass the verifier, it has to be split into seven
-    eBPF programs that use eBPF tail calls to transfer control to each other to
-    reduce verification complexity.
-Similar problem also presents when processing the incoming packet data, where
-    the authors had to bound data size to simplify verification of loops.
-
-% The BMC has many places where for loops are nested into different ifs.
-% And, due to the limitations of C, many operations do not have built-in functions
-%     that can be used directly.
-
-\begin{figure}[t]
-    \lstinputlisting[language=myC]{./snippets/s6-bmc.c}
-    \caption{Packet parsing code for cache invalidation in BMC}
-    \label{fig:bmc-code}
-\end{figure}
 \begin{figure}[t]
     \lstinputlisting[language=Rust]{./snippets/s6-rust.rs}
     \caption{Packet parsing code for cache invalidation in \projname{}}
     \label{fig:rust-code}
 \end{figure}
-
-%In the initial design of \projname{}-BMC, the underlying assumption was that
-%    we should follow the logic of BMC.
-%But the cache invalidation function Figure~\ref{fig:bmc-code} in BMC employs
-%    \texttt{for} loops with cumbersome condition checks, and is further
-%    complicated by the nesting of multiple \texttt{if} statements.
-A representative example where BMC suffers from the verifier is its cache
-    invalidation function, shown in Figure~\ref{fig:bmc-code}.
-The cache invalidation code employs \texttt{for} loops with cumbersome
-    condition checks, and is further complicated by the nesting of multiple
-    \texttt{if} statements.
-
-The complexity is exacerbated by introducing two additional variables to track
-    the state of the key and the SET command.
-% \jinghao{Let me know if removing this makes sense: ``and the end of packet''.}
-Such complex checks are intentionally designed to pass the
-    verifier.
-Without these checks, the program produces an excessive number of jump instructions,
-    leading to verification failure.
-% the verifier to reject loading the program.
-This approach significantly increase the programming burden
-    of BMC, while at the same time leads to readability issues in some places
-    regarding the intended functionality.
-% \jinghao{One or two sentence explain why conditions are needed for
-%     verification, based on our experiment on removing one of these.}
-% This situations is a prevalent pattern within the BMC structure, which is
-Such pattern is prevalent in the BMC implementation, which is
-%    notably observed within the functions \texttt{bmc\_hash\_keys\_main}
-%    and \texttt{bmc\_write\_reply\_main}.
-    notably also present in the code that hashes the Memcached key and drafts the reply.
 
 % \jinghao{Add some sentence saying this is a prevalent pattern in BMC?}
 % \jinghao{Can we make the claim that this complexity is for passing the
@@ -254,7 +199,7 @@ Such pattern is prevalent in the BMC implementation, which is
 % 1. eliminates verifier-related checks
 % 2. simplifies the code bc of Rust core library
 
-We re-implement BMC in \projname{} (\projname{}-BMC) to demonstrate the
+We re-implement BMC\cite{BMC} in \projname{} (\projname{}-BMC) to demonstrate the
     enhanced usability.
 The resulting program is not a direct translation from the original eBPF
     version in C, rather, we implement the same high-level logic but with
@@ -265,9 +210,9 @@ The resulting program is not a direct translation from the original eBPF
 In \projname{}-BMC, the builtin language features and libraries of Rust not
     only allows the revmoval of verifier-specific checks but also faciliates
     cleaner and simpler code.
-The equivalent cache invalidation code in \projname{} is shown in
-    Figure~\ref{fig:rust-code}.
-The checks required previously by the verifier, including those for offset and
+The equivalent cache invalidation code in \projname{} to
+    \S~\ref{motivation:restructure} is shown in Figure~\ref{fig:rust-code}.
+The checks required previously by the verifier, including these for offset and
     \texttt{data\_end} limits, are now being enforced via the inherent language
     features of Rust, such as the \texttt{slice} that implements bound checks
     (L2 and L10).
@@ -316,27 +261,12 @@ At the same time, specific checks such as the ones for identified SET commands
 % \juowen{ How to connect what we mentioned before ralated to limit of verifier? }
 % \jinghao{I think the current writing is good, just need some more polishing}
 
-Another example that the verifier creates programming burden for BMC is its
-    instruction count limit.
-% Due to the instruction count limitation imposed on each eBPF program,
-%     BMC has to adapt a strategy of creating seven seperated eBPF
-%     programs to function as a Memcached cache layer.
-Due this limit, BMC has to be split into seven seperated eBPF program, while
-    ideally only two are required (at egress and ingress hooks).
-Unfortunately, this leaves program fragments that are not self-contained and
-    BMC sometimes has to pass computation states across tail calls.
-% To pass messages across tail calls, BMC employed a specific struct
-%     called \texttt{parsing\_context} for storing the metadata and
-%     put the struct in the map named \texttt{map\_parsing\_context}.
-BMC utilizes a map to pass current computation state across tail calls.
-This is because tail-called eBPF programs can only take the regular eBPF
-    context as arguments.
-The computation state is stored before the tail call and reloaded afterwards.
 % In the \projname{}-BMC, constraints associated with the verifier are nonexistento.
-In the \projname{}-BMC, due to the absence of the program size limit,
+At the same time, due to the absence of the program size limit in \projname{}-BMC,
 % Therefore, program doesn't have to put the metadata in a seperated map,
 %     which significantly obscure the logic of program and may undermine the performance.
-    programs no longer have to put the computation state in a seperated map, which leads
+    developers no longer have to put the computation state in a seperated map
+    in order for them to be persistent across tail calls, which leads
     to clearer and potentially more efficient programs.
 
 % \jinghao{@Ruowen pls take a look.}
