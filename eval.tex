@@ -86,7 +86,11 @@ In this section, we evaluate the usability as well as performance guided by the
 \end{enumerate}
 
 \subsection{Usability evaluation}
-\jinghao{TODO: preamble}
+The use of Rust in \projname{} eliminates the need to depend on a separate
+    in-kernel verifier as in eBPF and therefore it is able to address the
+    usability issues directly caused by the verifier.
+At the same time, the rich builtin functionalty from a high-level language also
+    allows developers to write simpler and cleaner code in real world use cases.
 %We also take BMC~\cite{BMC} and implement it in \projname{} as a case study.
 
 \subsubsection{Verifier issues from study}
@@ -134,6 +138,43 @@ None of these problems would appear in \projname{}, which does not
     have a verifier and does not limit the size of extension programs.
 % We demonstrate the benefit of \projname{} through our case study on BMC
 %     (\S~\ref{eval:bmc-case-study}).
+
+\para{Add specific code to pass verifier.}
+\S~\ref{motivation:add-code} demonstrates cases where the verifier loses tracks
+    to certain verification states and therefore forces developers to
+    choice a specific implementation, even though other rejected
+    implementations are totally safe and sound.
+
+For \projname{}, the Rust compiler may reject a program if the program does not
+    fit in what it deems as safe (e.g. writing to a static variable is deemed
+    unsafe even if the program will only be executed in a single threaded
+    mode).
+However, the use of Rust in \projname{} eliminates the extra verification layer,
+    which in turn removes the gap between the developer and the verifier.
+The programmer only needs to keep the mental model of Rust instead of having a
+    separate and different one for the verifier.
+
+\jinghao{As I said, I think the Rust compiler may also reject some code that
+    are actually safe. So it seems that we also have the same problem. Therefore
+    I'm trying to make an argument on that we do not have the gap.}
+
+\para{Implement kernel-version-specific fixes.}
+Some of the verification issues in eBPF is due unfixed verifier bugs in
+    previous kernel versions, as shown in \S~\ref{motivation:kernel-version},
+    where the developers have to address the bug by changing their
+    implementation.
+The same problem also presents in \projname{}, because the Rust compiler is not
+    free of bugs.
+Programmers will have to address the unfixed compiler bugs in older versions
+    in case they hit the problem.
+
+\para{Add Pruning Checkpoints.}
+Because the verifier has an upper limit on the number of instructions it can
+    process, some eBPF projects use ``pruning checkpoints'' to reduce
+    verification complexities for programs (\S~\ref{motivation:checkpoint}).
+This will not be a problem of \projname{}, because switching to Rust means that
+    programs now can have arbitrary length, and the compiler can still process
+    them.
 
 \subsubsection{Case study: \projname{}-BMC}
 \label{eval:bmc-case-study}

@@ -195,6 +195,7 @@ to keep LLVM from performing other kinds of optimizations that would cause the p
 
 
 \subsubsection{Restructure eBPF program for verifier}
+\label{motivation:restructure}
 A big theme across the commits we found was the need to explicitly restructure eBPF programs to pass the verifier.
 We identified two main techniques for restructuring programs:
 
@@ -256,6 +257,7 @@ The changes required increase the complexity of the source code without changing
 \end{figure}
 
 \subsubsection{Add specific code to pass verifier}
+\label{motivation:add-code}
 Another common fix for verifier complaints involves adding specific code to please
     the verifier.
 This can involve several kinds of new specific code:
@@ -365,6 +367,7 @@ pub unsafe extern "C" fn memcpy(dest: *mut u8, src: *mut u8, n: usize) {
 \end{figure}
 
 \subsubsection{Implement kernel-version-specific fixes}
+\label{motivation:kernel-version}
 Different kernel versions may have different versions of the eBPF verifier, each with different sets of bugs.
 To maintain compatibility between these versions, developers have to change code to account for the differences.
 A good example of this is found in Cilium.
@@ -394,6 +397,7 @@ As shown in Figure~\ref{fig:kernel-version-code} the fix needed was to move line
 \end{figure}
 
 \subsubsection{Add Pruning Checkpoints}
+\label{motivation:checkpoint}
 Another common fix that Cilium implemented was to introduce a pseudo-helper function \texttt{relax\_verifier}.
 The purpose of this helper is to provide a checkpoint for the verifier to use when doing state pruning.
 All the function does it call a helper function, which then introduces a new state pruning checkpoint.
@@ -405,6 +409,7 @@ state is reset?}
 In some cases doing so significantly decreases the complexity of eBPF programs.
 In one commit, doing so reduced the number of instructions checked from 62,569 to 49,669.
 This is more significant on older kernel versions which have a much smaller upper limit to the number of instructions the eBPF verifier could check.
+\jinghao{It now seems to me that this belongs to \S~\ref{motivation:restructure}.}
 
 With no assistance, programmers are required to have knowledge of low-level
     internal details of the eBPF verifier, and then implement fixes that
