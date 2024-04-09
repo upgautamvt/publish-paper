@@ -181,7 +181,9 @@ This will not be a problem of \projname{}, because switching to Rust means that
 
 \begin{figure}[t]
     \lstinputlisting[language=Rust]{./snippets/s6-rust.rs}
+    \vspace{-10pt}
     \caption{Packet parsing code for cache invalidation in \projname{}}
+    \vspace{-10pt}
     \label{fig:rust-code}
 \end{figure}
 
@@ -345,7 +347,7 @@ We also adjust the CPU affinity of IRQs associated with the NIC such that the
         under different number of CPUs/threads.
     }
     \label{fig:eval-bmc}
-    \vspace{-10pt}
+    \vspace{-12pt}
 \end{figure}
 
 Figure~\ref{fig:eval-bmc} shows the throughput of the three setups under
@@ -373,6 +375,8 @@ In this section, we implement microbenchmark cases for the potential
     performance overheads and demonstrate that although overheads may be
     present in pessimistic cases, they have neglegible impact in real world use
     cases.
+All experiments are performed on the same machine that acts as the server in
+    \projname{}-BMC experiments (\S~\ref{eval:macro}).
 
 \subsubsection{Static memory footprint}
 \begin{figure}[t]
@@ -483,7 +487,7 @@ The \projname{}-BMC has all the code packed in the text section, and therefore
     \end{tabular}
     \caption{Empty program runtime as well as spinlock acquire and release
         runtime for eBPF and \projname{} in nanoseconds}
-    \vspace{-10pt}
+    \vspace{-25pt}
     \label{tab:startup-cleanup}
 \end{table}
 
@@ -510,7 +514,7 @@ On average, the difference of runtime of invoking an empty \projname{} and eBPF
 This shows the additional stack pointer manipulations needed by \projname{}
     contributes negligible overhead.
 
-\subsubsection{Verifier/JIT-based optimization}
+\subsubsection{Helper function overhead}
 \label{eval:inline}
 
 % The raw data and script used to make the graph (plot2.py)
@@ -521,7 +525,7 @@ This shows the additional stack pointer manipulations needed by \projname{}
     \vspace{-25pt}
     \caption{Runtime of map lookups on various setups}
     \label{fig:eval-inline}
-    \vspace{-10pt}
+    \vspace{-12pt}
 \end{figure}
 
 % \begin{itemize}
@@ -536,18 +540,30 @@ This shows the additional stack pointer manipulations needed by \projname{}
 %             \item maps to test: array, hash (htab-lru, xsk-map?)
 %         \end{itemize}
 % \end{itemize}
+In eBPF, most of the helper calls are direct function calls, however, a few of
+    them are further optimized during verification and JITing.
+Helper functions in \projname{} do not have the same load time optimization,
+    and at the same time the kernel crate wraps the unsafe kernel helpers with
+    a safe Rust interface, which could incur further overhead.
+We hereby evaluate the impact of missed opportunities due to the elimination of
+    the eBPF verifier in \projname{} by looking into the eBPF map lookup
+    helpers.
+%  Specifically, we look into the optimization of eBPF map lookups.
+The map lookup helpers represent a pessimistic case for \projname{} because
+    \projname{} not only misses the load time optimization but also needs more
+    wrapping code than other helpers due to its map implementation.
+We found that the missed optimization slows down the helper call by around 30ns
+    and the safe wrapping code adds another 45ns, which is acceptable for a
+    pessimistic case.
 
-We evaluate the impact of missed opportunities due to the elimination of the
-    eBPF verifier in \projname{}.
-Specifically, we look into the optimization of eBPF map lookups.
-For eBPF programs, the verifier can inline the \texttt{bpf\_map\_lookup\_elem}
+The eBPF verifier can inline the \texttt{bpf\_map\_lookup\_elem}
     helper function by replacing the call into equivalent eBPF instructions.
 This optimization can avoid two function calls and two pointer dereferences for
     map types that support lookup inlining.
 However, in \projname{}, inlining is not performed due to the absence of the
     eBPF verifier as well as kernel internal information (e.g. map addresses).
 
-In this experiment we measure the runtime of eBPF map lookups under three
+We measure the runtime of eBPF map lookups under three
     settings, eBPF with inlining, eBPF without inlining, and \projname{}.
 Our test program for both eBPF and \projname{} is a tracepoint program that
     uses the \texttt{bpf\_ktime\_get\_ns} helper to measure the runtime of
@@ -580,6 +596,10 @@ An additional slowdown of 30-40 nanoseconds is present for map lookups in
 This is because of the wrapping code around the kernel
     \texttt{bpf\_map\_lookup\_elem} that allows \projname{} programs to invoke
     it using safe Rust objects.
+For most of other helper functions, neither do they support such load time
+    optimizations in eBPF nor do they require the amount of wrapping code as in
+    map helpers, therefore, they would have a performance similar to that of
+    eBPF's.
 
 % Egor: Not sure if I should go into more technical details about whats going on
 % in the wrapping
@@ -594,33 +614,16 @@ This is because of the wrapping code around the kernel
 % bpf\_ktime\_get\_ns() and then printed with bpf\_printk() and recorded.
 % \milo{Maybe we should talk about why we chose these specific maps. i.e. that array and hash maps are the main ones that support the inlining?}
 
-\subsubsection{Stack-check overhead}
-\begin{figure}[t]
-    \includegraphics[width=1.0\linewidth]{figs/recursive.pdf}
-    \centering
-    \vspace{-25pt}
-    \caption{Runtime of eBPF tail calls and \projname{} recursive calls with
-    stack instrumentation}
-    \label{fig:eval-recursion}
-    \vspace{-10pt}
-\end{figure}
+\subsubsection{Runtime cost of safety in \projname{}}
+The cleanup mechanism for exception handling and runtime stack instrumentation
+    could incur additional performance overheads.
+Here, we evaluate the performance impact from these runtime instrumentations.
+Our result shows that the cleanup mechanism on non-exceptional execution adds
+    no observable overhead, and that recursions in \projname{} with runtime
+    stack instrumentation can execute more efficiently than the same logic
+    implemented in eBPF using tail calls.
 
-We then evaluate how much overhead the runtime stack check have on the
-    performance of \projname{} programs.
-The stack instrumentation is added before each
-    function call in the \projname{} program if the program contains indirect
-    or recursive function calls that prevents the compiler from calculating the
-    stack usage statically.
-In this experiment we implement recursive factorial computation program in both
-    eBPF and \projname{}.
-Since eBPF does not natively support recursive functions, we use eBPF tail
-    calls to invoke the same program.
-At same time, because recursive factorial computation can always be tail-call
-    optimized in Rust, this comparison should be able to precisely highlight
-    the performance implication of the runtime stack instrumentation.
-\jinghao{TODO: discuss results.}impl:ctx-converison
-
-\subsubsection{Cleanup overhead on normal execution path}
+\para{Cleanup overhead on normal execution path}
 % \begin{table}[t]
 %     \small
 %     \centering
@@ -636,8 +639,8 @@ At same time, because recursive factorial computation can always be tail-call
 %     \vspace{-10pt}
 %     \label{tab:cleanup-overhead}
 % \end{table}
-The cleanup mechanism employed by \projname{} requires recording the allocated
-    resource at runtime, which comparing to eBPF or Itanium C++ ABI, adds extra
+The safe cleanup mechanism employed by \projname{} requires recording the allocated
+    resource at runtime, which, compared to eBPF or Itanium C++ ABI, adds extra
     runtime overhead.
 We therefore evaluate the runtime overhead from \projname{}'s cleanup
     mechanism.
@@ -653,3 +656,35 @@ As shown in Table~\ref{tab:startup-cleanup}, the runtime difference between
     one, implying the overhead of \projname{}'s cleanup mechanism is
     negligible.
 
+\para{Stack-check overhead}
+\begin{figure}[t]
+    \includegraphics[width=1.0\linewidth]{figs/recursive.pdf}
+    \centering
+    \vspace{-25pt}
+    \caption{Runtime of eBPF tail calls and \projname{} recursive calls with
+    stack instrumentation}
+    \label{fig:eval-recursion}
+    \vspace{-10pt}
+\end{figure}
+% We then evaluate how much overhead the runtime stack check have on the
+%     performance of \projname{} programs.
+The stack instrumentation is added before each
+    function call in the \projname{} program if the program contains indirect
+    or recursive function calls that prevents the compiler from calculating the
+    stack usage statically.
+In this experiment, we implement a recursive program in both
+    eBPF and \projname{}.
+The recursive function calls itself for a specifed number of times and contains
+    no other code.
+Since eBPF does not natively support recursive functions, we use eBPF tail
+    calls to implement the same logic.
+In \projname{}, we use the \texttt{black\_box} hint from the Rust core library
+    to prevent the compiler from optimizing away the recursive call.
+Figure~\ref{fig:eval-recursion} plots the runtime of the recursive code against
+    the depth of the call stack from 0 to 32.
+The kernel imposes a hard limit of 32 on the number of tail calls an eBPF
+    program can perform.
+Even with the stack check instrumentation in place, \projname{} is able to
+    achieve roughly half the runtime of eBPF.
+This is likely because of the overhead of runtime checking on whether the tail
+    call limit has been reached and verification of tail call targets in eBPF.
