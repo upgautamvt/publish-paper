@@ -278,6 +278,94 @@ At the same time, due to the absence of the program size limit in \projname{}-BM
 % \jinghao{Now it feels like we should make part larger, i.e., include code
 %     examples and show how Rust helps with that.
 % We can then move this part into the new qualitative evaluation.}
+
+\subsection{\projname{}-BMC Performance evaluation}
+\label{eval:macro}
+We now demonstrate that enhanced usability of \projname{} does not come at a
+    cost of performance, even for  use cases.
+Through our \projname{}-BMC implementation, we show that \projname{} can handle
+    such complicated and performance-sensitive use cases from the real world.
+Overall, \projname{}-BMC is able achieve a throughput of 1.111M requests per
+    second when running on 8 cores -- comparable to that of eBPF-BMC (1.106M).
+
+% \subsubsection{\projname{}-based BMC}
+% \jinghao{TODO: Preamable}
+% BMC implements in-kernel memcached cache -- how it works
+% Compilcated program, original paper splits into 7 programs and uses tail calls
+%
+
+%\para{Experiment setup}
+Our evaluation setup consists two machines, with one
+    acting as the server and the other one acting as the client.
+The server machine runs the \projname{} custom kernel based on Linux v5.15.0 on
+    an AMD EPYC 7551P 32-Core processor with 112 GB memory.
+SMT and Turbo are turned off for the experiments.
+The client machine runs a vanilla v6.8.0 Linux kernel on AMD Ryzen 9 7900X
+    processor with 128 GB memory.
+Both machines are equiped with Mellanox ConnectX-3 Pro 40GbE NICs and are
+    connected back-to-back using a single port.
+
+% Key: 16 bytes, value: 32 bytes
+% 50 million with Zipf 0.99
+% 10 GB memcached, 2.5 GB BMC
+% Preload all keys
+% GET:SET 30:1
+
+We use the following workload to evaluate our \projname{}-BMC together with the
+    original eBPF-BMC.
+Our dictionary contains 50 million Memcached keys following a Zipf
+    distribution with 0.99 skewness.
+All keys are 16 bytes in size and are paired with 32-byte values in the
+    experiments.
+The storage sizes of the Memcached and BMC are set to 10 GB andBMC 2.5 GB,
+    respectively.
+According to the calculation in the original work, all items
+    can be stored in Memcached itself but only 6.3 million of them can fit in
+    BMC.
+Before experiments, the Memcached server is pre-loaded with all keys by
+    sending TCP SET requests for each key in the dictionary from the client.
+The client then sends requests to the server with a 30:1 ratio betweren UDP GET and
+    TCP SET requests and measures the throughput.
+
+We evaluate the throughput of three setups: MemcachedSR (from BMC),
+    MemcachedSR+BMC, and MemcachedSR+\projname{}-BMC.
+The original open-sourced BMC code targets Linux kernel version 5.3.0 and we
+    port it to the v5.15.0 \projname{} kernel for the evaluation.
+For each setup, we vary the number of processor cores and the number of threads
+    used by the Memcached server and pin each thread onto each core.
+We also adjust the CPU affinity of IRQs associated with the NIC such that the
+    network interrupts are processed on the same set of cores the Memcached
+    server executes on.
+
+\begin{figure}[t]
+    \includegraphics[width=1.0\linewidth]{figs/bmc.pdf}
+    \centering
+    \vspace{-25pt}
+    \caption{Throughput of MemcachedSR, eBPF-BMC, and \projname{}-BMC
+        under different number of CPUs/threads.
+    }
+    \label{fig:eval-bmc}
+    \vspace{-10pt}
+\end{figure}
+
+Figure~\ref{fig:eval-bmc} shows the throughput of the three setups under
+    different numbers of CPUs and threads.
+MemcachedSR processes all requires in userspace and thus its throughput suffers
+    from the overhead of the kernel network stack, achieving only 45K requests
+    per second under a single thread and 175K requests per second under 8
+    cores.
+On the other hand, both eBPF-based and \projname{}-based BMC are able to
+    achieve a much higher throughput because they can process a large
+    fraction of requests at NIC driver level and without the need of going through
+    the expensive kernel network stack.
+With 8 CPU cores and threads, eBPF-BMC and \projname{}-BMC achieve a thoughput
+    of 1.106M and 1.111M, and a performance benefit of 6.3x and 6.4x,
+    respectively.
+It is also clear that \projname{} is able achieve a better usability while
+    keeping the same level of performance and safety guarrantee comparing to
+    eBPF,  as the throughput of \projname{}-BMC is comparable to that of
+    eBPF-BMC under all CPU/thread setups.
+
 \subsection{Performance evaluation}
 \jinghao{TODO: Need preamble}
 \subsubsection{Static memory footprint}
@@ -548,88 +636,3 @@ As shown in Table~\ref{tab:startup-cleanup}, the runtime difference between
     one, implying the overhead of \projname{}'s cleanup mechanism is
     negligible.
 
-\subsubsection{\projname{}-BMC}
-\label{eval:macro}
-We now demonstrate that \projname{} can be used to implement complicated,
-    performance-sensitive kernel extension use cases in real world with enhanced
-    usability but without
-%    losing much performance by implementing BMC and Electrode in \projname{}.
-    compromising performance through our \projname{}-BMC implementation.
-
-% \subsubsection{\projname{}-based BMC}
-% \jinghao{TODO: Preamable}
-% BMC implements in-kernel memcached cache -- how it works
-% Compilcated program, original paper splits into 7 programs and uses tail calls
-%
-
-%\para{Experiment setup}
-Our evaluation setup consists two machines, with one
-    acting as the server and the other one acting as the client.
-The server machine runs the \projname{} custom kernel based on Linux v5.15.0 on
-    an AMD EPYC 7551P 32-Core processor with 112 GB memory.
-SMT and Turbo are turned off for the experiments.
-The client machine runs a vanilla v6.8.0 Linux kernel on AMD Ryzen 9 7900X
-    processor with 128 GB memory.
-Both machines are equiped with Mellanox ConnectX-3 Pro 40GbE NICs and are
-    connected back-to-back using a single port.
-
-% Key: 16 bytes, value: 32 bytes
-% 50 million with Zipf 0.99
-% 10 GB memcached, 2.5 GB BMC
-% Preload all keys
-% GET:SET 30:1
-
-We use the following workload to evaluate our \projname{}-BMC together with the
-    original eBPF-BMC.
-Our dictionary contains 50 million Memcached keys following a Zipf
-    distribution with 0.99 skewness.
-All keys are 16 bytes in size and are paired with 32-byte values in the
-    experiments.
-The storage sizes of the Memcached and BMC are set to 10 GB andBMC 2.5 GB,
-    respectively.
-According to the calculation in the original work, all items
-    can be stored in Memcached itself but only 6.3 million of them can fit in
-    BMC.
-Before experiments, the Memcached server is pre-loaded with all keys by
-    sending TCP SET requests for each key in the dictionary from the client.
-The client then sends requests to the server with a 30:1 ratio betweren UDP GET and
-    TCP SET requests and measures the throughput.
-
-We evaluate the throughput of three setups: MemcachedSR (from BMC),
-    MemcachedSR+BMC, and MemcachedSR+\projname{}-BMC.
-The original open-sourced BMC code targets Linux kernel version 5.3.0 and we
-    port it to the v5.15.0 \projname{} kernel for the evaluation.
-For each setup, we vary the number of processor cores and the number of threads
-    used by the Memcached server and pin each thread onto each core.
-We also adjust the CPU affinity of IRQs associated with the NIC such that the
-    network interrupts are processed on the same set of cores the Memcached
-    server executes on.
-
-\begin{figure}[t]
-    \includegraphics[width=1.0\linewidth]{figs/bmc.pdf}
-    \centering
-    \vspace{-25pt}
-    \caption{Throughput of MemcachedSR, eBPF-BMC, and \projname{}-BMC
-        under different number of CPUs/threads.
-    }
-    \label{fig:eval-bmc}
-    \vspace{-10pt}
-\end{figure}
-
-Figure~\ref{fig:eval-bmc} shows the throughput of the three setups under
-    different numbers of CPUs and threads.
-MemcachedSR processes all requires in userspace and thus its throughput suffers
-    from the overhead of the kernel network stack, achieving only 45K requests
-    per second under a single thread and 175K requests per second under 8
-    cores.
-On the other hand, both eBPF-based and \projname{}-based BMC are able to
-    achieve a much higher throughput because they can process a large
-    fraction of requests at NIC driver level and without the need of going through
-    the expensive kernel network stack.
-With 8 CPU cores and threads, eBPF-BMC and \projname{}-BMC achieve a thoughput
-    of 1.106M and 1.111M, and a performance benefit of 6.3x and 6.4x,
-    respectively.
-It is also clear that \projname{} is able achieve a better usability while
-    keeping the same level of performance and safety guarrantee comparing to
-    eBPF,  as the throughput of \projname{}-BMC is comparable to that of
-    eBPF-BMC under all CPU/thread setups.
