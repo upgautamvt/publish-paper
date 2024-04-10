@@ -2,17 +2,17 @@
 Kernel extension is a powerful technique to improve performance and
     observability in operating systems.
 eBPF is the current way of safely extending the Linux kernel.
-The major use cases of eBPF today include networking, tracing and 
+The major use cases of eBPF today include networking, tracing and
     observability, and security.
 eBPF has also attracted attention from the research community as
-    a tool to speed up applications by reducing kernel crossings \cite{bmc,electrode,bpfxrp}.
+    a tool to speed up applications by reducing kernel crossings \cite{BMC,Electrode,bpfxrp}.
 
 A main attractor of eBPF is its use of static verification to ensure extension safety.
 This allows eBPF programs to be deployed in production to understand system performance,
     as well providing a programmable way to extend the kernel.
 However, the use of a static verifier places unnecessary constraints on the expressiveness
     of extension programs and also makes them harder to develop and use.
-eBPF projects contain a large number of workaround fixes to bypass the verifier and 
+eBPF projects contain a large number of workaround fixes to bypass the verifier and
     complexities that arise from the gap between the programmer, compiler, and verifier.
 
 In this paper we present a novel extension system for the Linux kernel called \projname{}.
@@ -22,8 +22,8 @@ At the same time, the use of Rust closes the gap between the programmer and veri
     as well as alleviates the expressiveness and usability challenges associated with
     the verifier.
 
-We use our system to reimplement BPF Memcached Cache~\cite{bmc} that achieves
-    comparable performance to the eBPF implementation, while avoiding the 
+We use our system to reimplement BPF Memcached Cache~\cite{BMC} that achieves
+    comparable performance to the eBPF implementation, while avoiding the
     usability challenges of eBPF.
 
 \begin{itemize}
