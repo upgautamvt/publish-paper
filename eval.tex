@@ -134,8 +134,12 @@ One of the representative example of these cases is the BMC project~\cite{BMC},
     where the authors have to not only write seven small programs but also
     bound the data size through the use of cumbersome loop conditions.
 
+eBPF programs may have to be refactored for expressiveness reasons as well,
+    as the verifier limits what eBPF programs can do.
+
 None of these problems would appear in \projname{}, which does not
     have a verifier and does not limit the size of extension programs.
+
 % We demonstrate the benefit of \projname{} through our case study on BMC
 %     (\S~\ref{eval:bmc-case-study}).
 
@@ -153,6 +157,8 @@ However, the use of Rust in \projname{} eliminates the extra verification layer,
     which in turn removes the gap between the developer and the verifier.
 The programmer only needs to keep the mental model of Rust instead of having a
     separate and different one for the verifier.
+The Rust compiler can also provide hints about what went wrong that are much 
+    easier to understand and use than verifier logs.
 
 \jinghao{As I said, I think the Rust compiler may also reject some code that
     are actually safe. So it seems that we also have the same problem. Therefore
@@ -167,6 +173,12 @@ The same problem also presents in \projname{}, because the Rust compiler is not
     free of bugs.
 Programmers will have to address the unfixed compiler bugs in older versions
     in case they hit the problem.
+
+On the other hand, the version of Rust used is decoupled from the kernel version, while
+    with eBPF the verifier version is tied to the kernel version.
+This would allow developers to use a more recent Rust compiler version with 
+    bug fixes on older kernels.
+\milo{Is there some benefit here due to having Rust compiler version decoupled from kernel version?}
 
 \para{Add Pruning Checkpoints.}
 Because the verifier has an upper limit on the number of instructions it can

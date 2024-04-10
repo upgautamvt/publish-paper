@@ -19,6 +19,7 @@ In order to quantify the impact of this gap,
     eBPF programs that fail to verify.
 From the commit messages, we created a set of categories of fixes.
 In the rest of this section we will describe our methodology and categorization, walk through some illustrative examples, and describe the key high level takeaways which are that the programmer gap as described exists, and that it makes the eBPF system less usable.
+\milo{Reword this last sentence}
 
 %Additionally, we describe two fundamental reasons for the programmer gap.
 \milo{succinctly say them here.}
@@ -153,7 +154,9 @@ As shown in Figure~\ref{fig:inline-error}, R9 is a pointer to a packet in instru
 At instruction 3, R6 gets the value of R9, but this is a 32-bit assignment, as indicated by the `w' prefix.
 Then in the next line we see that R6 has type `inv' which is a scalar value, and \emph{not} a pointer to a packet showing that the verifier lost track of the type of R6.
 
-The \texttt{data} field is a result of the information hiding techique that
+%The \texttt{data} field is
+The LLVM compiler thought that the \texttt{data} fields were 32-bit values as 
+    a result of the information hiding techique that
     eBPF employs.
 The kernel exports a context interface to the extension program with only
     the fields that program may need, and at verification time all accesses to
@@ -207,7 +210,7 @@ We identified two main techniques for restructuring programs:
 \noindent\textbf{Splitting eBPF Programs}:
 A well documented technique to decrease overall eBPF program complexity is to use eBPF tail calls to split programs into several smaller subprograms that can be verified independently.
 The idea behind the split is that if each individual piece is verified to be safe, then the verifier itself would have verified the entire program if it could check enough instructions.
-Prior works like BMC\cite{BMC} and Electrode\cite{Electrode} utilize this technique in order to pass the verifier.
+Prior works like BPF Memcahced Cache (BMC)~\cite{BMC} and Electrode~\cite{Electrode} utilize this technique in order to pass the verifier.
 BMC is split into seven different eBPF programs, and Electrode is split into six different eBPF programs.
 Both of these projects use around 500 lines of C code to program the eBPF programs.
 
@@ -216,6 +219,7 @@ In this case, we are left with program fragments which do not represent an indiv
 This compounds with the fact that the compiler has no notion of these limits.
 The compiler would happily compile both the split versions of code and the unified version of code, however only one set of code would pass the verifier.
 Additionally, it is not necessarily trivial to split these functions because all safety checks need to be made in each subfunction in order for them to be independently verified.
+We will now explore BMC as a representative example of this class of fix.
 %\jinghao{Why is this the case?
 %I think there are 2 cases, one is that the developers can just
 %split the program at the logical boundaries so that they actually get the
@@ -224,7 +228,7 @@ Additionally, it is not necessarily trivial to split these functions because all
 %arguing for and we have already seen in the case of BMC where they have to
 %keep a ``parse context'' across tail calls.}
 
-The BPF Memcached Cache (BMC)~\cite{BMC} is an in-kernel cache for Memcached
+BMC~\cite{BMC} is an in-kernel cache for Memcached
     based on eBPF.
 BMC stores recently queried key-value pairs in an eBPF map (i.e. the cache) to
     accelerate the processing of GET requests to the Memcached server.
@@ -477,16 +481,17 @@ As shown in Figure~\ref{fig:kernel-version-code} the fix needed was to move line
 \label{motivation:checkpoint}
 Another common fix that Cilium implemented was to introduce a pseudo-helper function \texttt{relax\_verifier}.
 The purpose of this helper is to provide a checkpoint for the verifier to use when doing state pruning.
-All the function does it call a helper function, which then introduces a new state pruning checkpoint.
+All the function does it call a kernel helper function, which then introduces a new state pruning checkpoint.
 %\jinghao{Can we put more information here on this helper? It would be great
 %to show that the helper itself is complicated and developers have to insert it
 %at random places.}
-\jinghao{My understanding is that this calls a \textit{kernel helper} so that the
-state is reset?}
+%\jinghao{My understanding is that this calls a \textit{kernel helper} so that the
+%state is reset?}
 In some cases doing so significantly decreases the complexity of eBPF programs.
 In one commit, doing so reduced the number of instructions checked from 62,569 to 49,669.
 This is more significant on older kernel versions which have a much smaller upper limit to the number of instructions the eBPF verifier could check.
 \jinghao{It now seems to me that this belongs to \S~\ref{motivation:restructure}.}
+\milo{I don't think so because the state pruning knowledge is more obscure, so needing to use it is harder than refactoring. i.e. A dev may know that their loops can't be too complicated, but they may not know anything about verifier internal state pruning? It also does not really change the structure (this is intentional)}
 
 With no assistance, programmers are required to have knowledge of low-level
     internal details of the eBPF verifier, and then implement fixes that
@@ -504,7 +509,7 @@ If an eBPF program fails to verify there is not always a clear reason why that w
 it could be that a programmer's source code was completely safe, but LLVM generated code that the verifier did not understand.
 To programmers, a successful compilation should indicate something about the success of their code, but in the eBPF system that is not the case.
 This gap is fundamental to the eBPF system.
-A system that closes this gap by moving the verifier and the compiler closer together may be able to avoid the challenges discovered in the existing eBPF system.
+A system that closes this gap by moving the verifier and the compiler closer together may be able to avoid the challenges discovered in the existing eBPF system, while still maintaing many of the safety properties.
 % \jinghao{would be interesting to talk about saving/reloading computation
 %     context across tail calls}
 
