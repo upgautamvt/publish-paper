@@ -7,18 +7,18 @@
     \item Michael Swift works
 \end{itemize}
 
-\subsection{Other eBPF safety}
-\begin{itemize}
-    \item Moat
-\end{itemize}
+%\subsection{Other eBPF safety}
+\subsection{Unprivileged eBPF through Extra Safety}
+Other work has attempted to add additional safety to eBPF programs largely
+    to support unprivileged eBPF.
+MOAT~\cite{lu2023moat} uses hardware based Intel Memory Protection Keys 
+    to isolate eBPF programs from the kernel.
+This would prevent attackers from using eBPF.
+Another system SandBPF~\cite{sandbpf} uses software fault isolation to dynamically
+    sandbox eBPF programs.
 
 \subsection{Other OS extension}
 A large body of work exists around the theme of creating extensible operating systems.
 Systems such as SPIN \cite{spin} utilize the type safety of Modula-3 to produce safe extensions that dynamically link into the kernel.
 VINO \cite{vino} uses software fault isolation techniques and interposition to allow for kernel functions to be replaced, or event-based extensions to be implemented.
 Similarly, SLIC \cite{slic} uses interposition as a mechanism to allow trusted extensions to be run with only minimal operating system changes.
-
-
-\begin{itemize}
-    \item Spin
-\end{itemize}

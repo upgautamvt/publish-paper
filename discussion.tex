@@ -9,3 +9,20 @@
     \item Memory usage for usecases with loads of programs defined in the same
         file (e.g. KCFI)
 \end{itemize}
+
+\subsection{Version Mismatches}
+There are three sources of versioning that eBPF currently has, that may lead to issues: kernel interface, verifier, and the compiler.
+Kernel interface version problems are resolved by the use of BTF and CO-RE in BPF.
+However, the version issues differences between the compiler and verifier are not dealt
+    with in any way.
+The compiler and verifier are decoupled in their development, so there will 
+    always be gaps between them.
+
+%In the current eBPF system, the compiler and the verifier are decoupled.
+%As development proceeds, implementation details about the compiler and verifier change.
+%Problems can also arise from different verifier versions.
+%If an eBPF program verifies on one version, there is no guarantee that it verifies on a different version.
+%Examples of this include backwards compatibility for features like loops.
+%There is no way to fully resolve the issues of versioning in the eBPF system as
+%    each component is a constantly moving target.
+
