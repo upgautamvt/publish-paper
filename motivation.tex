@@ -14,6 +14,9 @@ When a program fails to compile, the developer will get a message with
     the contract with the programming language.
 If, however, a program fails to pass the verifier it is harder for the programmer
     to understand why the program failed and how to fix it.
+\mvle{not clear why it is hard for the programmer to understand verification failure messages.
+Is it because what is being verified is not the same program being written and not the
+same semantics being checked at the higher-level language?}
 In order to quantify the impact of this gap,
     we analyzed commit messages from popular eBPF projects to see how programmers fix
     eBPF programs that fail to verify.
@@ -64,7 +67,7 @@ In the rest of this section we will describe our methodology and categorization,
 
 \subsection{Methodology}
 To collect data, we searched through the git commit logs of Cilium, Aya-rs, and
-    Katran, which are mature, widely-used eBPF projects, for instances of
+    Katran \mvle{(need references for each project)}, which are mature, widely-used eBPF projects, for instances of
     keywords: "error", "reject", "rejects", "issue", and "verifier."
 For each commit log that matched, we manually inspected and classified the commit.
 In total, we collected 216 commit messages containing the above keywords, of which we decided that 73 of them were actually about verifier complaints.
@@ -108,13 +111,13 @@ Some categories were clear to see and are well documented in the literature (i.e
         % moved to #3 Add a specific implementation of a helping function & 2 \\
         \bottomrule
     \end{tabular}
-    \caption{Table of common verifier problems}
+    \caption{Table of common verifier problems. \mvle{we should rename these categories. These don't sound like verifier problems but actions done to overcome verfier issues.}}
     \label{fig:commit-table}
 \end{table}
 
-Table~\ref{fig:commit-table} summarizes the results of our analysis.
 Our analysis classifies the commits into five categories.
 Each category represents a class of techniques that developers used to make their programs pass the verifier.
+Table~\ref{fig:commit-table} summarizes the results of our analysis.
 
 %\jinghao{
 %Some comments on the table: it is not immediately clear on what exactly
@@ -129,10 +132,11 @@ Each category represents a class of techniques that developers used to make thei
 The composition of the categories makes it clear that developers have to change their code in particular ways to get it to pass the verifier.
 It also demonstrates how difficult it can be to reason about the results of the verifier.
 
-An eBPF program can fail to verify for several reasons.
-The first case is where the program is unsafe, and the verifier correctly rejects it.
-The important other case is when the verifier is overly conservative.
-When the verifier rejects a valid program, it is up to the developer to find a way to show the verifier that the program actually is safe.
+There are two basic reasons an eBPF program can fail to verify. %for several reasons.
+The first reason is when the program is unsafe, and the verifier correctly rejects it.
+The second reason is when a program is actually safe but the verifier is overly conservative
+in how it checks the program, and thus rejects it.
+When the verifier rejects a safe program, it is up to the developer to find a way to show the verifier that the program actually is safe.
 The classes of solution employed are different ways that developers use to make sure the verifier accepts their programs.
 %\jinghao{This paragraph is reptitative given the preamable, I think what is
 %    missing here is an overview of the finding from our study (i.e. beef up the
