@@ -54,28 +54,25 @@ These include the following:
 
 The \projname{} kernel crate is responsible for supporting interactions between
     kernel and \projname{} programs.
-This library can be divided into support for different program types with
+This library contains support for different program types with
     intrefaces facing the kernel and the \projname{} program.
-Each of the program type is defined as a Rust struct and with helpers defined
+Each program type is defined as a Rust struct and with allowed helpers defined
     as its methods.
 This effectively implements access control on helper functions with respect to
     program types (e.g., a tracing program should not modify socket buffers
     through networking helper functions), which is also present in eBPF.
-On the side of \projname{} program, the user defines a program object
-    associated with a Rust function as the extension program and can invoke
-    helper functions through the program object.
-For the kernel interface, we create bindings for the needed kernel definitions
-Specifically, we use Rust-bindgen~\cite{bindgen} to create bindings for kernel
-    structure definitions and constants from kernel header files.
-For required kernel symbols (e.g., kernel helper functions), the kernel crate
-    creates a stub declaration for each symbol without using Rust-bindgen.
-This is because certain kernel symbols -- especially all eBPF helper
-    functions --  do not have a declaration in kernel header files.
-The actual definition of the kernel symbols will be resolved when the program
-    is loaded into the kernel (\S~\ref{impl:crate:symbol-resolv}).
-The crate also has support for maps (\S~\ref{impl:map}) and other
-    miscellaneous utilities for the ease of programming (e.g. wrapping return
-    code in \texttt{Result} to support monadic operations in Rust).
+The user defines a program object that is one of the program struct types and
+    assoociates it with a Rust function as the extension program.
+The extension function takes in the associated program object and the
+    program-type-specific context from the kernel
+    (\S~\ref{impl:ctx-converison}) as arguments.
+Inside the extension, helper functions allowed for the program type can be
+    invoked through the program object, which is backed by kernel symbols
+    (\S~\ref{impl:crate:symbol-resolv}).
+
+% The crate also has support for maps (\S~\ref{impl:map}) and other
+%     miscellaneous utilities for the ease of programming (e.g. wrapping return
+%     code in \texttt{Result} to support monadic operations in Rust).
 
 \subsubsection{Program context conversion}
 \label{impl:ctx-converison}
@@ -110,6 +107,16 @@ At the same time, it also allows controlled access to the kernel context, in
 
 \subsubsection{Kernel symbol resolution}
 \label{impl:crate:symbol-resolv}
+For the kernel interface, we create bindings for the needed kernel definitions
+Specifically, we use Rust-bindgen~\cite{bindgen} to create bindings for kernel
+    structure definitions and constants from kernel header files.
+For required kernel symbols (e.g., kernel helper functions), the kernel crate
+    creates a stub declaration for each symbol without using Rust-bindgen.
+This is because certain kernel symbols -- especially all eBPF helper
+    functions --  do not have a declaration in kernel header files.
+The actual definition of the kernel symbols will be resolved when the program
+    is loaded into the kernel (\S~\ref{impl:crate:symbol-resolv}).
+
 The \projname{} kernel crate serves as an interface for the extension programs
     to interact with the kernel.
 To accomplish this, the crate will need to access kernel symbols.
