@@ -74,18 +74,19 @@ Inside the extension, helper functions allowed for the program type can be
 %     miscellaneous utilities for the ease of programming (e.g. wrapping return
 %     code in \texttt{Result} to support monadic operations in Rust).
 
-\subsubsection{Program context conversion}
+\subsubsection{Supplying program context}
 \label{impl:ctx-converison}
-Like eBPF, \projname{} programs take in a kernel-provided ``context'' as input
-    argument.
+% Like eBPF, \projname{}
+Extension programs take in a kernel-provided ``context'' as input argument.
 The context is a pointer to a struct that contains information the program may
     need.
-For the reason of keeping a stable interface and to hidden unneeded kernel
-    data from the extension program, eBPF keeps a pair of context structs,
-    where one of them is for user-written extension programs and the other one
-    is the internal representation of the kernel.
-The user-facing context is a subset of the associateed kernel
-    representation.
+The current eBPF keeps a pair of context struct definitions for certain program
+    types, where one of them is exposed to extension programs and the other one
+    is the internal data structure in the kernel.
+The extension-facing definition is generally a subset of the associated kernel
+    internal definition.
+This is done for the reason of keeping a stable interface and hidding unneeded
+    kernel data from the extension programs.
 When a eBPF program is loaded into the kernel, the verifier rewrites accesses
     to the user context to the corresponding field in the kernel context
     through the verifier hook specific to the program type.
