@@ -3,15 +3,16 @@
 \begin{itemize}
     \item Theseus
     \item Redleaf
-    \item https://sigops.org/s/conferences/hotos/2023/papers/burtsev.pdf
+    \item Evolving Operating Systems Towards Secure Kernel-Driver Interfaces
     \item Michael Swift works
+    \item Leveraging Rust for Lightweight OS Correctness
 \end{itemize}
 
 %\subsection{Other eBPF safety}
 \subsection{Unprivileged eBPF through Extra Safety}
 Other work has attempted to add additional safety to eBPF programs largely
     to support unprivileged eBPF.
-MOAT~\cite{lu2023moat} uses hardware based Intel Memory Protection Keys 
+MOAT~\cite{lu2023moat} uses hardware based Intel Memory Protection Keys
     to isolate eBPF programs from the kernel.
 This would prevent attackers from using eBPF.
 Another system SandBPF~\cite{sandbpf} uses software fault isolation to dynamically
