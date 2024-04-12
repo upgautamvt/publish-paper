@@ -1,4 +1,5 @@
 \section{Introduction}
+
 Kernel extension is a powerful technique to improve performance and
     observability in operating systems.
 eBPF is the current way of safely extending the Linux kernel.
@@ -22,9 +23,11 @@ At the same time, the use of Rust closes the gap between the programmer and veri
     as well as alleviates the expressiveness and usability challenges associated with
     the verifier.
 
-We use our system to reimplement BPF Memcached Cache~\cite{BMC} that achieves
+We use our system to reimplement the BPF Memcached Cache~\cite{BMC} and achieve
     comparable performance to the eBPF implementation, while avoiding the
     usability challenges of eBPF.
+
+\hubertus{I think you should talk about loadable kernel modules and eBPF, one being fully integrated in the kernel address space, while eBPF is running in a verified sandbox with limited access to kernel internals. modules are typically used to implement device drivers for peripherals and filesystems, while eBPF program extend the kernel by attaching to well defined hook points.}
 
 \begin{itemize}
     \item eBPF is the de-facto way of doing kernel extension in Linux
