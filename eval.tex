@@ -157,7 +157,7 @@ However, the use of Rust in \projname{} eliminates the extra verification layer,
     which in turn removes the gap between the developer and the verifier.
 The programmer only needs to keep the mental model of Rust instead of having a
     separate and different one for the verifier.
-The Rust compiler can also provide hints about what went wrong that are much 
+The Rust compiler can also provide hints about what went wrong that are much
     easier to understand and use than verifier logs.
 
 \jinghao{As I said, I think the Rust compiler may also reject some code that
@@ -176,7 +176,7 @@ Programmers will have to address the unfixed compiler bugs in older versions
 
 On the other hand, the version of Rust used is decoupled from the kernel version, while
     with eBPF the verifier version is tied to the kernel version.
-This would allow developers to use a more recent Rust compiler version with 
+This would allow developers to use a more recent Rust compiler version with
     bug fixes on older kernels.
 \milo{Is there some benefit here due to having Rust compiler version decoupled from kernel version?}
 
@@ -552,12 +552,7 @@ This shows the additional stack pointer manipulations needed by \projname{}
 %             \item maps to test: array, hash (htab-lru, xsk-map?)
 %         \end{itemize}
 % \end{itemize}
-In eBPF, most of the helper calls are direct function calls, however, a few of
-    them are further optimized during verification and JITing.
-Helper functions in \projname{} do not have the same load time optimization,
-    and at the same time the kernel crate wraps the unsafe kernel helpers with
-    a safe Rust interface, which could incur further overhead.
-We hereby evaluate the impact of missed opportunities due to the elimination of
+We evaluate the impact of missed opportunities due to the elimination of
     the eBPF verifier in \projname{} by looking into the eBPF map lookup
     helpers.
 %  Specifically, we look into the optimization of eBPF map lookups.

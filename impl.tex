@@ -55,7 +55,7 @@ These include the following:
 The \projname{} kernel crate is responsible for supporting interactions between
     kernel and \projname{} programs.
 This library contains support for different program types with
-    intrefaces facing the kernel and the \projname{} program.
+    interfaces facing the kernel and the \projname{} program.
 Each program type is defined as a Rust struct and with allowed helpers defined
     as its methods.
 This effectively implements access control on helper functions with respect to
@@ -134,23 +134,52 @@ As a solution, \projname{} uses Rust-bindgen~\cite{bindgen} to create Rust
 The generated Rust binding forms part of the kernel crate and can be imported
     into \projname{} programs like other kernel crate exports.
 
-\subsubsection{Resolving kernel symbol and supporting helpers}
+\subsubsection{Supporting kernel helper functions}
 \label{impl:crate:symbol-resolv}
-For required kernel symbols (e.g., kernel helper functions), the kernel crate
-    creates a stub declaration for each symbol without using Rust-bindgen.
-This is because certain kernel symbols -- especially all eBPF helper
-    functions --  do not have a declaration in kernel header files.
-The actual definition of the kernel symbols will be resolved when the program
-    is loaded into the kernel (\S~\ref{impl:crate:symbol-resolv}).
+Kernel extensions utilizes kernel helper functions for perform more advanced
+    operations.
+eBPF uses kernel helpers as both a way to interact with the kernel and to
+    complement its limitation on expressiveness.
+\projname{}, on the other hand, only uses helpers for kernel interaction, since
+    Rust is expressive enough that it does not need additional helper functions.
 
-The \projname{} kernel crate serves as an interface for the extension programs
-    to interact with the kernel.
-To accomplish this, the crate will need to access kernel symbols.
-For example, invoking kernel helper functions requires knowing the kernel
-    address of the target helper function symbol.
-These kernel symbols includes not only BPF helper functions, but also other
-    global and per-CPU variables.
+\projname{} uses the existing eBPF helper interface and implements on top of
+    it a Rust wrapping layer.
+This wrapping layer serves to hide the unsafe C helper interface and provide a
+    new interface that \projname{} programs can safely use.
+For example, the eBPF map lookup function returns a pointer to the map value
+    of type \texttt{*mut T}, the \projname{} wrapping layer wraps the pointer
+    into a Rust \texttt{Option} type: \texttt{Option<\&mut T>}, which allows
+    \projname{} programs to safely access the object without worrying about
+    deferencing a null pointer.
+%\jinghao{TODO: Show a helpr example}
 
+In eBPF, most of the helper calls are direct function calls, however, a few of
+    them are further optimized during verification and JITing.
+Helper functions in \projname{} do not have the same load time optimization,
+    and at the same time the kernel crate wraps the unsafe kernel helpers with
+    a safe Rust interface, which could incur further overhead.
+We further evaluate the impact in \S~\ref{eval:inline}.
+
+% For required kernel symbols (e.g., kernel helper functions), the kernel crate
+%     creates a stub declaration for each symbol without using Rust-bindgen.
+% This is because certain kernel symbols -- especially all eBPF helper
+%     functions --  do not have a declaration in kernel header files.
+% The actual definition of the kernel symbols will be resolved when the program
+%     is loaded into the kernel (\S~\ref{impl:crate:symbol-resolv}).
+
+% The \projname{} kernel crate serves as an interface for the extension programs
+%     to interact with the kernel.
+% To accomplish this, the crate will need to access kernel symbols.
+To reuse the existing kernel helper interface, the crate will need to access
+    kernel symbols.
+At the same time, the crate itself may also need to access certain kernel
+    symbols for internal house keeping operations (e.g. cleanups as in
+    \S~\ref{principle:eh})
+% For example, invoking kernel helper functions requires knowing the kernel
+%     address of the target helper function symbol.
+% These kernel symbols includes not only BPF helper functions, but also other
+%     global and per-CPU variables.
 Because \projname{} programs are compiled in userspace, the compiler does not
     have knowledge on any of the required kernel symbols.
 % One simple solution is to directly passing kernel symbols and their
@@ -161,7 +190,7 @@ Because \projname{} programs are compiled in userspace, the compiler does not
 %     (e.g. due to kernel rebuild) -- changes of a kernel symbol address requires
 %     a recompilation of the \projname{} program that uses it.
 
-Our implementation defers the kernel symbol resolution to program load time,
+\projname{} therefore defers the kernel symbol resolution to program load time,
     i.e. when the compiled \projname{} program is sent to the kernel.
 At this point, the booted kernel always knows where the symbols are located,
     even after layout changes.
