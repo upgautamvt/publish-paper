@@ -93,17 +93,20 @@ When a eBPF program is loaded into the kernel, the verifier rewrites accesses
 Rewriting the access also avoids the need of copying data and contructing a
     user context.
 
-In \projname{}, the Rust compiler takes the place of the eBPF verifier and as
-    a result there is no way to rewrite the access to the context the same
-    way eBPF does.
-We choose to take the advantage of the expressive Rust language features.
-In particular, \projname{} defines a user-context struct that just wraps around
-    the pointer to kernel context.
-It implements accesses to the needed fields in the kernel context as methods of
-    the user-context struct, which accesses the kernel struct internally.
+% In \projname{}, the Rust compiler takes the place of the eBPF verifier and as
+%     a result there is no way to rewrite the access to the context the same
+%     way eBPF does.
+In \projname{} the removal of the verifier means it cannot rewrite the access
+    to the context the same way eBPF does.
+Instead, \projname{} take the advantage of the expressive Rust language
+    features.
+In particular, \projname{} exports to the extension programs a struct that just
+    wraps around the pointer to kernel context.
+It implements accesses to the needed fields in the kernel context as safe Rust
+    methods of this struct, which accesses the kernel struct internally.
 Doing so effectively re-route accesses to the kernel struct.
 At the same time, it also allows controlled access to the kernel context, in
-    particular it easily prevents unwanted writes to the context, which may
+    particular, it prevents unwanted writes to the context, which may
     corrupt kernel data accidentally.
 
 \subsubsection{Kernel symbol resolution}
