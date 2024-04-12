@@ -20,16 +20,29 @@
 \definecolor{ForestGreen}{rgb}{0.13, 0.55, 0.13}
 \definecolor{Maroon}{rgb}{0.5, 0.0, 0.0}
 
-\newcommand{\tianyin}[1]{{{\color{red} [ty: #1]}}}
 \newcommand{\para}[1]{\smallskip\noindent {\bf #1} }
 %\newcommand{\new}[1]{\textcolor{red}{#1}}
+\newcommand{\comments}[1]{}
+
+\iftrue   % toggle iftrue or iffalse
+\newcommand{\tianyin}[1]{{{\color{red} [ty: #1]}}}
 \newcommand{\jinghao}[1]{{\color{cyan} Jinghao: #1}}
 \newcommand{\juowen}[1]{{\color{gray} Ruowen: #1}}
 \newcommand{\djw}[1]{{\color{red}{\em (djw: #1)}}}
 \newcommand{\raj}[1]{{\color{red}{\em (raj: #1)}}}
 \newcommand{\mvle}[1]{{\color{darkblue}{\em (mvle: #1)}}}
 \newcommand{\milo}[1]{{\color{orange}{\em (milo: #1)}}}
-\newcommand{\comments}[1]{}
+\newcommand{\hubertus}[1]{{\color{orange}{\em (frankeh: #1)}}}
+\else
+\newcommand{\tianyin}[1]{}
+\newcommand{\jinghao}[1]{}
+\newcommand{\juowen}[1]{}
+\newcommand{\djw}[1]{}
+\newcommand{\raj}[1]{}
+\newcommand{\mvle}[1]{}
+\newcommand{\milo}[1]{}
+\newcommand{\hubertus}[1]{}
+\fi
 
 \newcommand{\projname}{\textsf{R{\footnotesize E}X}}
 
