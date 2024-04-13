@@ -310,12 +310,12 @@ However, the Itanium ABI is not suitable for kernel extensions, making
 \end{itemize}
 
 \begin{figure}
-	\includegraphics[width=0.8\linewidth]{figs/EH.png}
-	\centering
-	\vspace{-10pt}
-	\caption{Overview of exception handling control flow}
-	\label{fig:eh-overview}
-	\vspace{-10pt}
+    \includegraphics[width=0.8\linewidth]{figs/EH.png}
+    \centering
+    \vspace{-10pt}
+    \caption{Overview of exception handling control flow}
+    \label{fig:eh-overview}
+    \vspace{-10pt}
 \end{figure}
 
 Our exception handling framework consists of two components: 1) graceful exit
@@ -444,42 +444,129 @@ This worse case guarrantee leaves enough space for the panic handling and stack
 Such a dynamic mechanism allows \projname{} to achieve better stack-safety than
     eBPF, which only relies on static verification.
 
-\subsection{Program termination}
-To safely terminate a \projname{} extension, we need to ensure the following :
+\subsection{Bound program runtimes}
+% A bounded program runtime is important for kernel safety
+%   - a potentially long running program can hold the CPU and cause kernel
+%     lockups
+% eBPF handles this by imposing verification limit (ref S3)
+%   (Side note:
+%    First, this is really ``bounded runtime'' rather than termination, because
+%      a long-running program that eventually terminate is almost equally bad
+%    Why would programs ever hit that limit if they are supposed to have an
+%    acceptable runtime? Is it because of these two reasons:
+%      1. The verifier misses some key information that can reduce the search
+%         space drastically, as is the case of unbounded loops?
+%      2. If the program is meant to execute that many instructions (current
+%         limit is 1M), is it because the current limitation is still too small
+%         or is it that the program is badly implemented and actually runs
+%         longer? (Also, how long would 1M eBPF instructions run with
+%         interpretation and JIT?)
+%   )
+%   - A program that goes over the limit gets rejected, no matter whether it will
+%     actually run long
+%   - creates usability issues
+%   - previous works has also demonstrated ways of creating long running programs
+%     without going over the limit (cite raj-lpc and jinghao-hotos)
+%
+% Given the ineffectiveness and usability issues associated with the static
+%   verification approach, Rex uses a dynamic mechanism that interrupts and
+%   terminates programs.
+% When a program goes over its time limit, it will be terminated.
+% The dynamic termination in Rex limits the runtime of the program through a
+%   timer.
+% When the timer expires, it issues an IPI to the CPU the program is running.
+% The IPI effectively suspends the program and saves its registers to the stack.
+% Inside the IPI handler, the timeout handler for Rex is executed, which
+%   modifies the instruction pointer stored on the stack to the panic handler
+%   of rex programs.
+% After returning from the IPI the program will be executing the panic handler
+%   to gracefully exit.
+%
+% Challenge: no termination in helpers/panic handlers
+%
+% We use a per-CPU flag to solve this
 
-\begin{itemize}
-	\item A \projname{} program should never be terminated while executing a helper function
-		or the panic handler.
-		This is neccesary to ensure kernel objects acquired during a helper call
-		are freed.
-	\item Any kernel objects allocated within a BPF program should be released
-		before termination.
-\end{itemize}
+Having a bounded runtime for extension programs is critical for safety of the
+    kernel.
+A long-running extension program could hold the processor for a long time and
+    cause kernel lockups.
 
-\projname{} supports dynamic program termination through an additional API in the kernel's 
-BPF syscall interface.
-The termination logic uses the Linux kernel's Inter-Process Interrupt (IPI) mechanism
-to raise an interrupt on the target \projname{} program's CPU.
-Depending on the use-case, the IPI can be triggered by an operator or a timer within the system
-that is configured to notify when the \projname{} exceeds a certain runtime threshold. 
-Note that we are assuming the availability of a free CPU for an operator to be able to invoke
-an IPI. 
-In uniprocessor machines, where the only CPU will be busy running the extension, the operator 
-won't be able to issue termination request and has to rely on installing timers. 
+eBPF addresses potentially long-running programs by imposing a static limit on
+    the number of instructions the verifier would go through.
+A program that goes over the instruction limit will be rejected by the
+    verifier, no matter whether the program will actually run for a long time.
+This techinque creates many false-positives and is one of the main sources of
+    the usability issues in eBPF, as discussed in
+    \S~\ref{motivation:restructure}.
+Previous works~\cite{ebpf-termination,untenableVerification} have also
+    demonstrated creation of long-running eBPF programs without going over the
+    verification limits, further wakening the runtime guarrantee from the
+    verifier.
+
+Given the usability issues and ineffectiveness associated with the static
+    verification approach, \projname{} employs a dynamic mechanism that
+    interrupts and terminates long-running programs at runtime.
+% \projname{} supports dynamic program termination through an additional API in the kernel's
+% BPF syscall interface.
+The dynamic termination in \projname{} limits the runtime of the program
+    through a timer.
+When the timer expires, it issues an inter-processor interrupt (IPI) to the CPU
+    the program is running on.
+This IPI effectively suspends the program and pushes its registers onto the
+    stack.
+Inside the IPI handler, the timeout termination handler of \projname{} is
+    executed, which modifies the saved instruction pointer register to the
+    panic handler of the program.
+After returning from the IPI, the program will be executing the panic handler,
+    which cleans up kernel resources allocated by the program and gracefully
+    exits the program.
+% The termination logic uses the Linux kernel's Inter-Process Interrupt (IPI) mechanism
+% to raise an interrupt on the target \projname{} program's CPU.
+% Depending on the use-case, the IPI can be triggered by an operator or a timer within the system
+% that is configured to notify when the \projname{} exceeds a certain runtime threshold.
+% Note that we are assuming the availability of a free CPU for an operator to be able to invoke
+% an IPI.
+% In uniprocessor machines, where the only CPU will be busy running the extension, the operator
+% won't be able to issue termination request and has to rely on installing timers.
 % We find this limitation acceptable due to the current cloud infrastructure predominantly being SMP.
 
-The raised interrupt handler first detaches the \projname{} program from its hookpoint to prevent
-further invocation.
-The handler then changes the saved registers(in the interrupt stack) from the \projname{} context
- to point to the \projname{} panic handler(section \ref{principle:eh}).
-The CPU returns the execution to the panic handler which performs the cleanup of
-any kernel objects that were live at the time of termination.
-To address the case when the target \projname{} program could be inside a helper/panic handler,
-we use a per-cpu tristate flag which can only have states denoting : (i) within \projname{},
-(ii) within helper/panic or (iii) termination requested.
-Every helper invocation precedes with changing the state from state (i) to state (ii).
-During the termination interrupt handler, if the flag is at state (ii),
-the termination handler just modifies it to state (iii). 
-On a helper function return, the flag is checked and if set, the panic handler is called. 
-This mechanism is used to defer a panic invocation until the end of a helper execution.
+% To safely terminate a \projname{} extension, we need to ensure the following :
+One challenge involved in terminating a \projname{} program safely is that a
+    program should never be terminated while executing the kernel helper
+    function or the panic handler, as doing so disrupts internal bookkeeping of
+    the kernel (e.g. acquired resources) and safe exception handling process of
+    \projname{}.
+To address this challenge, \projname{} delays termination when the program is
+    running kernel helper functions, and does not attempt to terminate if the
+    program is in the panic handler, which already means graceful exit.
+% \begin{enumerate}
+%     \item A \projname{} program should never be terminated while executing a
+%         kernel helper function or the panic handler, as doing so disrupts
+%         internal bookkeeping of the kernel (e.g. acquired resources) and safe
+%         exception handling process of \projname{}.
+%         This is neccesary to ensure kernel objects acquired during a helper call
+%         are freed.
+%     \item Kernel resources allocated within the extension program cannot be
+%         left unreleased and cause resource leaks.
+% \end{enumerate}
 
+% The raised interrupt handler first detaches the \projname{} program from its hookpoint to prevent
+% further invocation.
+% The handler then changes the saved registers(in the interrupt stack) from the \projname{} context
+%  to point to the \projname{} panic handler(section \ref{principle:eh}).
+% The CPU returns the execution to the panic handler which performs the cleanup of
+% any kernel objects that were live at the time of termination.
+% To address the case when the target \projname{} program could be inside a helper/panic handler,
+\projname{} uses a per-CPU tristate flag to keep track the state that the
+    extension program is currently in.
+The states are: 1) executing programs' own code, 2) executing kernel helpers or
+    panic handlers, and 3) after executing timeout termination handler.
+Every helper invocation changes the state from state 1) to state 2).
+When excuting the timeout termination handler, if the flag is at state 2),
+    which indicates the program is in a context that cannot be safely
+    terminated, the termination handler just modifies it to state 3) without
+    setting the instruction pointer.
+On a helper function return, the flag is checked and if it is set to state 3),
+    the panic handler is called to gracefully exit the program.
+% This mechanism is used to defer a panic invocation until the end of a helper execution.
+\jinghao{Shall we have a state diagram?}
