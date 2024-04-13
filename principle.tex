@@ -125,6 +125,7 @@ The program links with the ``kernel crate'' at compile time and runs in a
     program termination and stack unwinding support.
 
 \subsection{Memory safety}
+\label{principle:memsafety}
 Generally, kernel extensions cannot access kernel memory.
 However, there are frequenct cases that an extension program needs to work on a
     shared buffer of data or a specific struct and exchange data the kernel.
