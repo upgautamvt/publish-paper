@@ -557,8 +557,17 @@ To address this challenge, \projname{} delays termination when the program is
 % The CPU returns the execution to the panic handler which performs the cleanup of
 % any kernel objects that were live at the time of termination.
 % To address the case when the target \projname{} program could be inside a helper/panic handler,
+\begin{figure}
+    \includegraphics[width=1.0\linewidth]{figs/BPF_termination_state_diagram.png}
+    \centering
+    %\vspace{-10pt}
+    \caption{Termination state diagram for \projname{} extensions}
+    \label{fig:rex-termination}
+    %\vspace{-30pt}
+\end{figure}
+
 \projname{} uses a per-CPU tristate flag to keep track the state that the
-    extension program is currently in.
+    extension program is currently in(figure~\ref{fig:rex-termination}).
 The states are: 1) executing programs' own code, 2) executing kernel helpers or
     panic handlers, and 3) termination requested.
 Every helper invocation changes the state from state 1) to state 2).
