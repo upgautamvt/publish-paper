@@ -445,10 +445,10 @@ Such a dynamic mechanism allows \projname{} to achieve better stack-safety than
     eBPF, which only relies on static verification.
 
 \subsection{Program termination}
-To safely terminate a BPF execution, we need to ensure the following :
+To safely terminate a \projname{} extension, we need to ensure the following :
 
 \begin{itemize}
-	\item A BPF program should never be terminated while executing a helper function
+	\item A \projname{} program should never be terminated while executing a helper function
 		or the panic handler.
 		This is neccesary to ensure kernel objects acquired during a helper call
 		are freed.
@@ -456,26 +456,30 @@ To safely terminate a BPF execution, we need to ensure the following :
 		before termination.
 \end{itemize}
 
-\projname{} supports dynamic program termination through an extended BPF syscall
-interface.
+\projname{} supports dynamic program termination through an additional API in the kernel's 
+BPF syscall interface.
 The termination logic uses the Linux kernel's Inter-Process Interrupt (IPI) mechanism
-to raise an interrupt on the target BPF program's CPU.
-The raised interrupt handler first detaches the BPF program from its hookpoint to prevent
+to raise an interrupt on the target \projname{} program's CPU.
+Depending on the use-case, the IPI can be triggered by an operator or a timer within the system
+that is configured to notify when the \projname{} exceeds a certain runtime threshold. 
+Note that we are assuming the availability of a free CPU for an operator to be able to invoke
+an IPI. 
+In uniprocessor machines, where the only CPU will be busy running the extension, the operator 
+won't be able to issue termination request and has to rely on installing timers. 
+% We find this limitation acceptable due to the current cloud infrastructure predominantly being SMP.
+
+The raised interrupt handler first detaches the \projname{} program from its hookpoint to prevent
 further invocation.
-The handler then changes the saved registers(in the interrupt stack) from the BPF context
+The handler then changes the saved registers(in the interrupt stack) from the \projname{} context
  to point to the \projname{} panic handler(section \ref{principle:eh}).
 The CPU returns the execution to the panic handler which performs the cleanup of
 any kernel objects that were live at the time of termination.
-To address the case when the target BPF program could be inside a helper/panic handler,
-we use a per-cpu tristate flag which can only have states denoting : (i) within BPF,
+To address the case when the target \projname{} program could be inside a helper/panic handler,
+we use a per-cpu tristate flag which can only have states denoting : (i) within \projname{},
 (ii) within helper/panic or (iii) termination requested.
 Every helper invocation precedes with changing the state from state (i) to state (ii).
 During the termination interrupt handler, if the flag is at state (ii),
-the termination handler just modifies it to state (iii) which indicates an exiting
-helper call to panic.
+the termination handler just modifies it to state (iii). 
+On a helper function return, the flag is checked and if set, the panic handler is called. 
 This mechanism is used to defer a panic invocation until the end of a helper execution.
 
-Note that we are assuming the availability of a free CPU, which can be used to invoke the
-IPI.
-While this solution won't work for uniprocessor systems, we find this limitation
-acceptable due to the current cloud infrastructure predominantly being SMP.
