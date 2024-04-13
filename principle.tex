@@ -560,7 +560,7 @@ To address this challenge, \projname{} delays termination when the program is
 \projname{} uses a per-CPU tristate flag to keep track the state that the
     extension program is currently in.
 The states are: 1) executing programs' own code, 2) executing kernel helpers or
-    panic handlers, and 3) after executing timeout termination handler.
+    panic handlers, and 3) termination requested.
 Every helper invocation changes the state from state 1) to state 2).
 When excuting the timeout termination handler, if the flag is at state 2),
     which indicates the program is in a context that cannot be safely
