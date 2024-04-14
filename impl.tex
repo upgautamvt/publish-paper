@@ -219,7 +219,9 @@ At load time, the loader library (\S~\ref{impl:load}) parses the executable,
     corresponding entries in the global offset table (GOT), and sends the
     information to the kernel.
 The kernel then resolves the address for each symbol via the kallsyms subsystem
-    and patches the GOT entries with the resolved addresses
+    and patches the GOT entries with the resolved addresses.
+This allows programs to access kernel symbols without the need to disable
+    kernel address space layout randomization (KASLR).
 % and allows programs to correctly referencing these kernel symbols.
 
 \subsubsection{Kconfig-aware conditional compilation}

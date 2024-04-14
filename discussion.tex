@@ -53,9 +53,9 @@ Since Linux kernel v6.2, eBPF supports dynamic allocations in extension
     programs~\cite{Dwivedi-958cf2e273f0}.
 Programs can request memory from the kernel using the allocation kfuncs.
 Similar to memory management in C, the verifier requires any allocated memory
-    to be manually freed.  
-The allocation API is based on the dedicated, all-context eBPF memory 
-    allocator~\cite{bpf-mempool-lwn}, which internally uses a memory pool 
+    to be manually freed.
+The allocation API is based on the dedicated, all-context eBPF memory
+    allocator~\cite{bpf-mempool-lwn}, which internally uses a memory pool
     implementation.
 \projname{} currently does not support dynamic memory allocation.
 However, we expect it to be possible to integrate memory allocation of Rust
@@ -70,12 +70,25 @@ With these types the extension developer no longer needes to manage memory
     drop them automatically.
 
 \para{Version Mismatches:}
+% rex fixes mismatches between compiler and verifier by removing the verifier
+% for mismatches between kernel versions, Rex's kernel crate itself does not
+%   contain kernel version-specific code
+% rex's model requires the programs to be compiled on the target kernel,
+%   and the build process generates kernel version specific bindings for the
+%   programs
 There are three sources of versioning that eBPF currently has, that may lead to issues: kernel interface, verifier, and the compiler.
-Kernel interface version problems are resolved by the use of BTF and CO-RE in BPF.
+Kernel interface version problems are resolved by the use of BTF and CO-RE~\cite{bpf-core} in BPF.
 However, the version issues differences between the compiler and verifier are not dealt
     with in any way.
 The compiler and verifier are decoupled in their development, so there will
     always be gaps between them.
+\projname{}'s elimination of the in-kenrel verifier effectively eliminate the
+    mismatch issue between the compiler and the verifier.
+As for the problem of API changes across kernel versions, \projname{}'s kernel
+    crate does not contain any kernel-version-specific code.
+\projname{}'s deployment model requires the programs to be compiled on the
+    target kernel and build process generates Rust bindings specific to the
+    target kernel.
 
 %In the current eBPF system, the compiler and the verifier are decoupled.
 %As development proceeds, implementation details about the compiler and verifier change.
