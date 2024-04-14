@@ -19,7 +19,7 @@ pub type RexArrayMap<V> = RexMap<BPF_MAP_TYPE_ARRAY, u32, V>;
 pub type RexHashMap<K, V> = RexMap<BPF_MAP_TYPE_HASH, K, V>;
 
 pub(crate) fn map_lookup_elem<const MT: bpf_map_type, K, V>(
-  map: &IUMap<MT, K, V>,
+  map: &RexMap<MT, K, V>,
   key: &K,
 ) -> Option<&mut V> {
   let kp = unsafe { core::ptr::read_volatile(&map.kptr) };
