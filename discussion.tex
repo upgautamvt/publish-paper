@@ -1,7 +1,7 @@
 \section{Discussion}
 \begin{itemize}
-    \item Unsafe code in rt crate
-    \item Verified Rust extension using Verus
+%     \item Unsafe code in rt crate
+%     \item Verified Rust extension using Verus
     \item Dynamic allocation (if we end up not doing it)
     \item Cross-Language Attacks from NDSS 2022
     \item Rust memory ordering in kernel (\url{https://lwn.net/SubscriberLink/967049/66bfb6f365d164aa/})
@@ -10,12 +10,41 @@
         file (e.g. KCFI)
 \end{itemize}
 
-\subsection{Version Mismatches}
+\para{Unsafe Rust code in \projname{} kernel crate: }
+% Unsafe code is required to interact with low-level kernel code/data and be
+%   compliant with certain kernel ABIs
+%   - Kernel helper functions requires FFI call
+%   - converting unsafe C types into safe Rust types
+%   - accessing kernel per-CPU definition
+% All unsafe Rust code presents in the kernel crate
+%   - set to be developed by trusted and experienced maintainers
+%   -
+% The program is always implemented by only safe Rust, thereby making the
+%   program subject to all safety checks in Rust.
+% Recent works like verus employs formal verification on Rust code and provides
+%   further guarrantees.
+As \projname{} kernel crate serves as an interface to the kernel for the
+    extension programs, it inevitablly employs unsafe Rust code.
+This is needed because interacting with low-level kernel code and data requires
+    kernel crate to access unsafe C types and invoking kernel functions through
+    the FFI interface.
+Furthermore, certain ABIs of the Linux kernel also makes unsafe code a
+    necessity -- accessing per-CPU data requires inline assmebly code as well
+    as direct pointer arithmetics.
+\projname{} limits all unsafe code to the kernel crate which is implemented by
+    trusted and experienced maintainers.
+The extension program itself is always implemented only in safe Rust, thereby
+    making the program subject to all safety checks in Rust.
+At the same time, recent work~\cite{verus} has explored formal verification
+    techniques on Rust code, which provides additional safety guarrantees
+    for the correctness of unsafe code beyond these provided by the compiler.
+
+\para{Version Mismatches:}
 There are three sources of versioning that eBPF currently has, that may lead to issues: kernel interface, verifier, and the compiler.
 Kernel interface version problems are resolved by the use of BTF and CO-RE in BPF.
 However, the version issues differences between the compiler and verifier are not dealt
     with in any way.
-The compiler and verifier are decoupled in their development, so there will 
+The compiler and verifier are decoupled in their development, so there will
     always be gaps between them.
 
 %In the current eBPF system, the compiler and the verifier are decoupled.
