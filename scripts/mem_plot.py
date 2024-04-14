@@ -13,6 +13,7 @@ bpf_programs = {
     'syscall_tp': [132,132,132,132],
     'BMC': [524, 864, 984, 1476, 716, 376, 640]
 }
+# TODO: rerun with termination branch
 rust_programs = {
     'tracex5': [0x380, 0x179, 0x68, 0x148],
     'trace_event': [0x0004c8, 0x0001a3, 0x0000d0, 0x000170],
@@ -26,24 +27,41 @@ bpf_programs_new = {
     'syscall_tp': [138 + 138 + 138 + 138],
     'BMC': [532 + 823 + 1010, 1425 + 667 + 356 + 566]
 }
+bpf_bytecode_sizes = {
+    'bpf': {
+        'tracex5': 840,
+        'trace_event': 1168,
+        'syscall_tp': 768,
+        'BMC': 8584
+    },
+    'bpf_packed': {
+        'tracex5': 272+248+240+80,
+        'trace_event': 1168,
+        'syscall_tp': 240*4,
+        'BMC': 656+1192+1392+2568+1144+416+976
+    }
+}
 page_size = 4096
 
 bar_width = 0.20
-pair_gap = 0.0
-group_gap = 1.0
+
+hatch_bpf_unused = '\\\\'
+hatch_bpf_bytecode = '//'
+edge_color_graphs = 'black'
 
 xticks = []
 
-def process_one_category(data):
+def process_one_category(data, bytecode_sizes):
     used = np.array(list(map(sum, data.values())))
-    unused = np.array(list(map(lambda x: len(x) * page_size,
-                          data.values()))) - used
-    return used, unused
+    bytecode = np.maximum(np.array([bytecode_sizes.get(name, 0) for name in data.keys()]) - used, 0)
+    unused = np.maximum(np.array(list(map(lambda x: len(x) * page_size, data.values()))) - used - bytecode, 0)
+    return used, unused, bytecode
 
+# Data processing
 data = {
-    'BPF-packed': process_one_category(bpf_programs_new),
-    'BPF': process_one_category(bpf_programs),
-    'REX': process_one_category(rust_programs)
+    'BPF-packed': process_one_category(bpf_programs_new, bpf_bytecode_sizes['bpf_packed']),
+    'BPF': process_one_category(bpf_programs, bpf_bytecode_sizes['bpf']),
+    'REX': process_one_category(rust_programs, {})
 }
 
 with plt.style.context('seaborn-v0_8-paper'):
@@ -54,12 +72,17 @@ with plt.style.context('seaborn-v0_8-paper'):
     fig, ax = plt.subplots(layout='tight')
     fig.set_size_inches(4.5, 2.7)
 
-    for cat, (used, unused) in data.items():
+    for cat, (used, unused, bytecode) in data.items():
         offset = width * multiplier
-        rects = ax.bar(x + offset, used, width, label='%s occupied' % cat)
-        # same color but with alpha=0.5
-        c = (*rects.patches[0]._facecolor[:-1], 0.4)
-        ax.bar(x + offset, unused, width, bottom=used, color=c, label='%s empty' % cat)
+
+        rects = ax.bar(x + offset, used, width, label='%s' % cat)
+        
+        c = (*rects.patches[0]._facecolor[:-1], 0.5)
+        ax.bar(x + offset, bytecode, width, bottom=used, hatch='//', edgecolor='black', linewidth=0, color=c)
+
+        c = (*rects.patches[0]._facecolor[:-1], 0.2)
+        ax.bar(x + offset, unused, width, bottom=used+bytecode, hatch='\\\\', edgecolor='gray', linewidth=0, color=c)
+
         multiplier += 1
 
     # Labels and formatting
@@ -90,7 +113,15 @@ with plt.style.context('seaborn-v0_8-paper'):
                            size='large')
 
 
-    ax.legend(loc='upper left', ncols=2, fontsize='small')
+    # ax.legend(loc='upper left', ncols=2, fontsize='small')
+
+    ax.legend(handles=[
+        mpatches.Patch(color='tab:blue', label='BPF'),
+        mpatches.Patch(color='tab:green', label='REX'),
+        mpatches.Patch(color='tab:orange', label='BPF-Packed'),
+        mpatches.Patch(fill=False, hatch=hatch_bpf_bytecode, edgecolor=edge_color_graphs, color='black', label='Bytecode'),
+        mpatches.Patch(fill=False, hatch=hatch_bpf_unused, edgecolor=edge_color_graphs,  color='gray', label='Unused Space'),
+    ], loc='upper left', fontsize='small', ncols=2)
 
     plt.tight_layout()
     # plt.show()
