@@ -149,12 +149,21 @@ eBPF uses kernel helpers as both a way to interact with the kernel and to
     it a Rust wrapping layer.
 This wrapping layer serves to hide the unsafe kernel C helper interface and
     provides a new interface that \projname{} programs can safely use.
-For example, the eBPF map lookup function returns a pointer to the map value
-    (\texttt{*mut T}), the \projname{} wrapping layer converts the pointer
-    into a Rust option type (\texttt{Option<\&mut T>}~\cite{rust-option}),
-    which allows \projname{} programs to access the object through a safe Rust
-    reference without worrying about deferencing a null pointer.
-\jinghao{Good to show the code here}
+The implementation of eBPF map lookup helper is shown in
+    Figure~\ref{fig:map-helper}.
+On L30, the kernel helper function returns a pointer to the map value
+    (\texttt{*mut V}), the \projname{} wrapping layer converts the pointer
+    into a Rust option type~\cite{rust-option} (\texttt{Option<\&mut V>}) on
+    L33-L37, which allows \projname{} programs to access the object through a
+    safe Rust reference without worrying about deferencing a null pointer.
+
+\begin{figure}[t]
+    \lstinputlisting[language=Rust]{./snippets/s5-map.rs}
+    \vspace{-10pt}
+    \caption{Implementation of eBPF map support in \projname{}}
+    \vspace{-10pt}
+    \label{fig:map-helper}
+\end{figure}
 
 In eBPF, most of the helper calls are direct function calls, however, a few of
     them are further optimized during verification and JITing.
@@ -366,7 +375,7 @@ Current eBPF allows user to define a eBPF map in the program by defining a
     struct instance that contains the map metadata (e.g. key/value type, number
     of entries) in a specific ELF section for maps.
 All map operations on this map would be made through this instance.
-At program load time, \texttt{libbpf}, the eBPF loader librarym, parses the map
+At program load time, \texttt{libbpf}, the eBPF loader library, parses the map
     metadata from the struct instance.
 It then creates the map in the kernel through the \texttt{bpf} system call and
     obtain a file descriptor referring to the map.
@@ -376,13 +385,12 @@ When the program is loaded to the kernel, the eBPF verifier performs a second
     round of rewriting -- for each map file descriptor, it obtains the actual
     kernel eBPF map struct the file descriptor refers to and updates the
     references to the address of the kernel internal map struct.
-This two-stage rewriting provides two desired properties: it 1. prevents
-    leaking of a kernel map address to userspace and 2. allows seamless and
+This two-stage rewriting provides two desired properties: it 1) prevents
+    leaking of a kernel map address to userspace and 2) allows seamless and
     transparent interaction with the kernel maps from extension programs.
 However, supporting eBPF maps in the ways of eBPF is not trivial in
     \projname{}, because the ABI of map metadata struct is eBPF-specific and
     the absence of in-kernel verifier.
-\jinghao{Good to have some code here}
 % However, for \projname{}, achieving these two properties is not trivial: the
 %     Rust compiler cannot provide these since creating maps is out-of-scope for
 %     compilation, and at the same time the existing two-stage rewriting is specifically
@@ -392,37 +400,39 @@ In order to support a safe and convenient map interface, \projname{} defines
     its own ABI for storing map metadata and implements the rewriting logic in
     its own program loader library and kernel program loading code.
 In \projname{} programs, users can define a map by creating a new, static
-    \texttt{rex\_map} object in the \texttt{.map} section through a convenience
+    \texttt{RexMap} object in the \texttt{.map} section through a convenience
     macro provided by the \projname{} kernel crate.
-\texttt{rex\_map} is exported by the \projname{} kernel crate, which contains
+Part of the implementation of \texttt{RexMap} is shown in
+    Figure~\ref{fig:map-helper}.
+\texttt{RexMap} is exported by the \projname{} kernel crate, which contains
     various map parameters, and a private pointer to the kernel map struct.
 The struct uses generic types to encode the map type, key type, and
     value types.
 All map helpers in \projname{} are also generic functions with the same set of
-    generic parameters, which take \texttt{rex\_map} objects as arguments and
+    generic parameters, which take \texttt{RexMap} objects as arguments and
     internally invoke the kernel map helper functions with the kernel map
     pointer.
 Doing so ensures safety of map operations -- it prevents mismatches in map
     types and key/value types (\S~\ref{principle:memsafety}).
-The creation of \texttt{rex\_map} is set to be constantly evaluated; in other
+The creation of \texttt{RexMap} is set to be constantly evaluated; in other
     words, this means its fields are initialized at compile time and readily
     available in the executable data.
 This is the same as how eBPF initilizes ``legacy'' maps (newer maps are
     initialized via BTF debug information).
 
-The ABI is implemented by forcing the \texttt{rex\_map} struct to have
+The ABI is implemented by forcing the \texttt{RexMap} struct to have
     C-representation~\cite{nomicon-reprc}, i.e., the memory layout
     is the same as a equivalent C structand thereby enforce a stable layout.
 Doing so allows \texttt{librex}, the \projname{} loader library to easily parse
-    a \texttt{rex\_map} struct to obtain the map metadata.
+    a \texttt{RexMap} struct to obtain the map metadata.
 Similar to \texttt{libbpf}, \texttt{librex} finds and parses all maps in the
     \texttt{.map} section.
-% This is possible because the constructor of \texttt{rex\_map} is defined as
-%     a constant expression and therefore the \texttt{rex\_map} objects are
+% This is possible because the constructor of \texttt{RexMap} is defined as
+%     a constant expression and therefore the \texttt{RexMap} objects are
 %     initialized at compile time.
 With the metadata for each map, the library creates the requested eBPF maps in
     the kernel using the \texttt{bpf} system call and rewrites the kernel
-    pointer field of each \texttt{rex\_map} object to the file descriptor value.
+    pointer field of each \texttt{RexMap} object to the file descriptor value.
 When loading the program, the loader library sends both the updated ELF
     executable and a list of offsets of the kernel map pointer field within the
     executable to the kernel.
@@ -431,8 +441,8 @@ The kernel reads the file descriptor at each offset and update it with the real
     work.
 
 During compile-time initialization, the kernel pointer field in
-    \texttt{rex\_map} is set to a null pointer.
-Since the \texttt{rex\_map} objects are defined as read-only and rewriting
+    \texttt{RexMap} is set to a null pointer.
+Since the \texttt{RexMap} objects are defined as read-only and rewriting
     happens after compilation, this makes the Rust compiler incorrectly assume
     the kernel map pointer always stays \texttt{NULL}.
 This in turn causes the compiler to perform constant propagation on the kernel
@@ -470,7 +480,7 @@ We implement the generation of entry code as an compiler pass, taking the
     advantage of Rust's use of LLVM as its code generation backend.
 At the LLVM-IR stage, the entry code generation pass reads out the information
     related to the program from the program object the user defines.
-This is achieved by implementing a similar ABI to \texttt{rex\_map}s
+This is achieved by implementing a similar ABI to \texttt{RexMap}s
     (\S~\ref{impl:map}) on program objects, which creates a fixed memory layout
     of the program object
 % This is achieved by enforcing a specific memory layout of the program object
