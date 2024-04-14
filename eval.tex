@@ -442,7 +442,8 @@ The number of pages allocated for and the actual amount of memory used by the
 %     more programs are defined in the same source file. \jinghao{or should we
 %     say ``project''}
 Before Linux 5.18, each eBPF program occupied dedicated pages.
-eBPF then introduced the ``packed allocation'' feature, which
+eBPF then introduced the ``packed allocation''
+    feature~\cite{bpf-packed-alloc}, which
     tries to pack different programs into the same page to use memory more
     efficiently.
 % and is labeled in Figure~\ref{fig:eval-mem-footprint} as
