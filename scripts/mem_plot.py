@@ -77,11 +77,11 @@ with plt.style.context('seaborn-v0_8-paper'):
 
         rects = ax.bar(x + offset, used, width, label='%s' % cat)
         
-        c = (*rects.patches[0]._facecolor[:-1], 0.5)
+        c = (*rects.patches[0]._facecolor[:-1], 0.7)
         ax.bar(x + offset, bytecode, width, bottom=used, hatch='//', edgecolor='black', linewidth=0, color=c)
 
-        c = (*rects.patches[0]._facecolor[:-1], 0.2)
-        ax.bar(x + offset, unused, width, bottom=used+bytecode, hatch='\\\\', edgecolor='gray', linewidth=0, color=c)
+        c = (*rects.patches[0]._facecolor[:-1], 0.3)
+        ax.bar(x + offset, unused, width, bottom=used+bytecode, hatch='\\\\', edgecolor='black', linewidth=0, color=c)
 
         multiplier += 1
 
@@ -120,7 +120,7 @@ with plt.style.context('seaborn-v0_8-paper'):
         mpatches.Patch(color='tab:green', label='REX'),
         mpatches.Patch(color='tab:orange', label='BPF-Packed'),
         mpatches.Patch(fill=False, hatch=hatch_bpf_bytecode, edgecolor=edge_color_graphs, color='black', label='Bytecode'),
-        mpatches.Patch(fill=False, hatch=hatch_bpf_unused, edgecolor=edge_color_graphs,  color='gray', label='Unused Space'),
+        mpatches.Patch(fill=False, hatch=hatch_bpf_unused, edgecolor=edge_color_graphs,  color='dimgray', label='Unused Space'),
     ], loc='upper left', fontsize='small', ncols=2)
 
     plt.tight_layout()
