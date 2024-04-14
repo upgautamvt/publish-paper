@@ -4,8 +4,8 @@
 %     \item Verified Rust extension using Verus
     \item Dynamic allocation (if we end up not doing it)
     \item Cross-Language Attacks from NDSS 2022
-    \item Rust memory ordering in kernel (\url{https://lwn.net/SubscriberLink/967049/66bfb6f365d164aa/})
-    \item Compatibility \projname{} across kernel versions.
+%     \item Rust memory ordering in kernel (\url{https://lwn.net/SubscriberLink/967049/66bfb6f365d164aa/})
+%     \item Compatibility \projname{} across kernel versions.
     \item Memory usage for usecases with loads of programs defined in the same
         file (e.g. KCFI)
 \end{itemize}
@@ -38,6 +38,36 @@ The extension program itself is always implemented only in safe Rust, thereby
 At the same time, recent work~\cite{verus} has explored formal verification
     techniques on Rust code, which provides additional safety guarrantees
     for the correctness of unsafe code beyond these provided by the compiler.
+
+\para{Dynamic memory allocation}
+% eBPF supports dynamic allocation since 6.2
+%   - dedicated all-context memory allocator
+%   - as kfunc
+%   - alloc and free need to match
+% Rex currently does not support dynamic allocation
+%   - still possible to back the Rust memory allocator using eBPF allocator
+%   - allows more advanced use cases
+%   - makes more components of Rust standard library, e.g. collection types
+%   - usability: drop is handled automatically by compiler
+Since Linux kernel v6.2, eBPF supports dynamic allocations in extension
+    programs~\cite{Dwivedi-958cf2e273f0}.
+Programs can request memory from the kernel using the allocation kfuncs.
+Similar to memory management in C, the verifier requires any allocated memory
+    to be manually freed.  
+The allocation API is based on the dedicated, all-context eBPF memory 
+    allocator~\cite{bpf-mempool-lwn}, which internally uses a memory pool 
+    implementation.
+\projname{} currently does not support dynamic memory allocation.
+However, we expect it to be possible to integrate memory allocation of Rust
+    with the eBPF all-context allocator, effectively granting \projname{}
+    dynamic allcations.
+Dynamic allocation enhances programmability of extension programs and opens
+    up more advanced use cases.
+Furthermore, dynamic allocation will also make more components of the Rust
+    standard library available, notely the collection and smart pointer types.
+With these types the extension developer no longer needes to manage memory
+    manually, as the compiler will handle the lifetime of these objects and
+    drop them automatically.
 
 \para{Version Mismatches:}
 There are three sources of versioning that eBPF currently has, that may lead to issues: kernel interface, verifier, and the compiler.
