@@ -536,7 +536,7 @@ One challenge involved in terminating a \projname{} program safely is that a
     function or the panic handler, as doing so disrupts internal bookkeeping of
     the kernel (e.g. acquired resources) and safe exception handling process of
     \projname{}.
-To address this challenge, \projname{} delays termination when the program is
+To address this challenge, \projname{} defers termination when the program is
     running kernel helper functions, and does not attempt to terminate if the
     program is in the panic handler, which already means graceful exit.
 % \begin{enumerate}
@@ -578,4 +578,4 @@ When excuting the timeout termination handler, if the flag is at state 2),
 On a helper function return, the flag is checked and if it is set to state 3),
     the panic handler is called to gracefully exit the program.
 % This mechanism is used to defer a panic invocation until the end of a helper execution.
-\jinghao{Shall we have a state diagram?}
+% \jinghao{Shall we have a state diagram?}
