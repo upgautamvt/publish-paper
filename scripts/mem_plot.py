@@ -14,12 +14,21 @@ bpf_programs = {
     'BMC': [524, 864, 984, 1476, 716, 376, 640]
 }
 # TODO: rerun with termination branch
+# rust_programs = {
+#     'tracex5': [0x380, 0x179, 0x68, 0x148],
+#     'trace_event': [0x0004c8, 0x0001a3, 0x0000d0, 0x000170],
+#     'syscall_tp': [0x000380,0x000140,0x000048,0x000148],
+#     'BMC': [0x000750, 0x001000, 0xc4b, 0x0002a8, 0x000338]
+# }
+
+# With rust termination branch
 rust_programs = {
-    'tracex5': [0x380, 0x179, 0x68, 0x148],
-    'trace_event': [0x0004c8, 0x0001a3, 0x0000d0, 0x000170],
-    'syscall_tp': [0x000380,0x000140,0x000048,0x000148],
-    'BMC': [0x000750, 0x001000, 0xc4b, 0x0002a8, 0x000338]
+    'tracex5': [0x588, 0x869, 0x208, 0x1f8],
+    'trace_event': [0x6a8, 0x934, 0x268, 0x220],
+    'syscall_tp': [0x598,0x878,0x1e8,0x200],
+    'BMC': [0x7c8, 0x1000, 0xff3, 0x2c8, 0x358]
 }
+
 # The adding represents the individual bpf program sizes
 bpf_programs_new = {
     'tracex5': [233 + 160 + 158 + 64],
@@ -117,8 +126,8 @@ with plt.style.context('seaborn-v0_8-paper'):
 
     ax.legend(handles=[
         mpatches.Patch(color='tab:blue', label='BPF'),
-        mpatches.Patch(color='tab:green', label='REX'),
         mpatches.Patch(color='tab:orange', label='BPF-Packed'),
+        mpatches.Patch(color='tab:green', label='REX'),
         mpatches.Patch(fill=False, hatch=hatch_bpf_bytecode, edgecolor=edge_color_graphs, color='black', label='Bytecode'),
         mpatches.Patch(fill=False, hatch=hatch_bpf_unused, edgecolor=edge_color_graphs,  color='dimgray', label='Unused Space'),
     ], loc='upper left', fontsize='small', ncols=2)
