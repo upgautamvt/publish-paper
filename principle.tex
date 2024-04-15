@@ -567,7 +567,7 @@ To address this challenge, \projname{} delays termination when the program is
 \end{figure}
 
 \projname{} uses a per-CPU tristate flag to keep track the state that the
-    extension program is currently in(figure~\ref{fig:rex-termination}).
+    extension program is currently in (Figure~\ref{fig:rex-termination}).
 The states are: 1) executing programs' own code, 2) executing kernel helpers or
     panic handlers, and 3) termination requested.
 Every helper invocation changes the state from state 1) to state 2).
