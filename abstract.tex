@@ -29,9 +29,9 @@ However, eBPF is constrained by its static verifier, which provides
 % The restriction of eBPF on loops or complex logic often leads to splitting the
 %   program into small pieces, or limitation in functionality when logic cannot
 %   be expressed.
-Developers are often forced to heavily massage their code -- splitting the
-  program into small pieces and implementing cumbersome conditions, in order
-  to pass the verifier.
+% Developers are often forced to heavily massage their code -- splitting the
+%   program into small pieces and implementing cumbersome conditions, in order
+%   to pass the verifier.
 % On the other hand, static verification is fundamentally limited in verifying
 %   certain safety properties -- a verified eBPF program can still overflow
 %   the kernel stack or hold the CPU for a long time.

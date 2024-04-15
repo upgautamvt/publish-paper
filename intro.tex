@@ -1,85 +1,177 @@
 \section{Introduction}
 
-Kernel extension is a powerful technique to improve performance and
-    observability in operating systems.
-eBPF is the current way of safely extending the Linux kernel.
-The major use cases of eBPF today include networking, tracing and
-    observability, and security.
-eBPF has also attracted attention from the research community as
-    a tool to speed up applications by reducing kernel crossings \cite{BMC,Electrode,bpfxrp}.
+Extending the operating system (OS) functionality at runtime is an
+    important and powerful capability.
+Modern systems provide such capability in the form of kernel extensions and
+    loadable kernel modules.
+Comparing to loadable kernel modules, kernel extensions generally provides such
+    capability in a safer and more light-weighted way.
+Kernel extension has since become an essential component of modern OSs and
+    been increasingly leveraged in the domains of kernel tracing, file systems,
+    networking, and security.
 
-A main attractor of eBPF is its use of static verification to ensure extension safety.
-This allows eBPF programs to be deployed in production to understand system performance,
-    as well providing a programmable way to extend the kernel.
-However, the use of a static verifier places unnecessary constraints on the expressiveness
-    of extension programs and also makes them harder to develop and use.
-eBPF projects contain a large number of workaround fixes to bypass the verifier and
-    complexities that arise from the gap between the programmer, compiler, and verifier.
+% Kernel extension is a powerful technique to improve performance and
+%     observability in operating systems.
+% eBPF is the current way of safely extending the Linux kernel.
+Extended Berkeley Packet Filter (eBPF) is the de-facto kernel extension
+    mechanism in the Linux kernel and is deployed extensively in various
+    parts of the kernel.
+% The major use cases of eBPF today include networking, tracing and
+%     observability, and security.
+% eBPF has also attracted attention from the research community as
+%     a tool to speed up applications by reducing kernel crossings \cite{BMC,Electrode,bpfxrp}.
+The core value proposition of eBPF is its promise of safety.
+This promise makes eBPF superior to loadable kernel modules, which are
+    generally implemented in unsafe C code.
+The safety promise of eBPF is provided by its in-kernel verifier:
+when the program is loaded into the kernel, verifier employs a form of symbolic
+    execution on the program bytecode and checks against a list of safety
+    properties, including memory safety, safe kernel resource management, and
+    program termination.
+Programs the verifier deems unsafe would be denied from loading.
 
-In this paper we present a novel extension system for the Linux kernel called \projname{}.
-\projname{} uses a combination of the Rust compiler and dynamic mechanisms
-    to ensure safety properties about kernel extensions.
-At the same time, the use of Rust closes the gap between the programmer and verifier,
-    as well as alleviates the expressiveness and usability challenges associated with
-    the verifier.
+% A main attractor of eBPF is its use of static verification to ensure extension safety.
+% This allows eBPF programs to be deployed in production to understand system performance,
+%     as well providing a programmable way to extend the kernel.
+However, the use of a static verifier places unnecessary constraints on the
+    expressiveness of extension programs and also makes them harder to develop
+    and use.
+eBPF projects often contain a large number of workaround fixes to bypass the
+    verifier.
+Developers have to heavily massage their code - splitting the program
+    into small pieces and implementing cumbersome conditions, in order to
+    make the code accepted.
+Cilium~\cite{cilium} has to use hand-written eBPF bytecode in order to
+    workaround the verification checks.
+The BMC~\cite{BMC} program is forced to be split into seven
+    programs, where idealy only two programs are needed, and needs to
+    incorporate additional condition checks that is irrelevant to safety and
+    correctness.
 
-We use our system to reimplement the BPF Memcached Cache~\cite{BMC} and achieve
-    comparable performance to the eBPF implementation, while avoiding the
-    usability challenges of eBPF.
+% and complexities that arise from the gap between the programmer, compiler, and verifier.
+
+The core of this usability problem is a huge gap between the programming
+    language and eBPF verifier.
+eBPF programs are often implemented in a high-level language like C or Rust,
+    and compiled into eBPF bytecode.
+When writing eBPF programs, developers directly interact with the high-level
+    language and generally keep themselves aligned to the safety requirements
+    of the language.
+This is, unfortunately, not enough for eBPF programming, as the code deemed
+    safe by the compiler may not be safe from the verifier's perspective.
+For example, statically unbounded loops are generally not regarded as a problem
+    in high-level languages but will be rejected by the verifier because it
+    cannot reason about the termination guarrantee of programs.
+One must also know about the requirements of the eBPF verifier well in order to
+    avoid the hidden traps verifier rejection.
+
+% In this paper we present a novel extension system for the Linux kernel called \projname{}.
+% \projname{} uses a combination of the Rust compiler and dynamic mechanisms
+%     to ensure safety properties about kernel extensions.
+% At the same time, the use of Rust closes the gap between the programmer and verifier,
+%     as well as alleviates the expressiveness and usability challenges associated with
+%     the verifier.
+
+In this paper, we make the observation that both the enhanced usability for
+    developers and the needed safety properties for the kernel can be achieved
+    at the same time via a safe language.
+Under such a model, safety properties from programming language and its
+    compiler replace that of the in-kernel verifier.
+This allows elimination of the verifier, which effectively closes the gap
+    between itself and the programming language.
+Developers of the extension programs only need to spend effort on fitting the
+    their code in the safety requirements of the language.
+
+We present a new, Rust-based kernel extension framework: \projname{}.
+\projname{} allows developers to implement kernel extension programs in safe
+    Rust, and use them in the place of eBPF programs.
+\projname{} exploits the safety promise of Rust and combines it with
+    light-weighted runtime safety checks to ensure the programs can execute
+    safely in the kernel.
+Hoisting safety checks from the verifier into the compiler closes the current
+    gap existing in Linux eBPF that is the root of its usability problem.
+
+\projname{} transforms the promises of Rust into safety guarrantees of
+    extension programs by implementing a kernel programming interface the
+    facilitates memory safety, type safety, and proper kernel resource
+    management.
+At the same time, through its light-weight runtime safety mechanism,
+    \projname{} can also handle runtime stack unwinding and resource cleanup
+    upon Rust panics, as well as extension programs that uses a excessive
+    amount of kernel stack or executes for a potentially long time.
+
+% We use our system to reimplement the BPF Memcached Cache~\cite{BMC} and achieve
+%     comparable performance to the eBPF implementation, while avoiding the
+%     usability challenges of eBPF.
+
+We evaluate \projname{} on both its usability and performance.
+We show that the enhanced usability of \projname{}, together with the rich
+    builtin functionalty from Rust, is able to solve most of the usability
+    issues we found from our motivational study and greatly simplify extension
+    programs.
+We implement BPF Memcached Cache (BMC)~\cite{BMC}, a complex and
+    performance-critical eBPF program representing a real world use case, in
+    \projname{}, and demonstrate that the enhanced usability of \projname{}
+    does not come at a cost of performance.
+\projname{}-BMC is able to achieve a throughput of 1.111M Memcached requests
+    per second, which is slightly higher than that of eBPF at 1.106M requests
+    per second.
 
 \hubertus{I think you should talk about loadable kernel modules and eBPF, one being fully integrated in the kernel address space, while eBPF is running in a verified sandbox with limited access to kernel internals. modules are typically used to implement device drivers for peripherals and filesystems, while eBPF program extend the kernel by attaching to well defined hook points.}
-
-\begin{itemize}
-    \item eBPF is the de-facto way of doing kernel extension in Linux
-    \item Used in different domains
-    \item
-        \begin{itemize}
-            \item networking, tracing, security
-            \item also embraced by research community (BMC, XRP, Electrode)
-        \end{itemize}
-    \item Core value argument: verification for safety
-    \item Problem: current static verification scheme (i.e. the verifier)
-        places unnecessary constraints on expressiveness on extension programs
-        \begin{itemize}
-            \item BMC has a subsection discussing verification workarounds
-            \item We had an unpleasant experience in porting BMC (though this
-                is more like the new compiler does not play well with the
-                verifier for some old code)
-            \item Overhead argument in BMC (sending data through map vs
-                function arguments)
-            \item Certain program constructs are not possible
-            \item Some more evidence/example needed
-        \end{itemize}
-    \item Another point to include: for certain safety properties static
-        verification is fundamentally limited even in current eBPF
-        \begin{itemize}
-            \item From Roop's experiment: there is not a way for verifier to
-                figure out statically how much stack will be used when bpf2bpf
-                calls and tail calls are mixed due to the indirect nature of
-                tail calls. If the stack is 8k (e.g. on 32-bit platforms) the
-                verifier cannot protect the stack.
-            \item Related to our argument on runtime mechanism
-        \end{itemize}
-    \item Our solution: we should use a more expressive language for kernel
-        extensions and move away from the verifier. The language should:
-        \begin{itemize}
-            \item be more expressive (e.g. Turing complete)
-            \item support equivalent safety properties as the verifier (the
-                hotos table)
-                \begin{itemize}
-                    \item memory safety
-                    \item control-flow safety
-                    \item type safety
-                    \item safe resource management
-                    \item program termination
-                    \item kernel stack overflow protection
-                \end{itemize}
-            \item Rust
-                \begin{itemize}
-                    \item a widely used high-level programming language, also
-                        embraced by Linux (Rust for Linux)
-                    \item happens to have most of these properties out-of-box,
-                        therefore we choose to build upon Rust
-                \end{itemize}
-        \end{itemize}
-\end{itemize}
+\jinghao{I put the kernel modules into the picture, but I mostly feel that the
+    safety promise and the light-weight nature of kernel extensions over
+    loadable kernel modules are of interest here.}
+% \begin{itemize}
+%     \item eBPF is the de-facto way of doing kernel extension in Linux
+%     \item Used in different domains
+%     \item
+%         \begin{itemize}
+%             \item networking, tracing, security
+%             \item also embraced by research community (BMC, XRP, Electrode)
+%         \end{itemize}
+%     \item Core value argument: verification for safety
+%     \item Problem: current static verification scheme (i.e. the verifier)
+%         places unnecessary constraints on expressiveness on extension programs
+%         \begin{itemize}
+%             \item BMC has a subsection discussing verification workarounds
+%             \item We had an unpleasant experience in porting BMC (though this
+%                 is more like the new compiler does not play well with the
+%                 verifier for some old code)
+%             \item Overhead argument in BMC (sending data through map vs
+%                 function arguments)
+%             \item Certain program constructs are not possible
+%             \item Some more evidence/example needed
+%         \end{itemize}
+%     \item Another point to include: for certain safety properties static
+%         verification is fundamentally limited even in current eBPF
+%         \begin{itemize}
+%             \item From Roop's experiment: there is not a way for verifier to
+%                 figure out statically how much stack will be used when bpf2bpf
+%                 calls and tail calls are mixed due to the indirect nature of
+%                 tail calls. If the stack is 8k (e.g. on 32-bit platforms) the
+%                 verifier cannot protect the stack.
+%             \item Related to our argument on runtime mechanism
+%         \end{itemize}
+%     \item Our solution: we should use a more expressive language for kernel
+%         extensions and move away from the verifier. The language should:
+%         \begin{itemize}
+%             \item be more expressive (e.g. Turing complete)
+%             \item support equivalent safety properties as the verifier (the
+%                 hotos table)
+%                 \begin{itemize}
+%                     \item memory safety
+%                     \item control-flow safety
+%                     \item type safety
+%                     \item safe resource management
+%                     \item program termination
+%                     \item kernel stack overflow protection
+%                 \end{itemize}
+%             \item Rust
+%                 \begin{itemize}
+%                     \item a widely used high-level programming language, also
+%                         embraced by Linux (Rust for Linux)
+%                     \item happens to have most of these properties out-of-box,
+%                         therefore we choose to build upon Rust
+%                 \end{itemize}
+%         \end{itemize}
+% \end{itemize}
