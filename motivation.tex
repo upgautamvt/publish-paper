@@ -14,18 +14,21 @@ When a program fails to compile, the developer will get a message with
     the contract with the programming language.
 If, however, a program fails to pass the verifier it is harder for the programmer
     to understand why the program failed and how to fix it.
-\mvle{not clear why it is hard for the programmer to understand verification failure messages.
-Is it because what is being verified is not the same program being written and not the
-same semantics being checked at the higher-level language?}
+This is due to the fact that the compiler and verifier do not pass information
+    about program safety to each other.
+%\mvle{not clear why it is hard for the programmer to understand verification failure messages.
+%Is it because what is being verified is not the same program being written and not the
+%same semantics being checked at the higher-level language?}
 In order to quantify the impact of this gap,
     we analyzed commit messages from popular eBPF projects to see how programmers fix
     eBPF programs that fail to verify.
 From the commit messages, we created a set of categories of fixes.
-In the rest of this section we will describe our methodology and categorization, walk through some illustrative examples, and describe the key high level takeaways which are that the programmer gap as described exists, and that it makes the eBPF system less usable.
-\milo{Reword this last sentence}
+In the rest of this section we will describe our methodology and categorization, walk through some illustrative examples, and describe the key high level takeaways.
+We find that the programmer gap as described exists, and that it makes the eBPF system less usable through the need for unintuitive programmer workarounds.
+%\milo{Reword this last sentence}
 
 %Additionally, we describe two fundamental reasons for the programmer gap.
-\milo{succinctly say them here.}
+%\milo{succinctly say them here.}
 
 
 
@@ -66,8 +69,8 @@ In the rest of this section we will describe our methodology and categorization,
 %We categorize the solutions that programmers need to implement in order to pass the verifier to get a clearer picture of the usability challenges that the current eBPF system has.
 
 \subsection{Methodology}
-To collect data, we searched through the git commit logs of Cilium, Aya-rs, and
-    Katran \mvle{(need references for each project)}, which are mature, widely-used eBPF projects, for instances of
+To collect data, we searched through the git commit logs of Cilium~\cite{cilium}, Aya-rs~\cite{aya-rs}, and
+    Katran~\cite{katran}, which are mature, widely-used eBPF projects, for instances of
     keywords: "error", "reject", "rejects", "issue", and "verifier."
 For each commit log that matched, we manually inspected and classified the commit.
 In total, we collected 216 commit messages containing the above keywords, of which we decided that 73 of them were actually about verifier complaints.
@@ -111,7 +114,7 @@ Some categories were clear to see and are well documented in the literature (i.e
         % moved to #3 Add a specific implementation of a helping function & 2 \\
         \bottomrule
     \end{tabular}
-    \caption{Table of common verifier problems. \mvle{we should rename these categories. These don't sound like verifier problems but actions done to overcome verfier issues.}}
+    \caption{Table of common verifier fixes} %\mvle{we should rename these categories. These don't sound like verifier problems but actions done to overcome verfier issues.} \milo{These were meant to be fixes not problems, but the table title was a hold-over from before}}
     \label{fig:commit-table}
 \end{table}
 
@@ -143,7 +146,7 @@ The classes of solution employed are different ways that developers use to make 
 %    previous paragraph)}
 
 \subsection{Category Representative Examples}
-To better explain our categorization, we now walk through some representative examples for the most important categories.
+To better explain our categorization, we now walk through some representative examples for each category.
 
 \subsubsection{Change Source Code to Fix LLVM Codegen}
 \label{motivation:llvm-codegen}
@@ -160,17 +163,17 @@ Then in the next line we see that R6 has type `inv' which is a scalar value, and
 
 %The \texttt{data} field is
 The LLVM compiler thought that the \texttt{data} fields were 32-bit values as 
-    a result of the information hiding techique that
+    a result of the information hiding technique that
     eBPF employs.
-The kernel exports a context interface to the extension program with only
-    the fields that program may need, and at verification time all accesses to
+The kernel exports a context interface to extension programs with only
+    the fields that they may need, and at verification time all accesses to
     these fields are rewritten by the verifier to the actual kernel-internal
     data structure.
 Since the \texttt{data} field is defined as a 32-bit integer in the dummy
     interface the kernel exports, the compiler, which does not see the
     subsequent rewriting and kernel-internal definition, treats it as a real
     32-bit integer and performs code generation, even though \texttt{data} is
-    supposely a 64-bit pointer.
+    actually a 64-bit pointer.
 
 The solution was to implement the access through inline assembly code shown in Figure~\ref{fig:inline-asm}.
 This prevents LLVM from generating 32-bit assignments as an optimization because it must leave the assembly as it is.
@@ -183,7 +186,8 @@ This then allows the verifier to track that the register still contains a packet
 
 This workaround allows the eBPF program to pass the verifier.
 It is clear that this exposes usability issues of the verifier.
-The LLVM compiler is unaware of the verifier's needs, and the programmer must know low level detail about the eBPF system and LLVM bytecode generation in order to realize this.
+The LLVM compiler is unaware of what the verifier checks and what the verifier does to extension programs.
+Programmers must then know low level details about the eBPF system and LLVM bytecode generation in order to fix verifier issues for safe programs.
 
 Another change that was implemented was to mark certain variables as \texttt{volatile}
 to keep LLVM from performing other kinds of optimizations that would cause the program to be rejected by the verifier.
@@ -214,7 +218,7 @@ We identified two main techniques for restructuring programs:
 \noindent\textbf{Splitting eBPF Programs}:
 A well documented technique to decrease overall eBPF program complexity is to use eBPF tail calls to split programs into several smaller subprograms that can be verified independently.
 The idea behind the split is that if each individual piece is verified to be safe, then the verifier itself would have verified the entire program if it could check enough instructions.
-Prior works like BPF Memcahced Cache (BMC)~\cite{BMC} and Electrode~\cite{Electrode} utilize this technique in order to pass the verifier.
+Prior works like BPF Memcached Cache (BMC)~\cite{BMC} and Electrode~\cite{Electrode} utilize this technique in order to pass the verifier.
 BMC is split into seven different eBPF programs, and Electrode is split into six different eBPF programs.
 Both of these projects use around 500 lines of C code to program the eBPF programs.
 
@@ -223,7 +227,6 @@ In this case, we are left with program fragments which do not represent an indiv
 This compounds with the fact that the compiler has no notion of these limits.
 The compiler would happily compile both the split versions of code and the unified version of code, however only one set of code would pass the verifier.
 Additionally, it is not necessarily trivial to split these functions because all safety checks need to be made in each subfunction in order for them to be independently verified.
-We will now explore BMC as a representative example of this class of fix.
 %\jinghao{Why is this the case?
 %I think there are 2 cases, one is that the developers can just
 %split the program at the logical boundaries so that they actually get the
@@ -232,30 +235,61 @@ We will now explore BMC as a representative example of this class of fix.
 %arguing for and we have already seen in the case of BMC where they have to
 %keep a ``parse context'' across tail calls.}
 
-BMC~\cite{BMC} is an in-kernel cache for Memcached
+
+% The BMC has many places where for loops are nested into different ifs.
+% And, due to the limitations of C, many operations do not have built-in functions
+%     that can be used directly.
+
+\noindent\textbf{Refactoring Code}:
+Code may also need to be refactored to reduce its complexity, or to work around limitations in the verifier.
+
+We found an example of refactoring for complexity in a Cilium commit that involved changing how the code handled IPv4 fragmentation.
+As seen in Figure~\ref{fig:refactor-fix} the code used an \texttt{\#ifdef} with a default behavior.
+If \texttt{ENABLE\_IPV4\_FRAGMENTS} was enabled, then the code would be compiled with both the \texttt{ipv4\_handle\_fragment} call and the \texttt{ctx\_load\_bytes} call.
+%If the packet was a fragment, then the \texttt{ipv4\_handle\_fragment} call would have completed the loading of bytes, and the additional call would have been redundent.
+%\jinghao{I recommend removing this last sentence. It makes it sounds like a
+%good thing that developers have to remove some redundent code.}
+
+This design however, caused the program to fail verification as it went over the maximum checked instruction limit.
+The code was then refactored to change the \texttt{\#ifdef} and the underlying function.
+This change does not change the safety properties of the program, but it was still needed to verify the program.
+
+\begin{figure}
+    \lstinputlisting[language=myC]{./snippets/s2-refactor.c}
+    \caption{Refactor for Code Complexity}
+    \label{fig:refactor-fix}
+\end{figure}
+
+
+We found an example of refactoring for expressiveness in the Cilium project.
+To implement segment routing header support, they needed to include code to jump back to the beginning of the IP header parsing code while already inside the IP header parsing code.
+This would cause a back-edge which gets incorrectly labeled as an infinite loop and the verifier fails.
+Figure~\ref{fig:switch} shows their solution which involved creating a switch statement inside of a switch statement which then jumps ahead to the other code in the outer switch statement.
+The changes required increase the complexity of the source code without changing the semantics.
+
+\begin{figure}
+    \lstinputlisting[language=myC]{./snippets/s2-switch.c}
+    \caption{Refactor for Expressiveness}
+    \label{fig:switch}
+\end{figure}
+
+\noindent\textbf{BMC Example}:
+We now see how both of these fixes were needed in implementing BMC~\cite{BMC}, an in-kernel cache for Memcached
     based on eBPF.
 BMC stores recently queried key-value pairs in an eBPF map (i.e. the cache) to
     accelerate the processing of GET requests to the Memcached server.
-If a GET is hit in the cache, BMC can directly draft a reply to send back the
-    queried value without going through the expensive Linux network stack.
 % The map that serves as the cache is managed by eBPF programs, which implements
 %     the lookup and update logics.impl:ctx-converison
 
 Implementation-wise, BMC is much more complicated
-    comparing to other common eBPF use cases.
+    compared to other common eBPF use cases.
 In order to pass the verifier, it has to be split into seven
     eBPF programs that use eBPF tail calls to transfer control to each other to
     reduce verification complexity.
 Similar problem also presents when processing the incoming packet data, where
     the authors had to bound data size to simplify verification of loops.
 
-%In the initial design of \projname{}-BMC, the underlying assumption was that
-%    we should follow the logic of BMC.
-%But the cache invalidation function Figure~\ref{fig:bmc-code} in BMC employs
-%    \texttt{for} loops with cumbersome condition checks, and is further
-%    complicated by the nesting of multiple \texttt{if} statements.
-
-A representative example where BMC suffers from the verifier is its cache
+BMC suffers from verifier complexity in its cache
     invalidation function, shown in Figure~\ref{fig:bmc-code}.
 The cache invalidation code employs \texttt{for} loops with cumbersome
     condition checks, and is further complicated by the nesting of multiple
@@ -279,13 +313,18 @@ Such pattern is prevalent in the BMC implementation, which is
 %    notably observed within the functions \texttt{bmc\_hash\_keys\_main}
 %    and \texttt{bmc\_write\_reply\_main}.
     notably also present in the code that hashes the Memcached key and drafts the reply.
+%In the initial design of \projname{}-BMC, the underlying assumption was that
+%    we should follow the logic of BMC.
+%But the cache invalidation function Figure~\ref{fig:bmc-code} in BMC employs
+%    \texttt{for} loops with cumbersome condition checks, and is further
+%    complicated by the nesting of multiple \texttt{if} statements.
 
 Another example that the verifier creates programming burden for BMC is its
     instruction count limit.
 % Due to the instruction count limitation imposed on each eBPF program,
 %     BMC has to adapt a strategy of creating seven seperated eBPF
 %     programs to function as a Memcached cache layer.
-Due this limit, BMC has to be split into seven seperated eBPF program, while
+Due this limit, BMC has to be split into seven separated eBPF program, while
     ideally only two are required (at egress and ingress hooks).
 Unfortunately, this leaves program fragments that are not self-contained and
     BMC sometimes has to pass computation states across tail calls.
@@ -297,48 +336,10 @@ This is because tail-called eBPF programs can only take the regular eBPF
     context as arguments.
 The computation state is stored before the tail call and reloaded afterwards.
 
-\jinghao{Currently just dumping text -- needs to incorporate BMC here somehow}
-
-% The BMC has many places where for loops are nested into different ifs.
-% And, due to the limitations of C, many operations do not have built-in functions
-%     that can be used directly.
-
 \begin{figure}[t]
     \lstinputlisting[language=myC]{./snippets/s6-bmc.c}
     \caption{Packet parsing code for cache invalidation in BMC}
     \label{fig:bmc-code}
-\end{figure}
-
-\noindent\textbf{Refactoring Code}:
-Code may also need to be refactored to reduce its complexity, or to work around limitations in the verifier.
-One example of refactoring for complexity found in a Cilium commit involved changing how the code handled IPv4 fragmentation.
-As seen in Figure~\ref{fig:refactor-fix} the code used an \texttt{\#ifdef} with a default behavior.
-If \texttt{ENABLE\_IPV4\_FRAGMENTS} was enabled, then the code would be compiled with both the \texttt{ipv4\_handle\_fragment} call and the \texttt{ctx\_load\_bytes} call.
-%If the packet was a fragment, then the \texttt{ipv4\_handle\_fragment} call would have completed the loading of bytes, and the additional call would have been redundent.
-%\jinghao{I recommend removing this last sentence. It makes it sounds like a
-%good thing that developers have to remove some redundent code.}
-
-This design however, caused the program to fail verification as it went over the maximum checked instruction limit.
-The code was then refactored to change the \texttt{\#ifdef} and the underlying function.
-This change does not change the safety properties of the program, but it was still needed to verify the program.
-
-\begin{figure}
-    \lstinputlisting[language=myC]{./snippets/s2-refactor.c}
-    \caption{Refactor for Code Complexity}
-    \label{fig:refactor-fix}
-\end{figure}
-
-
-We found an example of refactoring for expressiveness in the Cilium project.
-To implement segment routing header support, they needed to include code to jump to IP header parsing code while already inside the IP header parsing code.
-This would cause a back-edge which gets incorrectly labeled as an infinite loop and the verifier fails.
-Figure~\ref{fig:switch} shows their solution which involved creating a switch statement inside of a switch statement which then jumps ahead to the other code in the outer switch statement.
-The changes required increase the complexity of the source code without changing the semantics.
-
-\begin{figure}
-    \lstinputlisting[language=myC]{./snippets/s2-switch.c}
-    \caption{Refactor for Expressiveness}
-    \label{fig:switch}
 \end{figure}
 
 \subsubsection{Add specific code to pass verifier}
@@ -506,14 +507,14 @@ Having to make this change harms the usability of eBPF.
 \subsection{Analysis Takeaways}
 From our analysis, we believe that there are serious usability challenges to the
     existing eBPF system that stem from the gap between programmer and verifier.
-The categories of verifier issue that we found are direct indicators of this problem.
+The categories of verifier workaround that we found are direct indicators of this problem.
 eBPF programmers have to implement arcane fixes and change their mental model of
-    programming to meet the constraints of the verifier without any assistance.
+    programming to meet the constraints of the verifier without any compiler assistance.
 If an eBPF program fails to verify there is not always a clear reason why that was the case, e.g.,
 it could be that a programmer's source code was completely safe, but LLVM generated code that the verifier did not understand.
 To programmers, a successful compilation should indicate something about the success of their code, but in the eBPF system that is not the case.
 This gap is fundamental to the eBPF system.
-A system that closes this gap by moving the verifier and the compiler closer together may be able to avoid the challenges discovered in the existing eBPF system, while still maintaing many of the safety properties.
+A system that closes this gap by moving the verifier and the compiler closer together may be able to avoid the challenges discovered in the existing eBPF system, while still ensuring program safety.
 % \jinghao{would be interesting to talk about saving/reloading computation
 %     context across tail calls}
 
