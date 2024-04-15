@@ -37,10 +37,10 @@ However, eBPF is constrained by its static verifier, which provides
 %   the kernel stack or hold the CPU for a long time.
 % At the core of the problem is a large gap between the programmer and the
 %   verifier.
-The core problem is a large \jinghao{semantic?} gap between the programming language and the
-  verifier.
+In this paper, we identify the root of the problem to be a large gap between
+  the programming language and the verifier.
 
-In this paper, we make the observation that the enhanced usability and the
+We make the observation that the enhanced usability and the
   needed safety properties can be obtained from a safe language,
 %   effectively eliminating the verifier and closing the gap.
   effectively closing the gap by eliminating the extra layer of verification.
@@ -51,9 +51,12 @@ We design and implement a new Rust-based kernel extension abstraction:
 Our Rust layer provides a \textit{safe} program interface for kernel extension
   programs and runtime safety mechanisms that ensures type/memory safety,
   resource management, and exception handling.
-We implement several state of the art eBPF programs with comparable
-  performance to JITed eBPF programs, demonstrating there is no need to split
-  programs or limit their processing data size.
-\jinghao{Shall we mention BMC specifically here?}
+% We implement several state of the art eBPF programs with comparable
+%   performance to JITed eBPF programs, demonstrating there is no need to split
+%   programs or limit their processing data size.
+We evaluate \projname{} both on its usability and performance, demonstrating
+  that \projname{} is able to address most of the usability issues from current
+  Linux eBPF without sacrificing performance.
+% \jinghao{Shall we mention BMC specifically here?}
 
 \end{abstract}
