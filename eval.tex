@@ -229,11 +229,11 @@ The checks required previously by the verifier, including these for offset and
     features of Rust, such as the \texttt{slice} that implements bound checks
     (L2 and L10).
 The check on \texttt{BMC\_MAX\_PACKET\_LENGTH}, serving as a constraint to minimize the number
-    of jump instructions to circumvente the eBPF verifier, is no longer necessary
+    of jump instructions to circumvent the eBPF verifier, is no longer necessary
     in the Rust code.
 At the same time, specific checks such as the ones for identified SET commands
     and the \texttt{key\_found} state can implemented with built-in
-    functions and closures in a easy and clean way (L4-L6 and L11).
+    functions and closures in an easy and clean way (L4-L6 and L11).
 % \jinghao{ We should also talk about \texttt{BMC\_MAX\_PACKET\_LENGTH}.}
 % Meanwhile, other checks, including those for offset and \texttt{data\_end} limits, are being enforced via
 %     the inherent language features of Rust, such as the \texttt{slice} that implements bound checks.
@@ -425,7 +425,7 @@ A compiled \projname{} program generally has four \texttt{LOAD} segments that
     map to relocations, text, read-only data, and the GOT.
 %     map to different sections (e.g. text, rodata, etc).
 
-In this experiment, we compare the memeory required for both
+In this experiment, we compare the memory required for both
     \projname{} programs and their equivalent eBPF programs.
 We select 3 simple eBPF programs from the sample eBPF programs shipped with the
     kernel -- the trace point program \texttt{syscall\_tp}, the kprobe program
