@@ -495,7 +495,7 @@ All the function does it call a kernel helper function, which then introduces a 
 In some cases doing so significantly decreases the complexity of eBPF programs.
 In one commit, doing so reduced the number of instructions checked from 62,569 to 49,669.
 This is more significant on older kernel versions which have a much smaller upper limit to the number of instructions the eBPF verifier could check.
-\jinghao{It now seems to me that this belongs to \S~\ref{motivation:restructure}.}
+\jinghao{It now seems to me that this belongs to \S\ref{motivation:restructure}.}
 \milo{I don't think so because the state pruning knowledge is more obscure, so needing to use it is harder than refactoring. i.e. A dev may know that their loops can't be too complicated, but they may not know anything about verifier internal state pruning? It also does not really change the structure (this is intentional)}
 
 With no assistance, programmers are required to have knowledge of low-level

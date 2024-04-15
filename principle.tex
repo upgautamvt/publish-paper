@@ -1,7 +1,7 @@
-\section{Principle and ideas}
+\section{Safety in \projname{}}
 \label{sec:principle}
 
-\jinghao{\S~\ref{sec:principle}: How to make it safe}
+% \jinghao{\S\ref{sec:principle}: How to make it safe}
 
 %\begin{itemize}
 %    \item goal: expressive and safe (more expressive than and at least as safe
@@ -54,7 +54,7 @@ The goal of \projname{} is to provide enhanced usuability for kernel extensions,
     while ensuring the safety properties of the extension programs.
 In particular, we aim to make \projname{} more usable than eBPF and at least
     as safe as eBPF.
-As discussed in \S~\ref{sec:motivation}, the current problem of usability of
+As discussed in \S\ref{sec:motivation}, the current problem of usability of
     eBPF is the large semantic gap between the programer, who works on
     high-level languages, and the verifier, which operates on compiled bytecode.
 % Our insight is that both the needed expressiveness and safety can be obtained
@@ -201,7 +201,7 @@ Pointers referring to a memory region without a static size are generally
     dynamic-sized buffers.
 The \projname{} kernel crate abstracts such pointers into a Rust \textit{slice}
     with dynamic size.
-Rust slice provides runtime bounds checks (\S~\ref{principle:eh}), which allows
+Rust slice provides runtime bounds checks (\S\ref{principle:eh}), which allows
     the check to happen automatically without explicit handling from the
     extension program.
 
@@ -328,7 +328,7 @@ The dispatcher function takes the same duty of executing the extension program
     as the existing eBPF dispatcher.
 It saves the old stack and framepointer of the current context into per-CPU
     memory before switching to the dedicated program stack
-    (\S~\ref{principle:stack}) and calling into the program.
+    (\S\ref{principle:stack}) and calling into the program.
 If the program executes normally without triggering an exception, it would just
     return to the dispatcher, which switches the stack back.
 Under exceptional cases where a Rust panic is triggered, the panic handler will
@@ -413,7 +413,7 @@ Then, before each function call in the extension program, the \projname{}
 \texttt{\_\_rex\_check\_stack} is provided by the kernel crate and checks the
     current stack depth of the program, if the stack usage exceeds the
     threshold, it will trigger a Rust panic and effectively terminate the
-    program (\S~\ref{principle:eh}).
+    program (\S\ref{principle:eh}).
 
 In order for the \texttt{\_\_rex\_check\_stack} function to have more control
     on the stack usage of the program and also support programs with slightly
@@ -421,7 +421,7 @@ In order for the \texttt{\_\_rex\_check\_stack} function to have more control
     extension programs.
 The dedicated kernel stacks are allocated and virtually mapped per-CPU during
     kernel boot time with the same size as the kernel IRQ and task stacks.
-In the dispatcher function (\S~\ref{principle:eh}), before calling into the
+In the dispatcher function (\S\ref{principle:eh}), before calling into the
     \projname{} program, the stack and frame pointers of the current context
     are saved.
 The dispatcher function then sets the stack and frame pointer registers to the
@@ -497,7 +497,7 @@ A program that goes over the instruction limit will be rejected by the
     verifier, no matter whether the program will actually run for a long time.
 This techinque creates many false-positives and is one of the main sources of
     the usability issues in eBPF, as discussed in
-    \S~\ref{motivation:restructure}.
+    \S\ref{motivation:restructure}.
 Previous works~\cite{ebpf-termination,untenableVerification} have also
     demonstrated creation of long-running eBPF programs without going over the
     verification limits, further wakening the runtime guarrantee from the

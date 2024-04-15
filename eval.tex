@@ -97,7 +97,7 @@ At the same time, the rich builtin functionalty from a high-level language also
 We now revisit the verifier issues identified in our motivational study and
     demonstrate how \projname{} may solve them.
 
-% \S~\ref{motivation:llvm-codegen} shows cases where fixes to codegen is needed
+% \S\ref{motivation:llvm-codegen} shows cases where fixes to codegen is needed
 % root cause: real data field is hidden from user, and the field in user struct
 %   is 32 bit -- the compiler/code-generator does not know about the real data
 %   which is suppose to be a pointer.
@@ -105,14 +105,14 @@ We now revisit the verifier issues identified in our motivational study and
 % With Rex there is no verification and everything (in this case, the data
 %   layout) is known to the compiler.
 % Talk a bit about how we handle this thing.
-\para{LLVM codegen fix.} \S~\ref{motivation:llvm-codegen} demonstrates that
+\para{LLVM codegen fix.} \S\ref{motivation:llvm-codegen} demonstrates that
     user intervention is needed to fix problems where sometimes the code generated
     by the compiler is not taken by the verifier.
 The core of the problem, is the extra verification layer of eBPF, which creates
     a gap between the developer/compiler and the verifier.
 The field being accessed is only visible to the compiler as a 32-bit integer,
     rather than its underlying 64-bit pointer type hiden by the verification
-    step (\S~\ref{motivation:llvm-codegen}).
+    step (\S\ref{motivation:llvm-codegen}).
 
 This problem will not manifest in \projname{}.
 This is because \projname{} implements information hidding without the use of
@@ -139,10 +139,10 @@ None of these problems would appear in \projname{}, which does not
     have a verifier and does not limit the size of extension programs.
 
 % We demonstrate the benefit of \projname{} through our case study on BMC
-%     (\S~\ref{eval:bmc-case-study}).
+%     (\S\ref{eval:bmc-case-study}).
 
 \para{Add specific code to pass verifier.}
-\S~\ref{motivation:add-code} demonstrates cases where the verifier loses track
+\S\ref{motivation:add-code} demonstrates cases where the verifier loses track
     of certain verification states and therefore forces developers to
     choose a specific implementation, even though other rejected
     implementations are totally safe and sound.
@@ -164,7 +164,7 @@ The Rust compiler can also provide hints about what went wrong that are much
 
 \para{Implement kernel-version-specific fixes.}
 Some of the verification issues in eBPF are due unfixed verifier bugs in
-    previous kernel versions, as shown in \S~\ref{motivation:kernel-version},
+    previous kernel versions, as shown in \S\ref{motivation:kernel-version},
     where the developers have to address the bug by changing their
     implementation.
 The same problem also presents in \projname{}, because the Rust compiler is not
@@ -181,7 +181,7 @@ This would allow developers to potentially use a more recent Rust compiler versi
 \para{Add Pruning Checkpoints.}
 Because the verifier has an upper limit on the number of instructions it can
     process, some eBPF projects use ``pruning checkpoints'' to reduce
-    verification complexities for programs (\S~\ref{motivation:checkpoint}).
+    verification complexities for programs (\S\ref{motivation:checkpoint}).
 This will not be a problem of \projname{}, because switching to Rust means that
     programs now can have arbitrary length, and the compiler can still process
     them.
@@ -223,7 +223,7 @@ In \projname{}-BMC, the builtin language features and libraries of Rust not
     only allows the revmoval of verifier-specific checks but also faciliates
     cleaner and simpler code.
 The equivalent cache invalidation code in \projname{} to
-    \S~\ref{motivation:restructure} is shown in Figure~\ref{fig:rust-code}.
+    \S\ref{motivation:restructure} is shown in Figure~\ref{fig:rust-code}.
 The checks required previously by the verifier, including these for offset and
     \texttt{data\_end} limits, are now being enforced via the inherent language
     features of Rust, such as the \texttt{slice} that implements bound checks
@@ -386,7 +386,7 @@ In this section, we implement microbenchmark cases for the potential
     present in pessimistic cases, they have neglegible impact in real world use
     cases.
 All experiments are performed on the same machine that acts as the server in
-    \projname{}-BMC experiments (\S~\ref{eval:macro}).
+    \projname{}-BMC experiments (\S\ref{eval:macro}).
 
 \subsubsection{Static memory footprint}
 \label{eval:mem-footprint}
@@ -430,7 +430,7 @@ In this experiment, we compare the memory required for both
 We select 3 simple eBPF programs from the sample eBPF programs shipped with the
     kernel -- the trace point program \texttt{syscall\_tp}, the kprobe program
     \texttt{tracex5} and the perf event program \texttt{trace\_event}.
-We also include the BMC program (\S~\ref{eval:bmc-case-study}) in the
+We also include the BMC program (\S\ref{eval:bmc-case-study}) in the
     experiment because it represents an example of a more complicated use case.
 We implement a \projname{} version for each of the programs.
 
