@@ -106,7 +106,7 @@ We now revisit the verifier issues identified in our motivational study and
 %   layout) is known to the compiler.
 % Talk a bit about how we handle this thing.
 \para{LLVM codegen fix.} \S~\ref{motivation:llvm-codegen} demonstrates that
-    user intervention needed to fix problems where sometimes the code generated
+    user intervention is needed to fix problems where sometimes the code generated
     by the compiler is not taken by the verifier.
 The core of the problem, is the extra verification layer of eBPF, which creates
     a gap between the developer/compiler and the verifier.
@@ -133,10 +133,8 @@ Our study reveals that many of times the instruction limit on the verifier
 One of the representative example of these cases is the BMC project~\cite{BMC},
     where the authors have to not only write seven small programs but also
     bound the data size through the use of cumbersome loop conditions.
-
 eBPF programs may have to be refactored for expressiveness reasons as well,
     as the verifier limits what eBPF programs can do.
-
 None of these problems would appear in \projname{}, which does not
     have a verifier and does not limit the size of extension programs.
 
@@ -144,9 +142,9 @@ None of these problems would appear in \projname{}, which does not
 %     (\S~\ref{eval:bmc-case-study}).
 
 \para{Add specific code to pass verifier.}
-\S~\ref{motivation:add-code} demonstrates cases where the verifier loses tracks
-    to certain verification states and therefore forces developers to
-    choice a specific implementation, even though other rejected
+\S~\ref{motivation:add-code} demonstrates cases where the verifier loses track
+    of certain verification states and therefore forces developers to
+    choose a specific implementation, even though other rejected
     implementations are totally safe and sound.
 
 For \projname{}, the Rust compiler may reject a program if the program does not
@@ -165,7 +163,7 @@ The Rust compiler can also provide hints about what went wrong that are much
     I'm trying to make an argument on that we do not have the gap.}
 
 \para{Implement kernel-version-specific fixes.}
-Some of the verification issues in eBPF is due unfixed verifier bugs in
+Some of the verification issues in eBPF are due unfixed verifier bugs in
     previous kernel versions, as shown in \S~\ref{motivation:kernel-version},
     where the developers have to address the bug by changing their
     implementation.
@@ -176,8 +174,8 @@ Programmers will have to address the unfixed compiler bugs in older versions
 
 On the other hand, the version of Rust used is decoupled from the kernel version, while
     with eBPF the verifier version is tied to the kernel version.
-This would allow developers to use a more recent Rust compiler version with
-    bug fixes on older kernels.
+This would allow developers to potentially use a more recent Rust compiler version with
+    bug fixes on older kernels instead of porting fixes to previous versions.
 \milo{Is there some benefit here due to having Rust compiler version decoupled from kernel version?}
 
 \para{Add Pruning Checkpoints.}
