@@ -11,6 +11,35 @@
 %         file (e.g. KCFI)
 % \end{itemize}
 
+\para{Incorporating Verification} In this paper, we have argued to
+close the language/verifier gap by leveraging inherent safety
+properties of the Rust language.  However, this approach defers the
+checking of some safety properties to runtime (e.g., termination,
+integer errors, etc.).  It may be possible to reduce the number of
+possible runtime errors by incorporating Rust-based verification
+tooling to, for example, ensure freedom from
+panics~\cite{verus,paniccheck,rvt}.  However, we note that push-button
+techniques such as PanicCheck~\cite{paniccheck} are likely to
+reintroduce the language/verifier gap.  Instead, we suspect that using
+frameworks that combine proofs and programming~\cite{coq,dafny}, such
+as Verus~\cite{verus} (for Rust) may allow \projname{} to reduce
+runtime errors without the language/verifier gap.
+
+\para{Unprivileged Extensions} In our safety model, extensions are
+installed by a privileged user; they are trusted but may be buggy.
+There have been proposals to support untrusted, unprivileged
+extensions for various use cases, including system call
+filtering~\cite{seccomp-ebpf}.  Though these scenarios will also
+suffer from the language/verifier gap, it is not clear that a
+language-based approach like \projname{} is an adequate solution in
+this case, since the Rust compiler and toolchain form a larger trusted
+computing base than an in-kernel verifier to provide safety
+properties.  We note that, even with the in-kernel verifier,
+guaranteeing safety remains a
+challenge~\cite{hotos-untenable,ebpf-stack,ebpf-runtime}.
+
+
+
 \para{Unsafe Rust code in \projname{} kernel crate:}
 % Unsafe code is required to interact with low-level kernel code/data and be
 %   compliant with certain kernel ABIs
@@ -117,5 +146,4 @@ We expect \projname{} to be more effecient in static memory footprint under
 \para{Program nestings}
 \jinghao{TODO}
 
-\para{Stronger notion of safety}
-\jinghao{TODO}
+
