@@ -73,7 +73,7 @@
 % \end{itemize}
 
 \projname{} provides a new Linux extension framework that utilizes a safe
-    programming language rather than the verifier.
+    programming language rather than the verifier to provide safety.
 In this section, we evaluate the usability as well as performance guided by the
     following questions:
 \begin{enumerate}
@@ -81,7 +81,7 @@ In this section, we evaluate the usability as well as performance guided by the
         verifier problems?
     \item Does the enhanced usability come at a cost of performance, especially
         for real world performance-sensitive programs?
-    \item Are there other possible performance cost stemming from the design
+    \item Are there other possible performance costs stemming from the design
         choices?
 \end{enumerate}
 
@@ -107,8 +107,8 @@ We now revisit the verifier issues identified in our motivational study and
 % Talk a bit about how we handle this thing.
 \para{LLVM codegen fix.} \S\ref{motivation:llvm-codegen} demonstrates that
     user intervention is needed to fix problems where sometimes the code generated
-    by the compiler is not taken by the verifier.
-The core of the problem, is the extra verification layer of eBPF, which creates
+    by the compiler is not accepted by the verifier.
+The core of the problem is the extra verification layer of eBPF, which creates
     a gap between the developer/compiler and the verifier.
 The field being accessed is only visible to the compiler as a 32-bit integer,
     rather than its underlying 64-bit pointer type hiden by the verification
@@ -118,8 +118,8 @@ This problem will not manifest in \projname{}.
 This is because \projname{} implements information hidding without the use of
     the extra verification layer.
 Instead, \projname{} utilizes private fields of Rust structs to hide the unused
-    information and the kernel crate exposes the useful fields with the type
-    they are supposed to be used in extension programs.
+    information and the kernel crate exposes the useful fields with the
+    intended type to be used in extension programs.
 For example, the \texttt{data} field is exported to extension programs as a
     character data slice, since it points to the data content of a packet.
 In this way, all operations associated with these fields are visible to the
@@ -135,6 +135,7 @@ One of the representative example of these cases is the BMC project~\cite{BMC},
     bound the data size through the use of cumbersome loop conditions.
 eBPF programs may have to be refactored for expressiveness reasons as well,
     as the verifier limits what eBPF programs can do.
+
 None of these problems would appear in \projname{}, which does not
     have a verifier and does not limit the size of extension programs.
 
@@ -163,7 +164,7 @@ The Rust compiler can also provide hints about what went wrong that are much
     I'm trying to make an argument on that we do not have the gap.}
 
 \para{Implement kernel-version-specific fixes.}
-Some of the verification issues in eBPF are due unfixed verifier bugs in
+Some of the verification issues in eBPF are due to unfixed verifier bugs in
     previous kernel versions, as shown in \S\ref{motivation:kernel-version},
     where the developers have to address the bug by changing their
     implementation.
@@ -177,6 +178,7 @@ On the other hand, the version of Rust used is decoupled from the kernel version
 This would allow developers to potentially use a more recent Rust compiler version with
     bug fixes on older kernels instead of porting fixes to previous versions.
 \milo{Is there some benefit here due to having Rust compiler version decoupled from kernel version?}
+\jinghao{I think that's pretty much what we have in \S\ref{sec:discussion}}.
 
 \para{Add Pruning Checkpoints.}
 Because the verifier has an upper limit on the number of instructions it can
@@ -212,8 +214,8 @@ This will not be a problem of \projname{}, because switching to Rust means that
 % 1. eliminates verifier-related checks
 % 2. simplifies the code bc of Rust core library
 
-We re-implement BMC\cite{BMC} in \projname{} (\projname{}-BMC) to demonstrate the
-    enhanced usability.
+We re-implement BMC~\cite{BMC} in \projname{} (\projname{}-BMC) to demonstrate
+    the enhanced usability, and later, its performance (\S\ref{eval:macro}).
 The resulting program is not a direct translation from the original eBPF
     version in C, rather, we implement the same high-level logic but with
     slight deviations from BMC where the enhanced usability and expressiveness
@@ -221,17 +223,18 @@ The resulting program is not a direct translation from the original eBPF
 
 % \projname{}-BMC is able to avoid the complexities caused by the verifier.
 In \projname{}-BMC, the builtin language features and libraries of Rust not
-    only allows the revmoval of verifier-specific checks but also faciliates
+    only allows the removal of verifier-specific checks but also faciliates
     cleaner and simpler code.
-The equivalent cache invalidation code in \projname{} to
-    \S\ref{motivation:restructure} is shown in Figure~\ref{fig:rust-code}.
+The comparison between the cache invalidation code in eBPF
+    (\S\ref{motivation:restructure}) and \projname{} is shown in
+    Figure~\ref{fig:rust-code}.
 The checks required previously by the verifier, including these for offset and
     \texttt{data\_end} limits, are now being enforced via the inherent language
     features of Rust, such as the \texttt{slice} that implements bound checks
     (L2 and L10).
-The check on \texttt{BMC\_MAX\_PACKET\_LENGTH}, serving as a constraint to minimize the number
-    of jump instructions to circumvent the eBPF verifier, is no longer necessary
-    in the Rust code.
+The check on \texttt{BMC\_MAX\_PACKET\_LENGTH}, serving as a constraint to
+    minimize the number of jump instructions to circumvent the eBPF verifier,
+    is no longer necessary in the Rust code.
 At the same time, specific checks such as the ones for identified SET commands
     and the \texttt{key\_found} state can implemented with built-in
     functions and closures in an easy and clean way (L4-L6 and L11).
@@ -278,7 +281,7 @@ At the same time, specific checks such as the ones for identified SET commands
 At the same time, due to the absence of the program size limit in \projname{}-BMC,
 % Therefore, program doesn't have to put the metadata in a seperated map,
 %     which significantly obscure the logic of program and may undermine the performance.
-    developers no longer have to put the computation state in a seperated map
+    developers no longer have to put the computation state in a separated map
     in order for them to be persistent across tail calls, which leads
     to clearer and potentially more efficient programs.
 
@@ -380,14 +383,14 @@ It is also clear that \projname{} is able achieve a better usability while
     eBPF-BMC under all CPU/thread setups.
 
 \subsection{Microbenchmark evaluation}
-Our design choices of \projname{} could introduce additional performance
-    overheads on.
+Though not visible in \projname{}-BMC, several of our design choices of
+    \projname{} could introduce additional performance overheads.
 In this section, we implement microbenchmark cases for the potential
     performance overheads and demonstrate that although overheads may be
     present in pessimistic cases, they have neglegible impact in real world use
     cases.
 All experiments are performed on the same machine that acts as the server in
-    \projname{}-BMC experiments (\S\ref{eval:macro}).
+    the \projname{}-BMC experiments (\S\ref{eval:macro}).
 
 \subsubsection{Static memory footprint}
 \label{eval:mem-footprint}
@@ -405,9 +408,9 @@ All experiments are performed on the same machine that acts as the server in
 % Rust have code sections and other sections, e.g. data and GOT sections
 We evaluate how the in-kernel memory footprint of \projname{} programs
     compares to that of eBPF programs.
-We found that \projname{} incurs fair amount of overhead on memory footprint
-    when there are only few programs defined and compiled together, due to how
-    program code and data are organized in the executable.
+We found that \projname{} incurs a fair amount of overhead on the memory
+    footprint when there are only few programs defined and compiled together,
+    due to how program code and data are organized in the executable.
 However, with more programs compiled in the same executable, the overhead
     becomes amortized and the overall memory footprint becomes more efficient.
 
@@ -504,20 +507,21 @@ The \projname{}-BMC has all the code packed in the text section, and therefore
     \label{tab:startup-cleanup}
 \end{table}
 
-We then show that the support for a dedicated program stack in \projname{} does
+We next show that the support for a dedicated program stack in \projname{} does
     not incur performance overhead on program startup and exit, with the
-    runtime of an empty \projname{} staying within 1ns the runtime of an empty
-    eBPF program.
+    runtime of an empty \projname{} staying within 1ns of the runtime of an
+    empty eBPF program.
 
-\projname{}'s usage of a dedicated stack for execution and the implementation
-    of exception handling support may incur additional overhead during program
-    startup and shutdown.
-This design requires saving of the stack and frame pointer and replacing them
+% \projname{}'s usage of a dedicated stack for execution and the implementation
+%     of exception handling support may incur additional overhead during program
+%     startup and shutdown.
+\projname{}'s design of a dedicated program stack requires saving of the stack
+    and frame pointer and replacing them
     with the top address of the dedicated stack before starting the program,
     and restoring the saved stack and frame pointer after the program exits.
-The manipulation of the stack pointers adds to six more memory instructions to
+The manipulation of the stack pointers adds six more memory instructions to
     the dispatcher function of the \projname{} programs.
-In this experiment we measure the overhead of these stack pointer operations.
+In this experiment, we measure the overhead of these stack pointer operations.
 We implement an empty kprobe extension program -- both in eBPF and in
     \projname{} -- and measure their wall runtime including the program
     dispatcher function.
@@ -525,7 +529,7 @@ The result is shown in Table~\ref{tab:startup-cleanup}.
 On average, the difference of runtime of invoking an empty \projname{} and eBPF
     program is less than 1ns.
 This shows the additional stack pointer manipulations needed by \projname{}
-    contributes negligible overhead.
+    contribute negligible overhead.
 
 \subsubsection{Helper function overhead}
 \label{eval:inline}
@@ -560,9 +564,11 @@ We evaluate the impact of missed opportunities due to the elimination of
 The map lookup helpers represent a pessimistic case for \projname{} because
     \projname{} not only misses the load time optimization but also needs more
     wrapping code than other helpers due to its map implementation.
-We found that the missed optimization slows down the helper call by around 30ns
-    and the safe wrapping code adds another 45ns, which is acceptable for a
+In general, our experiments shows acceptable helper performance for this
     pessimistic case.
+% We found that the missed optimization slows down the helper call by around 30ns
+%     and the safe wrapping code adds another 45ns, which is acceptable for a
+%     pessimistic case.
 
 The eBPF verifier can inline the \texttt{bpf\_map\_lookup\_elem}
     helper function by replacing the call into equivalent eBPF instructions.
@@ -576,7 +582,7 @@ We measure the runtime of eBPF map lookups under three
 Our test program for both eBPF and \projname{} is a tracepoint program that
     uses the \texttt{bpf\_ktime\_get\_ns} helper to measure the runtime of
     a \texttt{bpf\_map\_lookup\_elem} call.
-The \texttt{bpf\_map\_lookup\_elem} invocation is by defualt inlined by the
+The \texttt{bpf\_map\_lookup\_elem} invocation is by default inlined by the
     eBPF verifier when possible.
 The setup of eBPF without inlining is achieved by removing the inlining logic
     from the eBPF verifier.
@@ -604,10 +610,10 @@ An additional slowdown of 30-40 nanoseconds is present for map lookups in
 This is because of the wrapping code around the kernel
     \texttt{bpf\_map\_lookup\_elem} that allows \projname{} programs to invoke
     it using safe Rust objects.
-For most of other helper functions, neither do they support such load time
-    optimizations in eBPF nor do they require the amount of wrapping code as in
-    map helpers, therefore, they would have a performance similar to that of
-    eBPF's.
+Most other helper functions neither support such load time
+    optimizations in eBPF nor require the amount of wrapping code as in
+    map helpers.
+Therefore, they would have a performance similar to that of eBPF's.
 
 \jinghao{TODO: Rust atomics discussions, possibly with something from the nomicon}
 
@@ -650,8 +656,8 @@ Our result shows that the cleanup mechanism on non-exceptional execution adds
 %     \label{tab:cleanup-overhead}
 % \end{table}
 The safe cleanup mechanism employed by \projname{} requires recording the allocated
-    resource at runtime, which, compared to eBPF or Itanium C++ ABI, adds extra
-    runtime overhead.
+    resource at runtime, which, compared to eBPF or the Itanium C++ ABI, adds
+    extra runtime overhead.
 We therefore evaluate the runtime overhead from \projname{}'s cleanup
     mechanism.
 For this miscrobenchmark, we choose to use a program that acquires and then
@@ -678,9 +684,9 @@ As shown in Table~\ref{tab:startup-cleanup}, the runtime difference between
 \end{figure}
 % We then evaluate how much overhead the runtime stack check have on the
 %     performance of \projname{} programs.
-The stack instrumentation is added before each
+Stack instrumentation is added before each
     function call in the \projname{} program if the program contains indirect
-    or recursive function calls that prevents the compiler from calculating the
+    or recursive function calls that prevent the compiler from calculating the
     stack usage statically.
 In this experiment, we implement a recursive program in both
     eBPF and \projname{}.
