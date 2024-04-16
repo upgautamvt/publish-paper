@@ -189,13 +189,14 @@ This will not be a problem of \projname{}, because switching to Rust means that
 \subsubsection{Case study: \projname{}-BMC}
 \label{eval:bmc-case-study}
 
-\begin{figure}[t]
-    \lstinputlisting[language=Rust]{./snippets/s6-rust.rs}
+\begin{figure*}[t]
+    \includegraphics[width=1.0\linewidth]{figs/rusty-bmc.pdf}
+    \centering
     \vspace{-10pt}
     \caption{Packet parsing code for cache invalidation in \projname{}}
     \vspace{-10pt}
     \label{fig:rust-code}
-\end{figure}
+\end{figure*}
 
 % \jinghao{Add some sentence saying this is a prevalent pattern in BMC?}
 % \jinghao{Can we make the claim that this complexity is for passing the
