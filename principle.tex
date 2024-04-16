@@ -89,16 +89,16 @@ Here, we list the important safety properties
     \item Program termination
 \end{itemize}
 
-\jinghao{The runtime exception handling is not necessarily an independent one,
-it actually covers some of the type safety (arrays and slices does runtime
-checks that may trigger exceptions)}
+% \jinghao{The runtime exception handling is not necessarily an independent one,
+% it actually covers some of the type safety (arrays and slices does runtime
+% checks that may trigger exceptions)}
 
 We now discuss how the safety properties from Rust can be applied to the
     context of kernel extensions to provide a safe programming interface.
 % While the use of Rust automatically provides expressiveness (as it is
 %     Turing-complete), it does not supply the safety out-of-box, and the use of
 %     Rust, especially unsafe Rust, can still exhibit undesired behaviors.
-% We require all extension programs to be implemented \textit{only} in safe Rust.
+% We require all extension programs to be implemented \emph{only} in safe Rust.
 % On top of that, we discuss how the safety properties from Rust can be leveraged
 %     and applied to the context of kernel extensions to provide a safe
 %     programming interface.
@@ -113,33 +113,34 @@ We now discuss how the safety properties from Rust can be applied to the
 \end{figure}
 
 Figure~\ref{fig:rex-overview} provides an overview of the \projname{} framework.
-The extension program is written strictly in safe Rust.
-\hubertus{you have to describe what "safe Rust" vs. "regular Rust" is, you should also highlight the popularity of Rust "https://medium.com/@codilime/the-future-of-rust-characteristics-popularity-and-challenges-7de4db5ebd67"}
+The extension program is written strictly in \emph{safe} Rust.
 The program interacts with the kernel through a program interface implemented
-    by the \projname{} ``kernel crate''.
-The kernel crate contains unsafe Rust code due to its role as a bridge between
-    the safe extension program and the unsafe but trusted kernel code.
+    by the \projname{} \emph{kernel crate}.
+The kernel crate contains a mixture of unsafe Rust code due to its role as a
+    bridge between the extension program which is expected to be checked for
+    safety and the unsafe but trusted kernel code.
 It also provides a custom Rust panic handler to support panic-based runtime
     safety checks in Rust.
-The program links with the ``kernel crate'' at compile time and runs in a
+The program links with the kernel crate at compile time and runs in a
     light-weight runtime environment implemented in the kernel, which provides
     program termination and stack unwinding support.
 
 \subsection{Memory safety}
 \label{principle:memsafety}
-Generally, kernel extensions cannot access kernel memory.
-However, there are frequenct cases that an extension program needs to work on a
-    shared buffer of data or a specific struct and exchange data the kernel.
+Generally, kernel extensions are not allowed to access kernel memory.
+However, there are frequent cases that an extension program needs to work on a
+    shared buffer of data or a specific struct, and exchange data with the
+    kernel.
 % These regions of memory are accessed by both the program via helper functions
 %     and the kernel.
 % Rust provides powerful primitives that help to validate the memory is
 %     accessed correctly.
 There are usually two common patterns on how the memory is accessed, differing
-    in the owner of the memory:
+    by the owner of the memory:
 \begin{enumerate}
-    \item The memory is owned by the extension program (e.g., on-stack buffers)
+    \item Memory owned by the extension program (e.g., an on-stack buffer)
         is sent to the kernel through the helper function interface.
-    \item The memory is owned by the kernel (e.g., in-kernel structs) and is
+    \item Memory owned by the kernel (e.g., an in-kernel struct) is
         accessed from the extension program. % direct packet access, map data ptr
 \end{enumerate}
 
@@ -147,8 +148,8 @@ In the first case, the extension program may allocate some memory on the stack
     and send it to the kernel for processing (e.g., asking kernel to fill a
     stack buffer with some data).
 An unsafe memory access, for example, an out-of-bounds write to the on-stack
-    buffer, could result in corruptions of stack data and possibly trigger a
-    kernel oops if the return address is overwritten to an non-presenting page.
+    buffer, could result in corruption of stack data and possibly trigger a
+    kernel crash if the return address is overwritten to an non-present page.
 
 For eBPF, the verifier validates the memory region with the size to make sure
     that both the kernel and the program do not make erroneous accesses.
@@ -159,25 +160,25 @@ The verifier, at program load time, checks to ensure that the size is exactly
 Then, at runtime, the kernel can operate on the buffer with the knowledge of
     its bounds, thereby avoid unsafe memory accesses.
 
-In \projname{}, the strict type system of Rust already protects program from
-    making an unsafe access.
+In \projname{}, the strict type system of Rust already protects the program
+    from making an unsafe access.
 \projname{} leverages the generic programming feature of Rust to ensure the
     size sent through the helper function interface is always valid.
 % In order to make sure that the size sent to the kernel is always correct, which
 %     is vital for the correctness of memory access from the kernel, we leverage
 %     the generic programming support of Rust.
-For the kernel helper function that falls to the category of taking in a
+For kernel helper functions that take in a
     program-supplied pointer and size, the \projname{} kernel crate creates an
-    adaptor interface that parametrize the type of the pointer as a generic
+    adaptor interface that parametrizes the type of the pointer as a generic
     type parameter.
 The interface queries the size of the generic type from the compiler
-    and invoke the kernel interface with this size as the argument.
+    and invokes the kernel interface with this size as the argument.
 Since Rust employs monomorphization~\cite{rustc-monomorphize}, the concrete
     type and its size is resolved at compile time, adding no runtime overhead.
-In this way, the size is guarranteed to match the type statically and the
+In this way, the size is guaranteed to match the type statically and the
     kernel will never make an out-of-bound access.
 This can work for not only the scalar types, but for array types as well: Rust
-    also supports ``const generics'' that allows a constant to be used as a
+    also supports ``const generics'' that allow a constant to be used as a
     generic parameter, which can be used to encode length of arrays.
 
 In the second case, the kernel may provide the user program a pointer to
@@ -186,20 +187,21 @@ In the second case, the kernel may provide the user program a pointer to
 The user programs must not make an out-of-bound memory access for this
     kernel-owned region of memory, as doing so risks corrupting kernel data.
 
-For accesses on pointers with a static size, e.g. map value pointers since maps
-    store the size of its value types, the verifier can independently verify
-    the validity of the check.
-For pointers with out a static size like packet data pointers, the verifier
+In eBPF, for accesses on pointers with a static size, e.g. map value pointers,
+    as maps store the size of its value types, the verifier can independently
+    verify the validity of the check.
+For pointers without a static size like packet data pointers, the verifier
     enforces user programs to explicitly check for memory
-    boundaries and to not make an out-of-bound access.
+    boundaries and to not make out-of-bound accesses.
 
-In \projname{}, the former case is handled through the Rust type system, as the
+In \projname{}, pointers with a static size are handled through the Rust type
+    system, as the
     kernel map interface of \projname{} encodes the key and value types through
     generics, and therefore forces the pointer to be a safe Rust reference of
     the particular type.
 Pointers referring to a memory region without a static size are generally
     dynamic-sized buffers.
-The \projname{} kernel crate abstracts such pointers into a Rust \textit{slice}
+The \projname{} kernel crate abstracts such pointers into a Rust \emph{slice}
     with dynamic size.
 Rust slice provides runtime bounds checks (\S\ref{principle:eh}), which allows
     the check to happen automatically without explicit handling from the
@@ -211,20 +213,20 @@ Kernel extensions may contain certain paradigms that are beyond the safe
 One challenge is to allow extension programs to safely reinterpret the stream
     of bytes into useful data.
 Such cases are notably found in networking use cases, where a program may need
-    to extract the ethernet header from the bytes buffer in the packet.
-Safety of these transformations are hard because they inevitablly involves
-    unsafe type casting.
+    to extract the Ethernet header from a byte buffer in the packet.
+Safety of these transformations is hard to reason about because they
+    inevitably involve unsafe type casting.
 % For example, a XDP program using direct packet access might need to extract
 %     the ethernet header information from the bytes in the packet.
 
 Currently, eBPF allows the program to freely interpret the packet data into
     other data types via pointer casting.
-The verifier checks the casting and ensures that 1. the program does not make a
-    pointer from scalar values and 2. the new type fits within the memory
+The verifier checks the casting and ensures that 1) the program does not make a
+    pointer from scalar values and 2) the new type fits within the memory
     boundaries.
 
 \projname{} agrees with the verifier that as long as the above two properties
-    holds, the reinterpret cast (dubbed ``transmute'' in Rust) is safe to
+    holds, the reinterpreting cast (dubbed ``transmute'' in Rust) is safe to
     perform.
 It therefore extends the type safety of Rust to cover such cases.
 % In the case of Rust, the reinterpret cast (dubbed ``transmute'' in Rust) is an
@@ -232,32 +234,32 @@ It therefore extends the type safety of Rust to cover such cases.
 %     pointers from scalar values.
 To allow extension programs to still safely reinterpret the bytes into useful
     data types, we first define a group of primitive scalar types that are
-    considered safe as target for casting.
-\projname{} requires target type of casting to be of either the safe types or a
-    structure type in which all the members are of the safe types.
+    considered safe as targets for casting.
+\projname{} requires the target type of casting to be of either the safe types
+    or a structure type in which all the members are of the safe types.
 The safe types are specified by implementing the \texttt{Rex::SafeTransmute}
-    trait, which is only implementable by .
+    trait, which is only implementable by code within the kernel crate.
 
-We use the ``proc-macro'' feature of Rust to enforce this constraint at compile
-    time.
+We use the \emph{proc-macro} feature of Rust to enforce this constraint at
+    compile time.
 Like conventional C macros, proc-macros performs transformation on the program,
     albeit on the abstract syntax tree level.
 Our proc-macro, when applied on a structure type, generates code that tries
     to treat each field of the structure as an instance of
-    \texttt{Rex::SafeTransmute} followed by the actual transmute operation to
-    perform the unsafe cast.
-If one of field in the structure does not implement \texttt{Rex::SafeTransmute},
-    the Rust compiler will issue a compile error.
+    \texttt{Rex::SafeTransmute} using Rust trait bounds, followed by the actual
+    transmute operation to perform the unsafe cast.
+If one of the fields in the structure does not implement
+    \texttt{Rex::SafeTransmute}, the Rust compiler will issue a compile error.
 At the same time, if the program tries to directly transmute the bytes into a
     structure without using the proc-macro, the compiler will also emit an
-    error because tranmute belongs to unsafe Rust, which we \projname{} as
-    forbidden in extension programs.
+    error because transmute belongs to unsafe Rust, which is forbidden in
+    \projname{} programs.
 Since proc-macro transformations happen after the linting of unsafe operations,
     the transmute code generated by the proc-macro will not be rejected and,
     therefore, allows programs to perform transmutes in a safe, and controlled
     way.
 
-\subsection{Safely manage resources}
+\subsection{Safe resource management}
 Executing in the kernel, extension programs must also acquire and release
     resources properly.
 Some kernel helper functions returns kernel resources that requires
@@ -267,6 +269,7 @@ Failing to do so will result in leakage of kernel resources such as reference
 % In eBPF, some kernel helper functions returns kernel resources that requires
 %     explicit release after use (e.g., reference counts of kernel objects,
 %     locks).
+
 In these situations, the eBPF verifier checks and ensures that the resource is
     released on all possible code paths to prevent leaking kernel resources.
 
@@ -274,29 +277,30 @@ In \projname{}, the resource-acquisition-is-initialization (RAII) pattern of
     Rust can be used to create an abstraction around kernel resources that
     extension programs need.
 For example, when the program obtains a spin lock from the kernel, our Rust
-    abstraction layer constructs and returns a lock guard.
+    abstraction layer constructs and returns a \emph{lock guard}.
 The lock guard implements the RAII semantics through the \texttt{drop} trait in
     Rust, which defines the operation to perform when an object is destroyed.
 In the case of lock guard, its \texttt{drop} handler releases the lock.
 The program does not need to explicitly release the lock or drop the lock
-    guard, instead, the compile inserts an implicit \texttt{drop} at the end of
-    the current scope. This effetively releases the lock when the lock guard
-    goes out of scope.
+    guard, instead, the compiler inserts an implicit \texttt{drop} at the end
+    of the current scope. This effectively releases the lock when the lock
+    guard goes out of scope.
 
 \subsection{Runtime exception handling}
 \label{principle:eh}
-While the compiler contributes a lot to the safety of Rust, many safety checks
-    happen at runtime in the form of exceptions (i.e., Rust panics).
-In userspace, Rust uses the Itanium exception handling ABI.
+While the compiler contributes a lot to the safety of Rust, unlike eBPF, many
+    safety checks happen at runtime in the form of exceptions (i.e., Rust
+    panics).
+In userspace, Rust uses the Itanium exception handling ABI~\cite{itanium-abi}.
 When an exception is triggered, the control flow is transferred to the Rust
     panic handler in its standard library, which in turn calls into the unwind
     library to perform stack unwinding and resource cleanups for each stack
     frame.
-However, the Itanium ABI is not suitable for kernel extensions, making
-    exception handling a challenge in extension programs:
+However, the Itanium ABI is complex and not suitable for kernel extensions,
+    making exception handling a challenge in \projname{} extension programs:
 \begin{itemize}
-    \item The Itanium ABI-based exception handling is too complicated, as the
-        userspace unwind libraries are not direcly usable.
+%     \item The Itanium ABI-based exception handling is too complicated, as the
+%         userspace unwind libraries are not direcly usable.
     \item Failures during unwinding, which are permissible in userspace, cannot
         be tolerated in kernel space, as incomplete cleanup means leaking
         kernel resources.
@@ -321,19 +325,22 @@ However, the Itanium ABI is not suitable for kernel extensions, making
 Our exception handling framework consists of two components: 1) graceful exit
     upon exceptions that resets the current context and 2) resource cleanup to
     ensure release of kernel resources like reference counts and locks.
+
+\para{Graceful exit:}
 To support a graceful exit from an exception, we implemented a small runtime
     (as shown in Figure~\ref{fig:eh-overview}) in the kernel that contains a
     program dispatcher, a panic handler, and a landingpad function.
 The dispatcher function takes the same duty of executing the extension program
     as the existing eBPF dispatcher.
-It saves the old stack and framepointer of the current context into per-CPU
+It saves the old stack and frame pointer of the current context into per-CPU
     memory before switching to the dedicated program stack
     (\S\ref{principle:stack}) and calling into the program.
-If the program executes normally without triggering an exception, it would just
+If the program exits normally, without triggering an exception, it would
     return to the dispatcher, which switches the stack back.
 Under exceptional cases where a Rust panic is triggered, the panic handler will
-    transfer the control flow to the landingpad function to print debug
-    information related to the exception (e.g., exception message) to the
+    release the kernel resources currently allocated by the program, and
+    transfer the control flow to the in-kernel landingpad function to print
+    debug information related to the exception (e.g., exception message) to the
     kernel ring buffer.
 Then, the landingpad function redirects the control flow to a pre-defined label
     in the middle of the dispatcher function, where it restores the old value
@@ -343,26 +350,27 @@ This effectively unwinds the stack and resets the context as if the extension
 % We implement the program dispatcher function with panic handling in the kernel
 %     in 28 lines of x86 assembly code.
 
-For resource cleanup, light-weight mechanisms can be effective.
+\para{Resource cleanup:}
+Light-weight mechanisms can be effective for resource cleanup in \projname{}.
 Our insight for resource cleanup is that the extension program can only obtain
     resources by explicitly issuing helper function calls and therefore only
-    these resources needs to be released.
+    these resources need to be released.
 For these helper function calls, we record the allocated kernel resource during
-    execution into a per-CPU buffer.
-Currently, the size of the buffer can support a program to allocate at most 64
+    execution into a statically defined per-CPU buffer.
+Our current implementation can support at most 64
     instances of kernel resources during a single run.
-Upon a panic, the panic handler will take the responsiblility to correctly
+Upon a panic, the panic handler will take the responsibility to correctly
     handle the release of kernel resources, which involves traversing the
     per-CPU buffer and performs cleanup for each of the recorded resources.
 
-\jinghao{It seems that nesting should be put somewhere, due to the fact that
-these per-CPU tricks depend on no-nesting.}
+% \jinghao{It seems that nesting should be put somewhere, due to the fact that
+% these per-CPU tricks depend on no-nesting.}
 
 We implement the cleanup code as part of the \projname{} kernel crate, as it
-    is the core component resiponsible for coordinating helper function calls
+    is the core component responsible for coordinating helper function calls
     that obtain kernel resources.
-In this way, the resource cleanup is completely transparent to the extension
-    programs, adding no additional programming burden like the Itanium ABI.
+% In this way, the resource cleanup is completely transparent to the extension
+%     programs, adding no additional programming burden like the Itanium ABI.
 The other reason for implementing cleanup mechanism inside the kernel crate is
     safety, because such code maybe called upon panic, it must not trigger yet
     another Rust panic and causes panic handling to fail.
@@ -371,11 +379,11 @@ Therefore, \projname{} does not execute user-supplied \texttt{drop} handlers
     context and programs cannot allocate resources without helper function
     calls.
 
-\subsection{Safe guard the kernel stack}
+\subsection{Kernel stack safe guarding}
 \label{principle:stack}
-One unique safety requirement the kernel extension programs are facing is the
+One unique safety requirement that kernel extension programs face is the
     usage of kernel stack.
-Unlike the userspace programs, where the stack grows on demand and has a large
+Unlike userspace programs, where the stack grows on demand and has a large
     maximum size,
     the stack in kernel space is fix-sized (4 pages on x86-64) and limited.
 Overflowing the kernel stack may result in memory corruptions or kernel panics.
@@ -383,8 +391,8 @@ Overflowing the kernel stack may result in memory corruptions or kernel panics.
 The eBPF verifier handles stack safety by keeping track of the stack size
     throughout its symbolic execution process.
 However, the verification of the stack usage does not always yield the correct
-    result -- in particular, the verifier is shown to fail to track stack usage
-    across the indirect tail calls~\cite{ebpf-stackoverflow}.
+    result -- in particular, the verifier has been shown to fail to track stack
+    usage across indirect tail calls~\cite{ebpf-stackoverflow}.
 
 Our observation is that the enforcement of stack safety can be easily performed
     at compile time if the extension program does not have indirect or
@@ -439,12 +447,12 @@ Leaving extra spaces accomodates kernel helper functions and we believe two
 Second, since the stack usage of each function in the program is limited to
     1 page of stack, in the worse case the remaining stack space is at least
     one page when \texttt{\_\_rex\_check\_stack} triggers a Rust panic.
-This worse case guarrantee leaves enough space for the panic handling and stack
+This worse case guarantee leaves enough space for the panic handling and stack
     unwinding routines.
 Such a dynamic mechanism allows \projname{} to achieve better stack-safety than
     eBPF, which only relies on static verification.
 
-\subsection{Bound program runtimes}
+\subsection{Bounded program runtime}
 % A bounded program runtime is important for kernel safety
 %   - a potentially long running program can hold the CPU and cause kernel
 %     lockups
@@ -500,7 +508,7 @@ This techinque creates many false-positives and is one of the main sources of
     \S\ref{motivation:restructure}.
 Previous works~\cite{ebpf-termination,untenableVerification} have also
     demonstrated creation of long-running eBPF programs without going over the
-    verification limits, further wakening the runtime guarrantee from the
+    verification limits, further weakening the runtime guarrantee from the
     verifier.
 
 Given the usability issues and ineffectiveness associated with the static
@@ -538,7 +546,7 @@ One challenge involved in terminating a \projname{} program safely is that a
     \projname{}.
 To address this challenge, \projname{} defers termination when the program is
     running kernel helper functions, and does not attempt to terminate if the
-    program is in the panic handler, which already means graceful exit.
+    program is already in the panic handler on the exit path.
 % \begin{enumerate}
 %     \item A \projname{} program should never be terminated while executing a
 %         kernel helper function or the panic handler, as doing so disrupts
@@ -568,12 +576,12 @@ To address this challenge, \projname{} defers termination when the program is
 
 \projname{} uses a per-CPU tristate flag to keep track the state that the
     extension program is currently in (Figure~\ref{fig:rex-termination}).
-The states are: 1) executing programs' own code, 2) executing kernel helpers or
+The states are: 1) executing extension code, 2) executing kernel helpers or
     panic handlers, and 3) termination requested.
 Every helper invocation changes the state from state 1) to state 2).
 When excuting the timeout termination handler, if the flag is at state 2),
     which indicates the program is in a context that cannot be safely
-    terminated, the termination handler just modifies it to state 3) without
+    terminated, the termination handler modifies it to state 3) without
     setting the instruction pointer.
 On a helper function return, the flag is checked and if it is set to state 3),
     the panic handler is called to gracefully exit the program.
