@@ -212,7 +212,8 @@ We identified two main techniques for restructuring programs:
 
 \begin{enumerate}
     \item Split eBPF programs into smaller subprograms
-    \item General refactoring to reduce verifier complexity or bypass expressiveness limits
+    %\item General refactoring to reduce verifier complexity or bypass expressiveness limits
+    \item Refactor eBPF programs to reduce complexity or bypass expressiveness limits
 \end{enumerate}
 
 \noindent\textbf{Splitting eBPF Programs}:
@@ -241,9 +242,10 @@ Additionally, it is not necessarily trivial to split these functions because all
 %     that can be used directly.
 
 \noindent\textbf{Refactoring Code}:
+\mvle{isn't splitting code a form of refactoring?}
 Code may also need to be refactored to reduce its complexity, or to work around limitations in the verifier.
 
-We found an example of refactoring for complexity in a Cilium commit that involved changing how the code handled IPv4 fragmentation.
+An example of refactoring to reduce complexity is found in a Cilium commit that involved changing how the code handled IPv4 fragmentation.
 As seen in Figure~\ref{fig:refactor-fix} the code used an \texttt{\#ifdef} with a default behavior.
 If \texttt{ENABLE\_IPV4\_FRAGMENTS} was enabled, then the code would be compiled with both the \texttt{ipv4\_handle\_fragment} call and the \texttt{ctx\_load\_bytes} call.
 %If the packet was a fragment, then the \texttt{ipv4\_handle\_fragment} call would have completed the loading of bytes, and the additional call would have been redundent.
@@ -260,8 +262,9 @@ This change does not change the safety properties of the program, but it was sti
     \label{fig:refactor-fix}
 \end{figure}
 
-
-We found an example of refactoring for expressiveness in the Cilium project.
+Refactoring is also used by programmers to overcome limitations in the verifier to recognize safe code due to the way the program is specifically expressed.
+An example of such a case is found in the Cilium project.
+%We found an example of refactoring for expressiveness in the Cilium project.
 To implement segment routing header support, they needed to include code to jump back to the beginning of the IP header parsing code while already inside the IP header parsing code.
 This would cause a back-edge which gets incorrectly labeled as an infinite loop and the verifier fails.
 Figure~\ref{fig:switch} shows their solution which involved creating a switch statement inside of a switch statement which then jumps ahead to the other code in the outer switch statement.
@@ -274,7 +277,7 @@ The changes required increase the complexity of the source code without changing
 \end{figure}
 
 \noindent\textbf{BMC Example}:
-We now see how both of these fixes were needed in implementing BMC~\cite{BMC}, an in-kernel cache for Memcached
+We now show how both of these verifier fixes were needed in implementing BMC~\cite{BMC}, an in-kernel cache for Memcached
     based on eBPF.
 BMC stores recently queried key-value pairs in an eBPF map (i.e. the cache) to
     accelerate the processing of GET requests to the Memcached server.
@@ -289,7 +292,7 @@ In order to pass the verifier, it has to be split into seven
 Similar problem also presents when processing the incoming packet data, where
     the authors had to bound data size to simplify verification of loops.
 
-BMC suffers from verifier complexity in its cache
+BMC suffers from verifier complexity \mvle{verifier complexity or program complexity?} in its cache
     invalidation function, shown in Figure~\ref{fig:bmc-code}.
 The cache invalidation code employs \texttt{for} loops with cumbersome
     condition checks, and is further complicated by the nesting of multiple
@@ -321,6 +324,7 @@ Such pattern is prevalent in the BMC implementation, which is
 
 Another example that the verifier creates programming burden for BMC is its
     instruction count limit.
+\mvle{seems to repeat the "implementation-wise para}
 % Due to the instruction count limitation imposed on each eBPF program,
 %     BMC has to adapt a strategy of creating seven seperated eBPF
 %     programs to function as a Memcached cache layer.
@@ -335,6 +339,8 @@ BMC utilizes a map to pass current computation state across tail calls.
 This is because tail-called eBPF programs can only take the regular eBPF
     context as arguments.
 The computation state is stored before the tail call and reloaded afterwards.
+\mvle{I think this BMC section can be shortened significantly as it feels all the points
+have already been made and these are just additional examples.}
 
 \begin{figure}[t]
     \lstinputlisting[language=myC]{./snippets/s6-bmc.c}
@@ -393,7 +399,7 @@ As seen in Figure~\ref{fig:inline-fig} the \texttt{policy} variable could be use
 This caused the verifier to reject the program because it lost track of what the \texttt{policy} variable referred to.
 The developers fixed this by converting the policy check logic from a labeled block of code, to an inline function.
 The original structure of the code before was valid and correct, but it failed to pass the verifier.
-In response to this, the developers had to figure out a workaround to make their valid code pass.
+%In response to this, the developers had to figure out a workaround to make their valid code pass.
 
 %The developers made this code general across two cases by reassigning the value of policy depending on what the input was before jumping to the common code.
 %This pattern caused the verifier to lose information about what the variable \{policy{ was referring to.
@@ -425,6 +431,7 @@ The required fix is also counter-intuitive, which makes it less usable.
 \end{figure}
 
 \noindent\textbf{Implementing functions in a specific way}
+\mvle{can we summarize what is this "specific" way?}
 We found examples of this in both Cilium and Aya-rs.
 Both of these projects found uses for the functions \texttt{memset} and \texttt{memcpy}, but they had to provide their own versions of them.
 Aya-rs took the approach of writing a simple version shown in Figure~\ref{fig:aya-memcpy}, while Cilium uses a much more complicated approach, a portion of which is shown in Figure~\ref{fig:cilium-memcpy}.
@@ -486,7 +493,7 @@ As shown in Figure~\ref{fig:kernel-version-code} the fix needed was to move line
 \label{motivation:checkpoint}
 Another common fix that Cilium implemented was to introduce a pseudo-helper function \texttt{relax\_verifier}.
 The purpose of this helper is to provide a checkpoint for the verifier to use when doing state pruning.
-All the function does it call a kernel helper function, which then introduces a new state pruning checkpoint.
+All the function does is call a kernel helper function, which then introduces a new state pruning checkpoint.
 %\jinghao{Can we put more information here on this helper? It would be great
 %to show that the helper itself is complicated and developers have to insert it
 %at random places.}
