@@ -180,13 +180,13 @@ This would allow developers to potentially use a more recent Rust compiler versi
 \milo{Is there some benefit here due to having Rust compiler version decoupled from kernel version?}
 \jinghao{I think that's pretty much what we have in \S\ref{sec:discussion}}.
 
-\para{Add Pruning Checkpoints.}
-Because the verifier has an upper limit on the number of instructions it can
-    process, some eBPF projects use ``pruning checkpoints'' to reduce
-    verification complexities for programs (\S\ref{motivation:checkpoint}).
-This will not be a problem of \projname{}, because switching to Rust means that
-    programs now can have arbitrary length, and the compiler can still process
-    them.
+%\para{Add Pruning Checkpoints.}
+%Because the verifier has an upper limit on the number of instructions it can
+%    process, some eBPF projects use ``pruning checkpoints'' to reduce
+%    verification complexities for programs (\S\ref{motivation:checkpoint}).
+%This will not be a problem of \projname{}, because switching to Rust means that
+%    programs now can have arbitrary length, and the compiler can still process
+%    them.
 
 \subsubsection{Case study: \projname{}-BMC}
 \label{eval:bmc-case-study}

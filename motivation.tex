@@ -13,9 +13,8 @@ When a program fails to compile, the developer will get a message with
     hints about where they violated
     the contract with the programming language.
 If, however, a program fails to pass the verifier it is harder for the programmer
-    to understand why the program failed and how to fix it.
-This is due to the fact that the compiler and verifier do not pass information
-    about program safety to each other.
+    to understand why the program failed and how to fix it because the compiler 
+    and verifier do not pass information about program safety to each other.
 %\mvle{not clear why it is hard for the programmer to understand verification failure messages.
 %Is it because what is being verified is not the same program being written and not the
 %same semantics being checked at the higher-level language?}
@@ -82,9 +81,9 @@ In addition, we included two issues raised in the BMC~\cite{BMC} and Electrode~\
 %Cilium represents a representative set of challenges for large projects with complex eBPF code bases.
 %\jinghao{Is this paragraph necessary?}
 
-To classify the commits into categories, we read each of the commit messages and examined
-    their source code changes.
-Some categories were clear to see and are well documented in the literature (i.e. restructuring eBPF programs), while other categories were more subtle.
+%To classify the commits into categories, we read each of the commit messages and examined
+%    their source code changes.
+%Some categories were clear to see and are well documented in the literature (i.e. restructuring eBPF programs), while other categories were more subtle.
 %We created a qualitative analysis of many of the kinds of fixes that are used when writing and verifying eBPF programs.
 
 %The categorizations that we created are not necessarily mutually exclusive.
@@ -101,8 +100,8 @@ Some categories were clear to see and are well documented in the literature (i.e
         \toprule
         \textbf{Category} & \textbf{Count} \\
         \midrule
-        Change source code to fix LLVM codegen & 22 \\          % #1
         Restructure eBPF program for verifier & 27 \\           % #2
+        Change source code to fix LLVM codegen & 22 \\          % #1
         Add specific code to pass verifier & 17 \\              % #3
         Implement kernel-version-specific fixes & 9 \\          % #4
         %Add "pruning checkpoints" to reduce complexity & 7 \\   % #5
@@ -142,6 +141,8 @@ The first reason is when the program is unsafe, and the verifier correctly rejec
 The second reason is when a program is actually safe but the verifier is overly conservative
 in how it checks the program, and thus rejects it.
 When the verifier rejects a safe program, it is up to the developer to find a way to show the verifier that the program actually is safe.
+Each of the commits we categorized captured cases where the original code was safe, but the
+    verifier rejected it.
 The classes of solution employed are different ways that developers use to make sure the verifier accepts their programs.
 %\jinghao{This paragraph is reptitative given the preamable, I think what is
 %    missing here is an overview of the finding from our study (i.e. beef up the
@@ -149,66 +150,6 @@ The classes of solution employed are different ways that developers use to make 
 
 \subsection{Category Representative Examples}
 To better explain our categorization, we now walk through representative examples for each category.
-
-\subsubsection{Change Source Code to Fix LLVM Codegen}
-\label{motivation:llvm-codegen}
-The LLVM compiler translates eBPF programs written in high-level languages into eBPF bytecode.
-We found that in certain cases, LLVM would generate eBPF bytecode that would cause the program to fail verification.
-One issue found by Cilium was that LLVM may generate 32-bit assignments for
-    accessing \texttt{ctx->data}, \texttt{ctx->data\_end}, \texttt{ctx->data\_meta} fields.
-The LLVM compiler thought that the \texttt{data} fields were 32-bit values rather than 64-bit pointers as 
-    a result of the information hiding technique that
-    eBPF employs.
-The kernel exports a limited context interface to extension programs that is then rewritten in the verifier.
-%The kernel exports a context interface to extension programs with only
-%    the fields that they may need, and at verification time all accesses to
-%    these fields are rewritten by the verifier to the actual kernel-internal
-%    data structure.
-The \texttt{data} field is defined as a 32-bit integer in the exported interface and
-    the LLVM compiler does not know that this gets rewritten by the verifier into a 64-bit pointer.
-
-%Since the \texttt{data} field is defined as a 32-bit integer in the dummy
-%    interface the kernel exports, the compiler, which does not see the
-%    subsequent rewriting and kernel-internal definition, treats it as a real
-%    32-bit integer and performs code generation, even though \texttt{data} is
-%    actually a 64-bit pointer.
-
-%Figure~\ref{fig:inline-error} shows the verifier losing track of the packer pointer.
-%At instruction 3, R6 gets the value of R9, but this is a 32-bit assignment, as indicated by the `w' prefix.
-%Then in the next line we see that R6 has type `inv' which is a scalar value, and \emph{not} a pointer to a packet showing that the verifier lost track of the type of R6.
-
-%The \texttt{data} field is
-
-The solution was to implement the access through inline assembly code. %shown in Figure~\ref{fig:inline-asm}.
-This prevents LLVM from generating 32-bit assignments as an optimization because it cannot optimize the
-    inlined assembly.
-This then allows the verifier to track that the register still contains a packet pointer, and not a scalar value.
-%\jinghao{It is actually not too clear how this fixes the problem -- for
-%specifically how is the generated code different?}
-%\jinghao{can we be more specific on the BPF opcode (e.g., load/store) of the
-%    assignment as in Figure~\ref{fig:inline-asm}}
-
-Another change that was implemented was to mark certain variables as \texttt{volatile}
-to keep LLVM from performing other kinds of optimizations that would cause the program to be rejected by the verifier.
-
-These workarounds allow the eBPF program to pass the verifier.
-It is clear that they expose usability issues of the verifier.
-The LLVM compiler is unaware of what the verifier checks and what the verifier does to extension programs.
-Programmers must then know low level details about the eBPF system and LLVM bytecode generation in order to fix verifier issues for safe programs.
-
-
-%\begin{figure}
-%    \lstinputlisting[language=myBPF]{./snippets/s2-codegen-error.c}
-%    \caption{Verifier log for LLVM generated 32-bit assignment}
-%    \label{fig:inline-error}
-%\end{figure}
-
-%\begin{figure}
-%    \lstinputlisting[language=myC]{./snippets/s2-inline-asm.c}
-%    \caption{Inline asm to access fields}
-%    \label{fig:inline-asm}
-%\end{figure}
-
 
 \subsubsection{Restructure eBPF program for verifier}
 \label{motivation:restructure}
@@ -367,6 +308,67 @@ Fighting with the verifier made the implementation of BMC much more difficult th
     \label{fig:bmc-code}
 \end{figure}
 
+\subsubsection{Change Source Code to Fix LLVM Codegen}
+\label{motivation:llvm-codegen}
+The LLVM compiler translates eBPF programs written in high-level languages into eBPF bytecode.
+We found that in certain cases, LLVM would generate eBPF bytecode that would cause the program to fail verification.
+One issue found by Cilium was that LLVM may generate 32-bit assignments for
+    accessing \texttt{ctx->data}, \texttt{ctx->data\_end}, \texttt{ctx->data\_meta} fields.
+The LLVM compiler thought that the \texttt{data} fields were 32-bit values rather than 64-bit pointers as 
+    a result of the information hiding technique that
+    eBPF employs.
+The kernel exports a limited context interface to extension programs that is then rewritten in the verifier.
+%The kernel exports a context interface to extension programs with only
+%    the fields that they may need, and at verification time all accesses to
+%    these fields are rewritten by the verifier to the actual kernel-internal
+%    data structure.
+The \texttt{data} field is defined as a 32-bit integer in the exported interface and
+    the LLVM compiler does not know that this gets rewritten by the verifier into a 64-bit pointer.
+
+%Since the \texttt{data} field is defined as a 32-bit integer in the dummy
+%    interface the kernel exports, the compiler, which does not see the
+%    subsequent rewriting and kernel-internal definition, treats it as a real
+%    32-bit integer and performs code generation, even though \texttt{data} is
+%    actually a 64-bit pointer.
+
+%Figure~\ref{fig:inline-error} shows the verifier losing track of the packer pointer.
+%At instruction 3, R6 gets the value of R9, but this is a 32-bit assignment, as indicated by the `w' prefix.
+%Then in the next line we see that R6 has type `inv' which is a scalar value, and \emph{not} a pointer to a packet showing that the verifier lost track of the type of R6.
+
+%The \texttt{data} field is
+
+To fix the problem, Cilium implemented the access using inline assembly code. %shown in Figure~\ref{fig:inline-asm}.
+LLVM does not generate the problematic 32-bit assignments as an optimization because it cannot optimize the
+    inlined assembly.
+The verifier can then treat the register as a packet pointer, rather than a scalar.
+%\jinghao{It is actually not too clear how this fixes the problem -- for
+%specifically how is the generated code different?}
+%\jinghao{can we be more specific on the BPF opcode (e.g., load/store) of the
+%    assignment as in Figure~\ref{fig:inline-asm}}
+
+Other commits use the \texttt{volatile} to prevent LLVM from performing other optimizations
+    that cause the verifier to reject the program.
+
+These workarounds allow the eBPF program to pass the verifier.
+It is clear that they expose usability issues of the verifier.
+The LLVM compiler is unaware of what the verifier checks and what the verifier does to extension programs.
+Programmers must then know low level details about the eBPF system and LLVM bytecode generation in order to fix verifier issues for safe programs.
+
+
+%\begin{figure}
+%    \lstinputlisting[language=myBPF]{./snippets/s2-codegen-error.c}
+%    \caption{Verifier log for LLVM generated 32-bit assignment}
+%    \label{fig:inline-error}
+%\end{figure}
+
+%\begin{figure}
+%    \lstinputlisting[language=myC]{./snippets/s2-inline-asm.c}
+%    \caption{Inline asm to access fields}
+%    \label{fig:inline-asm}
+%\end{figure}
+
+
+
 \subsubsection{Add specific code to pass verifier}
 \label{motivation:add-code}
 Another common fix for verifier complaints involves adding specific code to please
@@ -413,8 +415,7 @@ It is not always clear what code needs to be made into a inlined function for th
 %    \label{fig:inline-fig}
 %\end{figure}
 
-We found an example of this in Cilium.
-Code that performed policy checks used goto statements to prevent code duplication.
+For example, in Cilium, code that performed policy checks used goto statements to prevent code duplication.
 As seen in Figure~\ref{fig:inline-fig} the \texttt{policy} variable could be used to refer to \texttt{policy} or \texttt{l4policy} before jumping to the checking logic.
 This caused the verifier to reject the program because it lost track of what the \texttt{policy} variable referred to.
 The developers fixed this by converting the policy check logic from a labeled block of code, to an inline function.
