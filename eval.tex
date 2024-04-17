@@ -117,9 +117,9 @@ The field being accessed is only visible to the compiler as a 32-bit integer,
 This problem will not manifest in \projname{}.
 This is because \projname{} implements information hidding without the use of
     the extra verification layer.
-Instead, \projname{} utilizes private fields of Rust structs to hide the unused
-    information and the kernel crate exposes the useful fields with the
-    intended type to be used in extension programs.
+Instead, \projname{} utilizes data encapsulation of Rust structs to hide the
+    unused information and the kernel crate exposes the useful fields with the
+    intended type to be used in extension programs (\S\ref{impl:kernel-crate}).
 For example, the \texttt{data} field is exported to extension programs as a
     character data slice, since it points to the data content of a packet.
 In this way, all operations associated with these fields are visible to the
@@ -528,10 +528,7 @@ We implement an empty kprobe extension program -- both in eBPF and in
     dispatcher function.
 The result is shown in Table~\ref{tab:startup-cleanup}.
 On average, the difference of runtime of invoking an empty \projname{} and eBPF
-    program is less than 1ns.
-This shows the additional stack pointer manipulations needed by \projname{}
-    contribute negligible overhead.
-
+    program is less than 1ns.Design and
 \subsubsection{Helper function overhead}
 \label{eval:inline}
 
