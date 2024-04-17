@@ -60,7 +60,8 @@ As discussed in \S\ref{sec:motivation}, the current problem of usability of
 % Our insight is that both the needed expressiveness and safety can be obtained
 %     from a safe programming language without the verifier.
 Our insight is that by using a safe, high-level language that directly
-    implements the required safety of the kernel, \mvle{thereby eliminating the need of a verifier?}, the semantic gap can be
+    implements the required safety of the kernel, thereby eliminating the need
+    of the verifier?, the semantic gap can be
 \mvle{not completely true tho since we need the runtime part for termination}
     closed.
 % Specifically, the language should have the following properties:
@@ -75,13 +76,31 @@ Our insight is that by using a safe, high-level language that directly
 % \end{itemize}
 
 \djw{background on Rust moves here}
+% Need to talk about:
+% - Language-based safety no undefined behavior in Rust.
+% - Safe/unsafe Rust.
+% - Popularity (also embraced by kernel)
 
-\projname{} uses Rust as the language for extension programs.
+\projname{} uses Rust as the safe language for extension programs.
+Rust is a system programming language that aims to provide
+    \emph{language-based} safety.
+Rust's safety model promises the free of \emph{undefined behaviors} in programs.
+The compiler both performs static analysis (e.g., lifetime and ownership
+    analysis) and inserts dynamic checks (e.g. array bounds checks) in
+    Rust programs to fulfill its safety promise.
+To facilitate low-level code that may be hard to fit in its safety model (e.g. FFI calls),
+    the language also provides \emph{unsafe} Rust, which is more permissive and
+    offloads some of the responsibility for ensuring safety from the compiler
+    to the programmer.
+The language-based safety of Rust under kernel contexts has been explored by
+    previous works~\cite{redleaf,theseus}, and is incorporated into the Linux
+    kernel.
+
 % This is because Rust happens to provide the desired properties -- its
 %     language-based safety can be leveraged for safe kernel extensions without a
 %     verifier.
-This is because Rust provides either the desired properties directly or
-    essential building blocks to ensure the safety properties.
+Rust provides either the desired properties directly or
+    essential building blocks to ensure the safety properties in \projname{}.
 Here, we list the important safety properties (\jinghao{may need to move to \S\ref{sec:background}})
 \begin{itemize}
     \item Memory safety
