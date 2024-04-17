@@ -100,9 +100,12 @@ extension: \djw{this needs to match the list in 4}
   interfaces, (e.g., helper functions).  This prevents kernel crashes
   through NULL pointer dereference or corruption of kernel data
   structures.
-\item {\bf Type Safety:} When invoking kernel interfaces, the
-  extension must supply arguments of the appropriate type.  This helps
-  avoid kernel crashes in helper functions.
+\item {\bf Type Safety:} When accessing data on memory, the extension must use
+  the correct type of the data. This helps avoid misinterpretation of the data
+  or memory corruptions.
+% When invoking kernel interfaces, the
+%   extension must supply arguments of the appropriate type.  This helps
+%   avoid kernel crashes in helper functions.
 \item {\bf Resource Safety:} When gaining access to kernel objects
   (e.g., lock, allocated memory, etc.) through helper function,
   extensions must subsequently invoke the appropriate release
@@ -114,6 +117,9 @@ extension: \djw{this needs to match the list in 4}
   exhibit undefined behavior, including integer errors (e.g.,
   overflow, divide by zero, etc.). This prevents runtime kernel
   crashes.
+\item {\bf Stack safety:} A unique safety requirement for kernel exntensions.
+  Extension must not overflow the limited kernel stack.
+  Failing to do so risks kernel crashes or kernel memory corruption.
 \end{itemize}
 
 This notion of safety in eBPF lowers the barrier to entry and trust
