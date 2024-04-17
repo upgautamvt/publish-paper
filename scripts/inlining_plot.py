@@ -42,17 +42,17 @@ with plt.style.context('seaborn-v0_8-paper'):
     bar_width = 0.2
     index = np.arange(len(map_types))
 
-    labels = ['BPF Inlined', 'BPF Non-Inlined', 'REX']
+    labels = ['eBPF Inlined', 'eBPF Non-Inlined', 'REX']
 
     for i, stats in enumerate(all_stats):
         means = [stats[map_type][0] if map_type in stats else 0 for map_type in map_types]
         stderrs = [stats[map_type][2] if map_type in stats else 0 for map_type in map_types]
         
-        plt.bar(index + i * bar_width, means, bar_width, yerr=stderrs, alpha=1.0, label=labels[i], error_kw={'elinewidth': 1, 'capsize': 4, 'markeredgewidth': 1})
+        plt.bar(index + i * bar_width, means, bar_width, yerr=stderrs, alpha=1.0, label=labels[i], error_kw={'elinewidth': 0.7, 'capsize': 3, 'markeredgewidth': 0.7})
 
     plt.xlabel('Map Type', size='large')
     plt.ylabel('Mean Elapsed Time (ns)', size='large')
-    plt.xticks(index + bar_width * len(all_stats) / 2.2, map_types, size='large')
+    plt.xticks(index + bar_width, map_types, size='large')
     plt.yticks(size='large')
     plt.legend(loc='upper left')
 
