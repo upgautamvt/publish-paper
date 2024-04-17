@@ -386,6 +386,7 @@ It is also clear that \projname{} is able achieve a better usability while
 \subsection{Microbenchmark evaluation}
 Though not visible in \projname{}-BMC, several of our design choices of
     \projname{} could introduce additional performance overheads.
+\mvle{i think we need to list briefly what the specific unique Rex overheads are and why, otherwise it sounds like we are not systematic in our test cases}
 In this section, we implement microbenchmark cases for the potential
     performance overheads and demonstrate that although overheads may be
     present in pessimistic cases, they have neglegible impact in real world use
@@ -528,7 +529,7 @@ We implement an empty kprobe extension program -- both in eBPF and in
     dispatcher function.
 The result is shown in Table~\ref{tab:startup-cleanup}.
 On average, the difference of runtime of invoking an empty \projname{} and eBPF
-    program is less than 1ns.Design and
+    program is less than 1ns.
 \subsubsection{Helper function overhead}
 \label{eval:inline}
 
@@ -555,9 +556,17 @@ On average, the difference of runtime of invoking an empty \projname{} and eBPF
 %             \item maps to test: array, hash (htab-lru, xsk-map?)
 %         \end{itemize}
 % \end{itemize}
-We evaluate the impact of missed opportunities due to the elimination of
+We evaluate the impact of missed optimization opportunities due to the elimination of
     the eBPF verifier in \projname{} by looking into the eBPF map lookup
     helpers.
+The eBPF verifier can inline the map lookup
+    helper function by replacing the call with equivalent eBPF instructions to
+    avoid additional function call and memory-accessing overheads.
+% This optimization can avoid two function calls and two pointer dereferences for
+%     map types that support lookup inlining.
+However, in \projname{}, inlining is not performed due to the absence of the
+    eBPF verifier. % as well as kernel internal information (e.g. map addresses).
+
 %  Specifically, we look into the optimization of eBPF map lookups.
 The map lookup helpers represent a pessimistic case for \projname{} because
     \projname{} not only misses the load time optimization but also needs more
@@ -568,13 +577,6 @@ In general, our experiments shows acceptable helper performance for this
 %     and the safe wrapping code adds another 45ns, which is acceptable for a
 %     pessimistic case.
 
-The eBPF verifier can inline the map lookup
-    helper function by replacing the call with equivalent eBPF instructions to
-    avoid additional function call and memory-accessing overheads.
-% This optimization can avoid two function calls and two pointer dereferences for
-%     map types that support lookup inlining.
-However, in \projname{}, inlining is not performed due to the absence of the
-    eBPF verifier. % as well as kernel internal information (e.g. map addresses).
 
 We measure the runtime of eBPF map lookups for eBPF with and without inlining,
     as well as \projname{}.
@@ -661,7 +663,7 @@ The safe cleanup mechanism employed by \projname{} requires recording the alloca
     extra runtime overhead.
 We therefore evaluate the runtime overhead from \projname{}'s cleanup
     mechanism.
-For this miscrobenchmark, we choose to use a program that acquires and then
+For this microbenchmark, we choose to use a program that acquires and then
     immediately releases a BPF spinlock.
 Since the acquired spinlock is a resource that needs to be released upon Rust
     panics, \projname{}'s cleanup mechanism needs to record it in its per-CPU
