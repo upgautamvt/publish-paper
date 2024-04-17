@@ -13,21 +13,21 @@ bpf_programs = {
     'syscall_tp': [132,132,132,132],
     'BMC': [524, 864, 984, 1476, 716, 376, 640]
 }
-# TODO: rerun with termination branch
-# rust_programs = {
-#     'tracex5': [0x380, 0x179, 0x68, 0x148],
-#     'trace_event': [0x0004c8, 0x0001a3, 0x0000d0, 0x000170],
-#     'syscall_tp': [0x000380,0x000140,0x000048,0x000148],
-#     'BMC': [0x000750, 0x001000, 0xc4b, 0x0002a8, 0x000338]
-# }
+# Without rust termination
+rust_programs = {
+    'tracex5': [0x380, 0x179, 0x68, 0x148],
+    'trace_event': [0x0004c8, 0x0001a3, 0x0000d0, 0x000170],
+    'syscall_tp': [0x000380,0x000140,0x000048,0x000148],
+    'BMC': [0x000750, 0x001000, 0xc4b, 0x0002a8, 0x000338]
+}
 
 # With rust termination branch
-rust_programs = {
-    'tracex5': [0x588, 0x869, 0x208, 0x1f8],
-    'trace_event': [0x6a8, 0x934, 0x268, 0x220],
-    'syscall_tp': [0x598,0x878,0x1e8,0x200],
-    'BMC': [0x7c8, 0x1000, 0xff3, 0x2c8, 0x358]
-}
+# rust_programs = {
+#     'tracex5': [0x588, 0x869, 0x208, 0x1f8],
+#     'trace_event': [0x6a8, 0x934, 0x268, 0x220],
+#     'syscall_tp': [0x598,0x878,0x1e8,0x200],
+#     'BMC': [0x7c8, 0x1000, 0xff3, 0x2c8, 0x358]
+# }
 
 # The adding represents the individual bpf program sizes
 bpf_programs_new = {
@@ -86,11 +86,11 @@ with plt.style.context('seaborn-v0_8-paper'):
 
         rects = ax.bar(x + offset, used, width, label='%s' % cat)
         
-        c = (*rects.patches[0]._facecolor[:-1], 0.7)
-        ax.bar(x + offset, bytecode, width, bottom=used, hatch='//', edgecolor='black', linewidth=0, color=c)
+        c = (*rects.patches[0]._facecolor[:-1], 1.0)
+        ax.bar(x + offset, bytecode, width, bottom=used, hatch='//', edgecolor='black', linewidth=0, color=c, alpha=0.7)
 
-        c = (*rects.patches[0]._facecolor[:-1], 0.3)
-        ax.bar(x + offset, unused, width, bottom=used+bytecode, hatch='\\\\', edgecolor='black', linewidth=0, color=c)
+        c = (*rects.patches[0]._facecolor[:-1], 1.0)
+        ax.bar(x + offset, unused, width, bottom=used+bytecode, hatch='\\\\', edgecolor='black', linewidth=0, color=c, alpha=0.3)
 
         multiplier += 1
 
