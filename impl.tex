@@ -38,8 +38,8 @@ This done by providing the program a "user" struct with only needed fields and
     kernel.
 To load the extension program, \projname{} extends the \texttt{bpf} system
     call to able to handle a \projname{} program.
-The system call parses the ELF executable and locate all the LOAD segments in
-    the executable.
+The system call parses the ELF executable and locate all the \texttt{LOAD}
+    segments in the executable.
 It then allocates new pages and maps the \texttt{LOAD} segments into the kernel
     address space based on the size and permissions of the segments.
 The system is also responsible for fixups on the program code to resolve
