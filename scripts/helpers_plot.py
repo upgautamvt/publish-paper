@@ -50,7 +50,7 @@ with plt.style.context('seaborn-v0_8-paper'):
         
         plt.bar(index + i * bar_width, means, bar_width, yerr=stderrs, alpha=1.0, label=labels[i], error_kw={'elinewidth': 0.6, 'capsize': 3, 'markeredgewidth': 0.6})
 
-    plt.xlabel('Map Type', size='large')
+    # plt.xlabel('Map Type', size='large')
     plt.ylabel('Mean Elapsed Time (ns)', size='large')
     plt.xticks(index + bar_width/2, map_types, size='small', rotation=45)
     plt.yticks(size='large')
