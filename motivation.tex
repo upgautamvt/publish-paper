@@ -250,8 +250,8 @@ The computation state is stored before the tail call and reloaded afterwards.
 %A similar problem also presents when processing the incoming packet data, where
 %    the authors had to bound data size to simplify verification of loops.
 %\mvle{verifier complexity or program complexity?}
-BMC suffers from verification complexity in its cache
-    invalidation function, shown in Figure~\ref{fig:bmc-code}.
+BMC suffers from verification complexity in its cache invalidation function,
+    as examplified by its cache invalidation logic. % shown in Figure~\ref{fig:bmc-code}.
 \mvle{what's bad about verification complexity? does it lead to verification failure?}
 The complexity is exacerbated by introducing two additional variables to track
     the state of the key and the SET command.
@@ -261,6 +261,8 @@ To address the verification complexity,
     \texttt{if} statements.
 Without these checks, the program produces an excessive number of jump instructions,
     leading to verification failure.
+We discuss this in more depth in our case study for BMC
+    (\S\ref{eval:bmc-case-study}).
 
 % \jinghao{Let me know if removing this makes sense: ``and the end of packet''.}
 %Such complex checks are intentionally designed to pass the
@@ -304,13 +306,13 @@ The fixes implemented are not immediately apparent or trivial to implement, as
 Fighting with the verifier made the implementation of BMC much more difficult then
     it needed to be because of the gap between the programmer and the verifier.
 
-\begin{figure}[t]
-    \lstinputlisting[language=myC]{./snippets/s6-bmc.c}
-    \vspace{-10pt}
-    \caption{Packet parsing code for cache invalidation in BMC}
-    \label{fig:bmc-code}
-    \vspace{-10pt}
-\end{figure}
+% \begin{figure}[t]
+%     \lstinputlisting[language=myC]{./snippets/s6-bmc.c}
+%     \vspace{-10pt}
+%     \caption{Packet parsing code for cache invalidation in BMC}
+%     \label{fig:bmc-code}
+%     \vspace{-10pt}
+% \end{figure}
 
 \subsubsection{Change Source Code to Fix LLVM Codegen}
 \label{motivation:llvm-codegen}
