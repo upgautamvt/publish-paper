@@ -408,28 +408,27 @@ Therefore, \projname{} does not execute user-supplied \texttt{drop} handlers
 %and programs cannot allocate resources without helper function
 %    calls.
 
-\subsection{Kernel stack safe guarding}
+\subsection{Kernel stack safety}
 \label{principle:stack}
 One unique safety requirement that kernel extension programs face is the
     usage of kernel stack.
-Unlike userspace programs, where the stack grows on demand and has a large
-    maximum size,
+Unlike userspace stacks, which grows on demand with a large maximum size,
     the stack in kernel space is fix-sized (4 pages on x86-64) and limited.
 Overflowing the kernel stack may result in memory corruptions or kernel panics.
 
 The eBPF verifier handles stack safety by keeping track of the stack size
     throughout its symbolic execution process.
 However, the verification of the stack usage does not always yield the correct
-    result -- in particular, the verifier has been shown to fail to track stack
+    result -- the verifier has been shown to fail to track stack
     usage across indirect tail calls~\cite{ebpf-stackoverflow}.
 
 Our observation is that the enforcement of stack safety can be easily performed
     at compile time if the extension program does not have indirect or
     recursive calls, and conversely, it is easier to perform such check at
     runtime when the program does employ indirect or recursive calls.
-\projname{} therefore takes a hybrid approach in ensuring stack safety that
+\projname{}, therefore, takes a hybrid approach in ensuring stack safety that
     utilizes static checks for programs without indirect or recursive calls,
-    and dynamic, runtime checks for programs make use of these function calls.
+    and dynamic, runtime checks for programs make use of such function calls.
 For each program being compiled, the \projname{}-specific pass in the compiler
     will check whether it involves indirect or recursive calls.
 When the extension program contains only direct, non-recursive function calls,
@@ -445,19 +444,20 @@ In these cases, \projname{} performs runtime checks to limit the stack usage of
     programs.
 The \projname{} compiler pass first ensures each function in the program takes
     less than one page (4K) of stack.
-Then, before each function call in the extension program, the \projname{}
-    compiler pass inserts a call to \texttt{\_\_rex\_check\_stack} function.
-\texttt{\_\_rex\_check\_stack} is provided by the kernel crate and checks the
+Then, before each function call in the extension program, the pass inserts a
+    call to the \texttt{rex\_check\_stack} function.
+\texttt{rex\_check\_stack} is provided by the kernel crate and checks the
     current stack depth of the program, if the stack usage exceeds the
-    threshold, it will trigger a Rust panic and effectively terminate the
-    program (\S\ref{principle:eh}).
+    threshold, it will trigger a Rust panic and terminate the
+    program safely (\S\ref{principle:eh}).
 
-In order for the \texttt{\_\_rex\_check\_stack} function to have more control
+In order for the \texttt{rex\_check\_stack} function to have more control
     on the stack usage of the program and also support programs with slightly
     large stack usage, \projname{} implements a dedicated kernel stack for the
     extension programs.
 The dedicated kernel stacks are allocated per-CPU and virtually mapped during
-    kernel boot time with the same size as the kernel IRQ and task stacks.
+    kernel boot time with a size of 4 pages.
+% the same size as the kernel IRQ and task stacks.
 In the dispatcher function (Figure~\ref{fig:eh-overview}), before calling into
     the \projname{} program, the stack and frame pointers of the current
     context are saved.
@@ -466,7 +466,7 @@ The dispatcher function then sets the stack and frame pointer registers to the
 Upon program exit, the original stack and frame pointers are restored, no
     matter whether a exception is triggered during program execution.
 
-\projname{} defines the stack usage threshold to be two pages less than the
+\projname{} defines the stack usage threshold to be 2 pages less than the
     total stack available.
 This design choice is based on two considerations.
 First, kernel helper functions are not visible at program compile time but they
@@ -474,8 +474,8 @@ First, kernel helper functions are not visible at program compile time but they
 Leaving extra spaces accomodates kernel helper functions and we believe two
     pages of stack is a reasonable limit for kernel helper functions.
 Second, since the stack usage of each function in the program is limited to
-    1 page of stack, in the worse case the remaining stack space is at least
-    one page when \texttt{\_\_rex\_check\_stack} triggers a Rust panic.
+    1 page of stack, in the worse case, the remaining stack space is at least
+    one page when \texttt{rex\_check\_stack} triggers a Rust panic.
 This worse case guarantee leaves enough space for the panic handling and stack
     unwinding routines.
 Such a dynamic mechanism allows \projname{} to achieve better stack-safety than
