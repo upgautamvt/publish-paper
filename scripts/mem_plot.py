@@ -62,16 +62,18 @@ xticks = []
 
 def process_one_category(data, bytecode_sizes):
     used = np.array(list(map(sum, data.values())))
-    bytecode = np.maximum(np.array([bytecode_sizes.get(name, 0) for name in data.keys()]) - used, 0)
-    unused = np.maximum(np.array(list(map(lambda x: len(x) * page_size, data.values()))) - used - bytecode, 0)
+    bytecode = np.maximum(np.array([bytecode_sizes.get(name, 0) for name in data.keys()]), 0)
+    unused = np.maximum(np.array(list(map(lambda x: len(x) * page_size, data.values()))) - used, 0)
     return used, unused, bytecode
 
 # Data processing
 data = {
-    'BPF-packed': process_one_category(bpf_programs_new, bpf_bytecode_sizes['bpf_packed']),
     'BPF': process_one_category(bpf_programs, bpf_bytecode_sizes['bpf']),
-    'REX': process_one_category(rust_programs, {})
+    'BPF-Packed': process_one_category(bpf_programs_new, bpf_bytecode_sizes['bpf_packed']),
+    'Rex': process_one_category(rust_programs, {})
 }
+
+print(data)
 
 with plt.style.context('seaborn-v0_8-paper'):
     x = np.arange(len(bpf_programs))
@@ -81,12 +83,15 @@ with plt.style.context('seaborn-v0_8-paper'):
     fig, ax = plt.subplots(layout='tight')
     fig.set_size_inches(4.5, 2.7)
 
+    colors = {}
+
     for cat, (used, unused, bytecode) in data.items():
         offset = width * multiplier
 
         rects = ax.bar(x + offset, used, width, label='%s' % cat)
-        
+
         c = (*rects.patches[0]._facecolor[:-1], 1.0)
+        colors[cat] = c
         ax.bar(x + offset, bytecode, width, bottom=used, hatch='//', edgecolor='black', linewidth=0, color=c, alpha=0.7)
 
         c = (*rects.patches[0]._facecolor[:-1], 1.0)
@@ -125,9 +130,9 @@ with plt.style.context('seaborn-v0_8-paper'):
     # ax.legend(loc='upper left', ncols=2, fontsize='small')
 
     ax.legend(handles=[
-        mpatches.Patch(color='tab:blue', label='BPF'),
-        mpatches.Patch(color='tab:orange', label='BPF-Packed'),
-        mpatches.Patch(color='tab:green', label='REX'),
+        mpatches.Patch(color=colors['BPF'], label='BPF'),
+        mpatches.Patch(color=colors['BPF-Packed'], label='BPF-Packed'),
+        mpatches.Patch(color=colors['Rex'], label='Rex'),
         mpatches.Patch(fill=False, hatch=hatch_bpf_bytecode, edgecolor=edge_color_graphs, color='black', label='Bytecode'),
         mpatches.Patch(fill=False, hatch=hatch_bpf_unused, edgecolor=edge_color_graphs,  color='dimgray', label='Unused Space'),
     ], loc='upper left', fontsize='small', ncols=2)
