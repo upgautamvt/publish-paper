@@ -197,9 +197,9 @@ Since Rust employs monomorphization~\cite{rustc-monomorphize}, the concrete
     type and its size is resolved at compile time, adding no runtime overhead.
 In this way, the size is guaranteed to match the type statically and the
     kernel will never make an out-of-bound access.
-This can work for not only the scalar types, but for array types as well: Rust
-    also supports ``const generics'' that allow a constant to be used as a
-    generic parameter, which can be used to encode length of arrays.
+This can work for not only scalar types, but array types as well: Rust
+    also supports ``const generics'' that allows a constant to be used as a
+    generic parameter, which can be used to encode the length of arrays.
 
 In the second case, the kernel may provide the user program a pointer to
     kernel memory to perform direct access (e.g., access through eBPF map value
@@ -209,9 +209,9 @@ The user programs must not make an out-of-bound memory access for this
 
 In eBPF, for accesses on pointers with a static size, e.g. map value pointers,
     as maps store the size of its value types, the verifier can independently
-    verify the validity of the check.
+    verify the validity.
 For pointers without a static size like packet data pointers, the verifier
-    enforces user programs to explicitly check for memory
+    enforces programs to explicitly check for memory
     boundaries and to not make out-of-bound accesses.
 
 In \projname{}, pointers with a static size are handled through the Rust type
