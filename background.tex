@@ -125,7 +125,7 @@ extension: \djw{this needs to match the list in 4}
 This notion of safety in eBPF lowers the barrier to entry and trust
 required for system administrators to install an extension into a
 production system.  However, there are ongoing debates in
-industry~\cite{unprivileged-ebpf} and
+industry~\cite{reconsider-unpriv-ebpf-lwn,seccomp-ebpf-lwn,ebpf-sec-lwn} and
 academia~\cite{untenableVerification} about the quality of eBPF's
 safety guarantees and in what circumstances they can be relied on.
 Here we specify the safety model and expectations for safety of kernel
@@ -137,7 +137,7 @@ but imperfect developers and thus may contain programming mistakes.
 We assume that the extension is not actively malicious.  So called
 ``guarantees'' of safety therefore consist of the best-effort catching
 of common mistakes.  While some in the community may be interested in
-exploring stronger notions of safety~\cite{unprivileged-ebpf,jia2023},
+exploring stronger notions of safety~\cite{reconsider-unpriv-ebpf-lwn,seccomp-ebpf-lwn,ebpf-sec-lwn,jia2023},
 we note that this definition of safety is consistent with the current
 eBPF ecosystem, where actively malicious extension writers can crash
 or hang the
