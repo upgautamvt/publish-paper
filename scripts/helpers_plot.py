@@ -38,7 +38,10 @@ with plt.style.context('seaborn-v0_8-paper'):
     fig, ax = plt.subplots(layout='tight')
     fig.set_size_inches(4.5, 2.7)
 
-    map_types = list(set([key for stats in all_stats for key in stats.keys()]))
+    
+    # Sorting map types in alphabetical order
+    map_types = sorted(set([key for stats in all_stats for key in stats.keys()]))
+
     bar_width = 0.3
     index = np.arange(len(map_types))
 
@@ -52,7 +55,7 @@ with plt.style.context('seaborn-v0_8-paper'):
 
     # plt.xlabel('Map Type', size='large')
     plt.ylabel('Mean Elapsed Time (ns)', size='large')
-    plt.xticks(index + bar_width/2, map_types, size='small', rotation=45)
+    plt.xticks(index + bar_width/2, map_types, size='small', rotation=45, ha='right')
     plt.yticks(size='large')
     plt.legend(loc='upper left')
 
