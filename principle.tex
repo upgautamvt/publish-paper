@@ -283,10 +283,11 @@ Since proc-macro transformations happen after the linting of unsafe operations,
 use proc-macros to get around the safe Rust requirement}
 
 \subsection{Safe resource management}
-Executing in the kernel, extension programs must also acquire and release
-    resources properly.
-Some kernel helper functions returns kernel resources that requires
-    explicit release after use through a corresponding helper function call.
+%Executing in the kernel,
+Extension programs must also acquire and release
+    resources properly under kernel context.
+Some kernel helper functions return kernel resources that require
+    explicit release after use through corresponding helper function calls.
 Failing to do so will result in leakage of kernel resources such as reference
     counts and acquired spinlocks.
 % In eBPF, some kernel helper functions returns kernel resources that requires
@@ -296,12 +297,14 @@ Failing to do so will result in leakage of kernel resources such as reference
 In these situations, the eBPF verifier checks and ensures that the resource is
     released on all possible code paths to prevent leaking kernel resources.
 
-In \projname{}, the resource-acquisition-is-initialization (RAII) pattern of
-    Rust can be used to create an abstraction around kernel resources that
-    extension programs need.
-For example, when the program obtains a spin lock from the kernel, our Rust
-    abstraction layer constructs and returns a \emph{lock guard}.
-The lock guard implements the RAII semantics through the \texttt{drop} trait in
+\projname{} leverages the resource-acquisition-is-initialization
+    (RAII)~\cite{rust-raii} pattern of Rust: for each kernel resource that
+    extension programs need, \projname{} creates an RAII wrapper type that ties
+    the resource with the lifetime of the wrapper object.
+For example, when the program obtains a spinlock from the kernel, the
+    \projname{} kernel crate constructs and returns a \emph{lock guard}.
+The lock guard implements the RAII semantics through the
+    \texttt{drop}~\cite{rust-drop} trait in
     Rust, which defines the operation to perform when an object is destroyed.
 In the case of lock guard, its \texttt{drop} handler releases the lock.
 The program does not need to explicitly release the lock or drop the lock
