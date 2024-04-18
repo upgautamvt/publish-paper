@@ -13,7 +13,7 @@ When a program fails to compile, the developer will get a message with
     hints about where they violated
     the contract with the programming language.
 If, however, a program fails to pass the verifier it is harder for the programmer
-    to understand why the program failed and how to fix it because the compiler 
+    to understand why the program failed and how to fix it because the compiler
     and verifier do not pass information about program safety to each other.
 %\mvle{not clear why it is hard for the programmer to understand verification failure messages.
 %Is it because what is being verified is not the same program being written and not the
@@ -116,6 +116,7 @@ In addition, we included two issues raised in the BMC~\cite{BMC} and Electrode~\
         \bottomrule
     \end{tabular}
     \caption{Table of common verifier fixes} %\mvle{we should rename these categories. These don't sound like verifier problems but actions done to overcome verfier issues.} \milo{These were meant to be fixes not problems, but the table title was a hold-over from before}}
+    \vspace{-20pt}
     \label{fig:commit-table}
 \end{table}
 
@@ -223,7 +224,7 @@ We now use BMC\cite{BMC} as a representative example for this category.
 %    \caption{Refactor for Expressiveness}
 %    \label{fig:switch}
 %\end{figure}
-%% TODO: End Comment 
+%% TODO: End Comment
 
 \noindent\textbf{BMC Example}:
 Both of these verifier fixes were needed to implement BMC, an in-kernel cache for Memcached
@@ -304,8 +305,10 @@ Fighting with the verifier made the implementation of BMC much more difficult th
 
 \begin{figure}[t]
     \lstinputlisting[language=myC]{./snippets/s6-bmc.c}
+    \vspace{-10pt}
     \caption{Packet parsing code for cache invalidation in BMC}
     \label{fig:bmc-code}
+    \vspace{-10pt}
 \end{figure}
 
 \subsubsection{Change Source Code to Fix LLVM Codegen}
@@ -314,7 +317,7 @@ The LLVM compiler translates eBPF programs written in high-level languages into 
 We found that in certain cases, LLVM would generate eBPF bytecode that would cause the program to fail verification.
 One issue found by Cilium was that LLVM may generate 32-bit assignments for
     accessing \texttt{ctx->data}, \texttt{ctx->data\_end}, \texttt{ctx->data\_meta} fields.
-The LLVM compiler thought that the \texttt{data} fields were 32-bit values rather than 64-bit pointers as 
+The LLVM compiler thought that the \texttt{data} fields were 32-bit values rather than 64-bit pointers as
     a result of the information hiding technique that
     eBPF employs.
 The kernel exports a limited context interface to extension programs that is then rewritten in the verifier.
@@ -390,7 +393,9 @@ It is not always clear what code needs to be made into a inlined function for th
 
 \begin{figure}
     \lstinputlisting[language=myC]{./snippets/s2-goto.c}
+    \vspace{-10pt}
     \caption{Goto transformed to inline function}
+    \vspace{-10pt}
     \label{fig:inline-fig}
 \end{figure}
 
@@ -447,7 +452,9 @@ The required fix is also counter-intuitive, which makes it less usable.
 
 \begin{figure}
     \lstinputlisting[language=myC]{./snippets/s2-teach.c}
+    \vspace{-10pt}
     \caption{Teaching the verifier info}
+    \vspace{-10pt}
     \label{fig:teach-verifier}
 \end{figure}
 
@@ -483,7 +490,9 @@ The compiler provides no help at all, as it has no notion of the constraints of 
 
 \begin{figure}
     \lstinputlisting[language=myC]{./snippets/s2-cilium-memcpy.c}
+    \vspace{-10pt}
     \caption{Memcpy implementation in Cilium}
+    \vspace{-10pt}
     \label{fig:cilium-memcpy}
 \end{figure}
 
@@ -516,7 +525,9 @@ We discuss this further in \S\ref{discussion:versions}.
 
 \begin{figure}
     \lstinputlisting[language=myC]{./snippets/s2-kernel-version.c}
+    \vspace{-10pt}
     \caption{Kernel version specific fix}
+    \vspace{-5pt}
     \label{fig:kernel-version-code}
 \end{figure}
 
