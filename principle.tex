@@ -314,9 +314,9 @@ The program does not need to explicitly release the lock or drop the lock
 
 \subsection{Runtime exception handling}
 \label{principle:eh}
-While the compiler contributes a lot to the safety of Rust, unlike eBPF, many
-    safety checks happen at runtime in the form of exceptions (i.e., Rust
-    panics).
+While the compiler contributes a lot to the safety of Rust, many safety checks
+    in Rust happen at runtime in the form of exceptions (i.e., Rust panics),
+    which is different from eBPF.
 In userspace, Rust uses the Itanium exception handling ABI~\cite{itanium-abi}.
 When an exception is triggered, the control flow is transferred to the Rust
     panic handler in its standard library, which in turn calls into the unwind
@@ -324,16 +324,17 @@ When an exception is triggered, the control flow is transferred to the Rust
     frame.
 However, the Itanium ABI is complex and not suitable for kernel extensions,
     making exception handling a challenge in \projname{} extension programs:
+\jinghao{Took these directly from the HotOS paper, shall we paraphrase?}
 \begin{itemize}
 %     \item The Itanium ABI-based exception handling is too complicated, as the
 %         userspace unwind libraries are not direcly usable.
     \item Failures during unwinding, which are permissible in userspace, cannot
         be tolerated in kernel space, as incomplete cleanup means leaking
         kernel resources.
-    \item ABI-based unwinding typically requires dynamic allocation, which
-        creates challenges for extensions in interrupt contexts, in which an
-        allocator may not be available~\cite{bpf-mempool-lwn}. \jinghao{I'm
-        thinking about removing this one since bpf now has an allocator.}
+%    \item ABI-based unwinding typically requires dynamic allocation, which
+%        creates challenges for extensions in interrupt contexts, in which an
+%        allocator may not be available~\cite{bpf-mempool-lwn}. \jinghao{I'm
+%        thinking about removing this one since bpf now has an allocator.}
     \item Unwinding generally executes destructors for all existing objects on
         the stack, but executing untrusted, user-defined destructors (via the
         \texttt{\small Drop} trait in Rust) is not safe.
@@ -381,13 +382,14 @@ Light-weight mechanisms can be effective for resource cleanup in \projname{}.
 Our insight for resource cleanup is that the extension program can only obtain
     resources by explicitly issuing helper function calls and therefore only
     these resources need to be released.
-For these helper function calls, we record the allocated kernel resource during
-    execution into a statically defined per-CPU buffer.
-Our current implementation can support at most 64
+For these helper function calls, we record the allocated kernel resources
+    during execution into a statically defined per-CPU buffer.
+Our current implementation can support up to 64
     instances of kernel resources during a single run.
 Upon a panic, the panic handler will take the responsibility to correctly
     handle the release of kernel resources, which involves traversing the
-    per-CPU buffer and performs cleanup for each of the recorded resources.
+    buffer and dropping the recorded resources.
+% performing cleanup for each of the recorded resources.
 
 % \jinghao{It seems that nesting should be put somewhere, due to the fact that
 % these per-CPU tricks depend on no-nesting.}
@@ -398,12 +400,13 @@ We implement the cleanup code as part of the \projname{} kernel crate, as it
 % In this way, the resource cleanup is completely transparent to the extension
 %     programs, adding no additional programming burden like the Itanium ABI.
 The other reason for implementing cleanup mechanism inside the kernel crate is
-    safety, because such code maybe called upon panic, it must not trigger yet
+    safety, because such code is called upon panic, it must not trigger yet
     another Rust panic and causes panic handling to fail.
 Therefore, \projname{} does not execute user-supplied \texttt{drop} handlers
-    upon panic, as they are not guarranteed to be safe during panic handling
-    context and programs cannot allocate resources without helper function
-    calls.
+    upon panic, as they are not guarranteed to be safe under panic handling
+    context.
+%and programs cannot allocate resources without helper function
+%    calls.
 
 \subsection{Kernel stack safe guarding}
 \label{principle:stack}
