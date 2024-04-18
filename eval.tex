@@ -384,13 +384,13 @@ It is also clear that \projname{} is able achieve a better usability while
     eBPF-BMC under all CPU/thread setups.
 
 \subsection{Microbenchmark evaluation}
-Though not visible in \projname{}-BMC, several of our design choices of
-    \projname{} could introduce additional performance overheads.
-\mvle{i think we need to list briefly what the specific unique Rex overheads are and why, otherwise it sounds like we are not systematic in our test cases}
-In this section, we implement microbenchmark cases for the potential
-    performance overheads and demonstrate that although overheads may be
-    present in pessimistic cases, they have neglegible impact in real world use
-    cases.
+%Though not visible in \projname{}-BMC,
+Several of our design choices in
+    \projname{} could introduce additional performance overheads
+not visible in the above \projname{}-BMC evaluation.
+In this section, we use microbenchmarks specifically implemented to stress our design and better highlight potential
+    performance overheads. We demonstrate that although overheads may be
+    present in some pessimistic cases, they have neglegible impact in real world scenarios.
 All experiments are performed on the same machine that acts as the server in
     the \projname{}-BMC experiments (\S\ref{eval:macro}).
 
