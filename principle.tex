@@ -247,14 +247,14 @@ The verifier checks the casting and ensures that 1) the program does not make a
     boundaries.
 
 \projname{} agrees with the verifier that as long as the above two properties
-    holds, the reinterpreting cast (dubbed ``transmute'' in Rust) is safe to
+    hold, the reinterpreting cast (dubbed ``transmute'' in Rust) is safe to
     perform.
 It therefore extends the type safety of Rust to cover such cases.
 % In the case of Rust, the reinterpret cast (dubbed ``transmute'' in Rust) is an
 %     unsafe operation, particularly because Rust does not prevent making
 %     pointers from scalar values.
 To allow extension programs to still safely reinterpret the bytes into useful
-    data types, we first define a group of primitive scalar types that are
+    data types, \projname{} defines a group of primitive scalar types that are
     considered safe as targets for casting.
 \projname{} requires the target type of casting to be of either the safe types
     or a structure type in which all the members are of the safe types.
