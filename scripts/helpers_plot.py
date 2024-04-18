@@ -29,8 +29,8 @@ def process_data(filename, outlier=2000):
     return stats
 
 # Generalized processing for any number of files
-file_names = ['elapsed_times_5.15.csv', 'elapsed_times_5.15_non_inlined.csv', 'elapsed_times-rex.csv']
-all_stats = [process_data(f"inlining_benchmark/{file}") for file in file_names]
+file_names = ['rex_times.csv', 'v5.15.19-times.csv']
+all_stats = [process_data(f"helpers_benchmark/{file}") for file in file_names]
 
 # Plotting
 with plt.style.context('seaborn-v0_8-paper'):
@@ -39,24 +39,24 @@ with plt.style.context('seaborn-v0_8-paper'):
     fig.set_size_inches(4.5, 2.7)
 
     map_types = list(set([key for stats in all_stats for key in stats.keys()]))
-    bar_width = 0.2
+    bar_width = 0.3
     index = np.arange(len(map_types))
 
-    labels = ['eBPF Inlined', 'eBPF Non-Inlined', 'REX']
+    labels = ['REX', 'eBPF']
 
     for i, stats in enumerate(all_stats):
         means = [stats[map_type][0] if map_type in stats else 0 for map_type in map_types]
         stderrs = [stats[map_type][2] if map_type in stats else 0 for map_type in map_types]
         
-        plt.bar(index + i * bar_width, means, bar_width, yerr=stderrs, alpha=1.0, label=labels[i], error_kw={'elinewidth': 0.7, 'capsize': 3, 'markeredgewidth': 0.7})
+        plt.bar(index + i * bar_width, means, bar_width, yerr=stderrs, alpha=1.0, label=labels[i], error_kw={'elinewidth': 0.6, 'capsize': 3, 'markeredgewidth': 0.6})
 
     plt.xlabel('Map Type', size='large')
     plt.ylabel('Mean Elapsed Time (ns)', size='large')
-    plt.xticks(index + bar_width/2, map_types, size='large')
+    plt.xticks(index + bar_width/2, map_types, size='small', rotation=45)
     plt.yticks(size='large')
     plt.legend(loc='upper left')
 
 
     plt.tight_layout()
     # plt.show()
-    plt.savefig("inline.pdf", bbox_inches="tight")
+    plt.savefig("helpers.pdf", bbox_inches="tight")
