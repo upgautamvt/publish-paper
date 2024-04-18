@@ -524,8 +524,8 @@ Such a dynamic mechanism allows \projname{} to achieve better stack-safety than
 %
 % We use a per-CPU flag to solve this
 
-Having a bounded runtime for extension programs is critical for safety of the
-    kernel.
+Ensuring a bounded runtime for extension programs is critical to the safety of
+    the kernel.
 A long-running extension program could hold the processor for a long time and
     cause kernel lockups.
 
@@ -538,7 +538,7 @@ This techinque creates many false-positives and is one of the main sources of
     \S\ref{motivation:restructure}.
 Previous works~\cite{ebpf-termination,untenableVerification} have also
     demonstrated creation of long-running eBPF programs without going over the
-    verification limits, further weakening the runtime guarrantee from the
+    verification limits, further weakening the runtime guarantee from the
     verifier.
 
 Given the usability issues and ineffectiveness associated with the static
@@ -548,16 +548,15 @@ Given the usability issues and ineffectiveness associated with the static
 % BPF syscall interface.
 The dynamic termination in \projname{} limits the runtime of the program
     through a timer.
-When the timer expires, it issues an inter-processor interrupt (IPI) to the CPU
+When the timer expires, an inter-processor interrupt (IPI) is sent to the CPU
     the program is running on.
 This IPI effectively suspends the program and pushes its registers onto the
     stack.
-Inside the IPI handler, the timeout termination handler of \projname{} is
-    executed, which modifies the saved instruction pointer register to the
+Inside the IPI handler, the timeout handler of \projname{} is
+    executed, which sets the saved instruction pointer register to the
     panic handler of the program.
 After returning from the IPI, the program will be executing the panic handler,
-    which cleans up kernel resources allocated by the program and gracefully
-    exits the program.
+    which cleans up kernel resources allocated and gracefully exits the program.
 % The termination logic uses the Linux kernel's Inter-Process Interrupt (IPI) mechanism
 % to raise an interrupt on the target \projname{} program's CPU.
 % Depending on the use-case, the IPI can be triggered by an operator or a timer within the system
@@ -609,8 +608,8 @@ To address this challenge, \projname{} defers termination when the program is
 The states are: 1) executing extension code, 2) executing kernel helpers or
     panic handlers, and 3) termination requested.
 Every helper invocation changes the state from state 1) to state 2).
-When excuting the timeout termination handler, if the flag is at state 2),
-    which indicates the program is in a context that cannot be safely
+When excuting the timeout handler, if the flag is at state 2),
+    which indicates the program is under a context that cannot be safely
     terminated, the termination handler modifies it to state 3) without
     setting the instruction pointer.
 On a helper function return, the flag is checked and if it is set to state 3),
