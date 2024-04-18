@@ -50,20 +50,20 @@
 %   access a value w/o lock using the single-mutable-reference rule
 
 
-The goal of \projname{} is to provide enhanced usuability for kernel extensions,
-    while ensuring the safety properties of the extension programs.
-In particular, we aim to make \projname{} more usable than eBPF and at least
-    as safe as eBPF.
+The goal of \projname{} is to provide enhanced usability for kernel extensions,
+    while ensuring safety of the extension programs.
+In particular, we aim to make \projname{} more usable than eBPF and as safe.
 As discussed in \S\ref{sec:motivation}, the current problem of usability of
-    eBPF is the large \gap{} between the programer, who works on
-    high-level languages, and the verifier, which operates on compiled bytecode.
+    eBPF is the large \gap{}. % between the programer, who works on
+    % high-level languages, and the verifier, which operates on compiled bytecode.
 % Our insight is that both the needed expressiveness and safety can be obtained
 %     from a safe programming language without the verifier.
 Our insight is that by using a safe, high-level language that directly
-    implements the required safety of the kernel, thereby eliminating the need
-    of the verifier?, the semantic gap can be
+    implements the required safety properties of kernel extensions, the need
+    of the extra verification layer can be dropped, and thereby closing the
+    \gap{}.
 \mvle{not completely true tho since we need the runtime part for termination}
-    closed.
+
 % Specifically, the language should have the following properties:
 % \begin{itemize}
 %     \item \textbf{Turing-complete}: This helps to satisfy the expressiveness
@@ -75,56 +75,46 @@ Our insight is that by using a safe, high-level language that directly
 %         to support it.
 % \end{itemize}
 
-\djw{background on Rust moves here}
+% \djw{background on Rust moves here}
 % Need to talk about:
 % - Language-based safety no undefined behavior in Rust.
 % - Safe/unsafe Rust.
 % - Popularity (also embraced by kernel)
 
-\projname{} uses Rust as the safe language for extension programs.
+\projname{} chooses Rust as the safe language for extension programs.
 Rust is a system programming language that aims to provide
-    \emph{language-based} safety.
-Rust's safety model promises the free of \emph{undefined behaviors} in programs.
+    \emph{language-based} safety, which promises programs to be free of
+    \emph{undefined behaviors}.
 The compiler both performs static analysis (e.g., lifetime and ownership
-    analysis) and inserts dynamic checks (e.g. array bounds checks) in
-    Rust programs to fulfill its safety promise.
-To facilitate low-level code that may be hard to fit in its safety model (e.g. FFI calls),
-    the language also provides \emph{unsafe} Rust, which is more permissive and
-    offloads some of the responsibility for ensuring safety from the compiler
-    to the programmer.
-The language-based safety of Rust under kernel contexts has been explored by
-    previous works~\cite{redleaf,theseus}, and is incorporated into the Linux
-    kernel.
-
+    models) and inserts dynamic checks (e.g. array bounds checks) in
+    Rust programs to fulfill its safety promises.
+To facilitate low-level code that may be hard to fit into its safety model (e.g.
+    FFI calls), the language also provides \emph{unsafe} Rust, which is more
+    permissive and provides a weaker safety guarantee, as opposed to
+    \emph{safe} Rust.
+Utilization of the language-based safety of Rust under kernel contexts has been
+    explored by previous works~\cite{redleaf,theseus}, and is also incorporated
+    into the Linux kernel~\cite{rust-for-linux-lwn}.
 % This is because Rust happens to provide the desired properties -- its
 %     language-based safety can be leveraged for safe kernel extensions without a
 %     verifier.
-Rust provides either the desired properties directly or
-    essential building blocks to ensure the safety properties in \projname{}.
-Here, we list the important safety properties (\jinghao{may need to move to \S\ref{sec:background}})
-\begin{itemize}
-    \item Memory safety
-    \item Type safety
-    \item Safe resource management
-    \item Exception-based runtime safety
-    \item Stack safety
-    \item Program termination
-\end{itemize}
+In \projname{}, Rust provides either the desired properties directly or
+    essential building blocks to ensure the important safety properties for
+    kernel extensions (\S\ref{sec:background}).
+% Here, we list the important safety properties
+% (\jinghao{may need to move to \S\ref{sec:background}})
+% \begin{itemize}
+%     \item Memory safety
+%     \item Type safety
+%     \item Safe resource management
+%     \item Exception-based runtime safety
+%     \item Stack safety
+%     \item Program termination
+% \end{itemize}
 
 % \jinghao{The runtime exception handling is not necessarily an independent one,
 % it actually covers some of the type safety (arrays and slices does runtime
 % checks that may trigger exceptions)}
-
-We now discuss how the safety properties from Rust can be applied to the
-    context of kernel extensions to provide a safe programming interface.
-% While the use of Rust automatically provides expressiveness (as it is
-%     Turing-complete), it does not supply the safety out-of-box, and the use of
-%     Rust, especially unsafe Rust, can still exhibit undesired behaviors.
-% We require all extension programs to be implemented \emph{only} in safe Rust.
-% On top of that, we discuss how the safety properties from Rust can be leveraged
-%     and applied to the context of kernel extensions to provide a safe
-%     programming interface.
-
 \begin{figure}
     \includegraphics[width=1.0\linewidth]{figs/overview.pdf}
     \centering
@@ -134,13 +124,24 @@ We now discuss how the safety properties from Rust can be applied to the
     \vspace{-10pt}
 \end{figure}
 
+We now discuss how the language-based safety from Rust can be applied to the
+    context of kernel extensions to provide a safe programming interface.
+% While the use of Rust automatically provides expressiveness (as it is
+%     Turing-complete), it does not supply the safety out-of-box, and the use of
+%     Rust, especially unsafe Rust, can still exhibit undesired behaviors.
+% We require all extension programs to be implemented \emph{only} in safe Rust.
+% On top of that, we discuss how the safety properties from Rust can be leveraged
+%     and applied to the context of kernel extensions to provide a safe
+%     programming interface.
 Figure~\ref{fig:rex-overview} provides an overview of the \projname{} framework.
 The extension program is written strictly in \emph{safe} Rust.
+It is compiled by the Rust compiler, which not only ensures safety properties
+    in Rust but also runs a \projname{}-specific pass for kernel stack safety.
 The program interacts with the kernel through a program interface implemented
     by the \projname{} \emph{kernel crate}.
 The kernel crate contains a mixture of unsafe Rust code due to its role as a
-    bridge between the extension program which is expected to be checked for
-    safety and the unsafe but trusted kernel code.
+    bridge between the extension program, which is expected to be checked for
+    safety, and the unsafe but trusted kernel code.
 It also provides a custom Rust panic handler to support panic-based runtime
     safety checks in Rust.
 The program links with the kernel crate at compile time and runs in a
@@ -158,20 +159,17 @@ However, there are frequent cases that an extension program needs to work on a
 % Rust provides powerful primitives that help to validate the memory is
 %     accessed correctly.
 There are usually two common patterns on how the memory is accessed, differing
-    by the owner of the memory:
-\begin{enumerate}
-    \item Memory owned by the extension program (e.g., an on-stack buffer)
-        is sent to the kernel through the helper function interface.
-    \item Memory owned by the kernel (e.g., an in-kernel struct) is
-        accessed from the extension program. % direct packet access, map data ptr
-\end{enumerate}
+    by the owner of the memory: 1) Memory owned by the extension program (e.g.,
+    an on-stack buffer) is sent to the kernel through the helper function
+    interface. 2) Memory owned by the kernel (e.g., an in-kernel struct) is
+    accessed from the extension program. % direct packet access, map data ptr
 
 In the first case, the extension program may allocate some memory on the stack
     and send it to the kernel for processing (e.g., asking kernel to fill a
     stack buffer with some data).
 An unsafe memory access, for example, an out-of-bounds write to the on-stack
     buffer, could result in corruption of stack data and possibly trigger a
-    kernel crash if the return address is overwritten to an non-present page.
+    kernel crash if the return address is overwritten to a non-present page.
 
 For eBPF, the verifier validates the memory region with the size to make sure
     that both the kernel and the program do not make erroneous accesses.
@@ -454,9 +452,9 @@ In order for the \texttt{\_\_rex\_check\_stack} function to have more control
     extension programs.
 The dedicated kernel stacks are allocated per-CPU and virtually mapped during
     kernel boot time with the same size as the kernel IRQ and task stacks.
-In the dispatcher function (\S\ref{principle:eh}), before calling into the
-    \projname{} program, the stack and frame pointers of the current context
-    are saved.
+In the dispatcher function (Figure~\ref{fig:eh-overview}), before calling into
+    the \projname{} program, the stack and frame pointers of the current
+    context are saved.
 The dispatcher function then sets the stack and frame pointer registers to the
     top of the dedicated stack and invokes the program.
 Upon program exit, the original stack and frame pointers are restored, no
