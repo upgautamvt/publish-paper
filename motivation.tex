@@ -252,6 +252,7 @@ The computation state is stored before the tail call and reloaded afterwards.
 %\mvle{verifier complexity or program complexity?}
 BMC suffers from verification complexity in its cache
     invalidation function, shown in Figure~\ref{fig:bmc-code}.
+\mvle{what's bad about verification complexity? does it lead to verification failure?}
 The complexity is exacerbated by introducing two additional variables to track
     the state of the key and the SET command.
 To address the verification complexity,
