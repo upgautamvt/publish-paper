@@ -155,7 +155,7 @@ To better explain our categorization, we now walk through representative example
 \subsubsection{Restructure eBPF program for verifier}
 \label{motivation:restructure}
 A big theme across the commits we found was the need to explicitly restructure eBPF programs to pass the verifier.
-We identified two main techniques for restructuring programs: splitting eBPF programs into smaller programs, and refactoring programs for complexity and expressiveness limits.
+We identified two main techniques for restructuring programs: splitting eBPF programs into smaller programs, and refactoring programs \mvle{to reduce verification} complexity and \mvle{overcome} expressiveness limits.
 We now use BMC\cite{BMC} as a representative example for this category.
 
 %\begin{enumerate}
