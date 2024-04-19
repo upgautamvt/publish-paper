@@ -5,17 +5,19 @@
 %   safety problems
 %     work on eBPF safety
 % We try to rethink about the problem
-\para{Linux eBPF} is has been actively researched in past literatures.
-Works on distributed systems and
-    networking~\cite{BMC,Electrode,DINT,Hoiland-Jorgensen:conext:2018} has
-    exploited eBPF's ability to safely bypass the expensive kernel networking
-    stack without kernel modifications and thereby optimizing
-    system performance.
-At the same time, eBPF has also seen its application in file and storage
-    systems~\cite{Zhong:osdi:2022}, bringing both efficiency and flexibility.
-Other works has explored the use case of eBPF in
-    security~\cite{jia2023,ebpf-kcfi}, where eBPF is used for program system
-    call filters and kernel control flow integrity policies.
+\para{Linux eBPF} is an active project with lots of applications
+~\cite{BMC,Electrode,DINT,Hoiland-Jorgensen:conext:2018,Zhong:osdi:2022,jia2023,ebpf-kcfi}.
+% researched in past literatures.
+%Works on distributed systems and
+%    networking~\cite{BMC,Electrode,DINT,Hoiland-Jorgensen:conext:2018} has
+%    exploited eBPF's ability to safely bypass the expensive kernel networking
+%    stack without kernel modifications and thereby optimizing
+%    system performance.
+%At the same time, eBPF has also seen its application in file and storage
+%    systems~\cite{Zhong:osdi:2022}, bringing both efficiency and flexibility.
+%Other works has explored the use case of eBPF in
+%    security~\cite{jia2023,ebpf-kcfi}, where eBPF is used for program system
+%    call filters and kernel control flow integrity policies.
 In recent years, as safety and security issues of the eBPF infrastructure begin
     to
     surface~\cite{EPF,CVE-2021-31440,CVE-2022-23222,CVE-2022-2785,
@@ -25,17 +27,17 @@ In recent years, as safety and security issues of the eBPF infrastructure begin
     verification~\cite{ebpf-jit-formal,proof-carrying-verifier},
     dynamic sandboxing~\cite{sandbpf}, and hardware protection
     mechanisms~\cite{lu2023moat,ebpf-pks}.
-\projname{} observes the fundamental \gap{} existing in the current eBPF and
-    proposes to rethink about the problem.
-It employs a safe language for extension programming to try to solve this
-    fundamental challenge.
+\projname{} identifies the fundamental \gap{} existing in the current eBPF design and
+    proposes a rethink of the problem using a safe-language to solve this challenge.
+%It employs a safe language for extension programming to try to solve this
+%    fundamental challenge.
 
 % Safety and usability of kernel extensions
 %   SPIN and VINO
 %   difference in philosophical design
 %   modern context
 \para{Safe kernel extensions}
-A large body of work exists around the theme of creating extensible operating
+A large body of work exists around the theme of creating safe extensible operating
     systems.
 SPIN \cite{spin} utilizes the type safety of Modula-3 to produce
     safe extensions that dynamically link into the kernel.
@@ -44,8 +46,13 @@ VINO \cite{vino} uses software fault isolation techniques and interposition to
     implemented.
 Similarly, SLIC \cite{slic} uses interposition as a mechanism to allow trusted
     extensions to be run with only minimal operating system changes.
+Nooks~\cite{nooks} followed in the same vein while KSplit~\cite{ksplit} attempted to
+automate the process of isolating kernel drivers by identifying and synchronizing
+shared kernel and driver state using static analysis. 
 \jinghao{I have some trouble articulating the difference in philosophical design}
-
+\mvle{my attempt}
+We leverage and extend these bodies of work by utilizing a safe language combined with
+a thin run time to achieve a safe and efficient eBPF framework.
 
 % Rust-base safety
 %   Rust-based OS
