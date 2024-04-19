@@ -518,17 +518,19 @@ All experiments are performed on the same machine that acts as the server in
     \label{tab:startup-cleanup}
 \end{table}
 
-We next show that the support for a dedicated program stack in \projname{} does
-    not incur performance overhead on program startup and exit, with the
-    runtime of an empty \projname{} staying within 1ns of the runtime of an
-    empty eBPF program.
-
+We show that the support for a dedicated program stack in \projname{} does
+    not incur performance overhead on program execution path.
+%startup and exit, with the
+%    runtime of an empty \projname{} staying within 1ns of the runtime of an
+%    empty eBPF program.
 % \projname{}'s usage of a dedicated stack for execution and the implementation
 %     of exception handling support may incur additional overhead during program
 %     startup and shutdown.
 \projname{}'s design of a dedicated program stack requires saving of the stack
-    and frame pointer and replacing them
-    with the top address of the dedicated stack before starting the program,
+    and frame pointer, setting them to the dedicated stack before starting
+    the program,
+%replacing them
+%    with the top address of the dedicated stack before starting the program,
     and restoring the saved stack and frame pointer after the program exits.
 The manipulation of the stack pointers adds six more memory instructions to
     the dispatcher function of the \projname{} programs.
@@ -668,11 +670,10 @@ Our result shows that the cleanup mechanism on non-exceptional execution adds
 %     \label{tab:cleanup-overhead}
 % \end{table}
 The safe cleanup mechanism employed by \projname{} requires recording the allocated
-    resource at runtime, which, compared to eBPF or the Itanium C++ ABI, adds
+    resource at runtime, which, compared to eBPF, adds
     extra runtime overhead.
-We therefore evaluate the runtime overhead from \projname{}'s cleanup
-    mechanism.
-For this microbenchmark, we choose to use a program that acquires and then
+We evaluate the runtime overhead from \projname{}'s cleanup
+    mechanism using a program that acquires and then
     immediately releases a BPF spinlock.
 Since the acquired spinlock is a resource that needs to be released upon Rust
     panics, \projname{}'s cleanup mechanism needs to record it in its per-CPU
@@ -680,8 +681,9 @@ Since the acquired spinlock is a resource that needs to be released upon Rust
 The program is implemented both in eBPF and \projname{} and the time used to
     acquire and release the spinlocks are measured.
 As shown in Table~\ref{tab:startup-cleanup}, the runtime difference between
-    eBPF and \projname{} is less than 2ns with \projname{} being the faster
-    one, implying the overhead of \projname{}'s cleanup mechanism is
+    eBPF and \projname{} is less than 2ns,
+% with \projname{} being the faster one, \jinghao{We have a large stdev}
+    implying the overhead of \projname{}'s cleanup mechanism is
     negligible.
 
 \para{Stack-check overhead}
@@ -702,17 +704,18 @@ Stack instrumentation is added before each
     stack usage statically.
 In this experiment, we implement a recursive program in both
     eBPF and \projname{}.
-The recursive function calls itself for a specifed number of times and contains
+The recursive function calls itself for a controlled number of times and contains
     no other code.
 Since eBPF does not natively support recursive functions, we use eBPF tail
     calls to implement the same logic.
-In \projname{}, we use the \texttt{black\_box} hint from the Rust core library
-    to prevent the compiler from optimizing away the recursive call.
+% In \projname{}, we use the \texttt{black\_box} hint from the Rust core library
+%     to prevent the compiler from optimizing away the recursive call.
 Figure~\ref{fig:eval-recursion} plots the runtime of the recursive code against
-    the depth of the call stack from 0 to 32.
-The kernel imposes a hard limit of 32 on the number of tail calls an eBPF
-    program can perform.
-Even with the stack check instrumentation in place, \projname{} is able to
+    the depth of the call stack from 0 to 32 (as eBPF cannot do more than 32
+    tail calls).
+% The kernel imposes a hard limit of 32 on the number of tail calls an eBPF
+%     program can perform.
+Even with the stack instrumentation in place, \projname{} is able to
     achieve roughly half the runtime of eBPF.
-This is likely because of the overhead of runtime checking on whether the tail
-    call limit has been reached and verification of tail call targets in eBPF.
+This is likely due to the overhead of the runtime checking on tail
+    call limit and the verification of tail call targets.
