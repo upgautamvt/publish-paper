@@ -128,20 +128,20 @@ As for the problem of API changes across kernel versions, \projname{}'s kernel
 %There is no way to fully resolve the issues of versioning in the eBPF system as
 %    each component is a constantly moving target.
 
-\para{Static memory efficiency:}
-% from eval: memory is more efficient when there are more programs defined in
-%   the same program
-% Use cases like KCFI require a lot of programs, rex's ability of pack the code
-%   together without forced code duplication is more effecient (we expect)
-As discussed in \S\ref{eval:mem-footprint}, the static memory footprint of
-    \projname{} is more efficient when more programs are defined togetherc in
-    the same project.
-Recent work has proposed use cases that require potentially a large number of
-    programs~\cite{ebpf-kcfi}, where different programs share a common, central
-    logic.
-We expect \projname{} to be more effecient in static memory footprint under
-    such conditions, given its ability of packing the program and data together
-    without forced code duplication that happens in eBPF.
+% \para{Static memory efficiency:}
+% % from eval: memory is more efficient when there are more programs defined in
+% %   the same program
+% % Use cases like KCFI require a lot of programs, rex's ability of pack the code
+% %   together without forced code duplication is more effecient (we expect)
+% As discussed in \S\ref{eval:mem-footprint}, the static memory footprint of
+%     \projname{} is more efficient when more programs are defined togetherc in
+%     the same project.
+% Recent work has proposed use cases that require potentially a large number of
+%     programs~\cite{ebpf-kcfi}, where different programs share a common, central
+%     logic.
+% We expect \projname{} to be more effecient in static memory footprint under
+%     such conditions, given its ability of packing the program and data together
+%     without forced code duplication that happens in eBPF.
 
 \para{Program nestings}
 \jinghao{TODO}
