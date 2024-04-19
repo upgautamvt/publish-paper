@@ -114,10 +114,10 @@ In addition, we included two issues raised by BMC~\cite{BMC} and Electrode~\cite
         \toprule
         \textbf{Category} & \textbf{Count} \\
         \midrule
-        Restructure eBPF program for verifier & 27 \\           % #2
-        Change source code to fix LLVM codegen & 22 \\          % #1
-        Add specific code to pass verifier & 17 \\              % #3
-        Implement kernel-version-specific fixes & 9 \\          % #4
+        Restructuring eBPF program for verifier & 27 \\           % #2
+        Changing source code to fix LLVM codegen & 22 \\          % #1
+        Adding specific code to pass verifier & 17 \\              % #3
+        Implementing kernel-version-specific fixes & 9 \\          % #4
         %Add "pruning checkpoints" to reduce complexity & 7 \\   % #5
         % Move to section restructure bpf program for verifier
         % moved to #2 Refactor code because of lack of expressiveness & 2 \\
@@ -178,7 +178,7 @@ compiler toolchain.
 %% \subsection{Category Representative Examples}
 %% To better explain our categorization, we now walk through representative examples for each category.
 
-\subsubsection{Restructure eBPF program for verifier}
+\subsubsection{Restructuring eBPF program for verifier}
 \label{motivation:restructure}
 The most common workaround we found was the need to explicitly restructure eBPF programs.
 Developers employed this workaround to prevent 
@@ -186,7 +186,8 @@ the verifier from conservatively rejecting programs due to exceeding its interna
 on the number of bytecode instructions that it can analyze.
 We identified two main techniques for restructuring programs: splitting eBPF programs into smaller programs, and refactoring programs to reduce verification complexity---the number of
 paths the verifier must consider---and overcome expressiveness limits.
-While we found 27 instances of this workaround, we use BMC\cite{BMC} as a representative example for this category.
+While we found 27 instances of this workaround, we use BMC\cite{BMC} as a representative example.
+
 
 %\begin{enumerate}
 %    \item Split eBPF programs into smaller subprograms
@@ -353,7 +354,7 @@ The fixes implemented are not immediately apparent or trivial to implement, as
 %     \vspace{-10pt}
 % \end{figure}
 
-\subsubsection{Change Source Code to Fix LLVM Codegen}
+\subsubsection{Changing Source Code to Fix LLVM Codegen}
 \label{motivation:llvm-codegen}
 The LLVM compiler translates eBPF programs written in high-level languages into eBPF bytecode.
 We found that in certain cases, LLVM would generate eBPF bytecode that would cause the program to fail verification.
