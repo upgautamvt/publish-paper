@@ -24,13 +24,13 @@ max_val = max(*vanilla, *bpf, *rust) / 1000000
 bmc_results = {
     'MemcachedSR': np.array(vanilla) / 1000000,
     'eBPF-BMC': np.array(bpf) / 1000000,
-    'REX-BMC': np.array(rust) / 1000000,
+    'Rex-BMC': np.array(rust) / 1000000,
 }
 
 bmc_results_stdev = {
     'MemcachedSR': np.array(vanilla_stdev) / 1000000,
     'eBPF-BMC': np.array(bpf_stdev) / 1000000,
-    'REX-BMC': np.array(rust_stdev) / 1000000,
+    'Rex-BMC': np.array(rust_stdev) / 1000000,
 }
 
 with plt.style.context('seaborn-v0_8-paper'):
