@@ -77,7 +77,7 @@
 In this section, we evaluate the usability as well as performance guided by the
     following questions:
 \begin{enumerate}
-    \item How does \projname{} provides better usability than eBPF and solve the
+    \item How does \projname{} provide better usability than eBPF and solve the
         verifier problems?
     \item Does the enhanced usability come at a cost of performance, especially
         for real world performance-sensitive programs?
@@ -579,7 +579,7 @@ The eBPF verifier can inline the eBPF map lookup
 %     map types that support lookup inlining.
 However, in \projname{}, inlining is not performed due to the absence of the
     eBPF verifier. % as well as kernel internal information (e.g. map addresses).
-At the same time, the \projname{} also implements extra wrapping code to let
+At the same time, \projname{} also implements extra wrapping code to let
     extensions access the helpers safely.
 In this experiement we evaluate the performance of map lookup helper functions.
 
