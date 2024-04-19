@@ -180,9 +180,13 @@ compiler toolchain.
 
 \subsubsection{Restructure eBPF program for verifier}
 \label{motivation:restructure}
-A big theme across the commits we found was the need to explicitly restructure eBPF programs to pass the verifier.
-We identified two main techniques for restructuring programs: splitting eBPF programs into smaller programs, and refactoring programs to reduce verification complexity and overcome expressiveness limits.
-We now use BMC\cite{BMC} as a representative example for this category.
+The most common workaround we found was the need to explicitly restructure eBPF programs.
+Developers employed this workaround to prevent 
+the verifier from conservatively rejecting programs due to exceeding its internal limits
+on the number of bytecode instructions that it can analyze.
+We identified two main techniques for restructuring programs: splitting eBPF programs into smaller programs, and refactoring programs to reduce verification complexity---the number of
+paths the verifier must consider---and overcome expressiveness limits.
+While we found 27 instances of this workaround, we use BMC\cite{BMC} as a representative example for this category.
 
 %\begin{enumerate}
 %    \item Split eBPF programs into smaller subprograms
@@ -252,7 +256,7 @@ We now use BMC\cite{BMC} as a representative example for this category.
 %\end{figure}
 %% TODO: End Comment
 
-\noindent\textbf{BMC Example}:
+%\noindent\textbf{BMC Example}:
 %BMC had to split eBPF programs into smaller subprograms, and refactor code for verification complexity 
 %    in order to immplement 
 %Both of these verifier fixes were needed to implement BMC, an in-kernel cache for Memcached
@@ -261,37 +265,43 @@ We now use BMC\cite{BMC} as a representative example for this category.
 %    accelerate the processing of GET requests to the Memcached server.
 % The map that serves as the cache is managed by eBPF programs, which implements
 %     the lookup and update logics.impl:ctx-converison
-
-Implementation-wise, BMC is much more complicated
-    compared to other common eBPF use cases.
-In order to pass the verifier, it has to be split into seven
-    eBPF programs that use eBPF tail calls to transfer control to each other. 
-%    to reduce verification complexity.
-Ideally, only two eBPF programs are required, one at ingress and one at egress.
-Unfortunately, splitting eBPF programs for the verifier leaves program fragments 
+%\paragraph{BMC}
+BMC is a recent system that accelerates memcached through use of kernel extensions.
+Although only two eBPF programs are logically required for BMC, one at ingress and one at egress,
+the authors had to split the extensions into seven
+    eBPF programs that use eBPF tail calls to transfer control to each other
+    to reduce verification complexity.
+This created unnecessary challenges for BMC's implementation: unfortunately, splitting their eBPF programs left program fragments 
     that are not self-contained and
     BMC sometimes has to pass computation states across tail calls, by using a map.
 %BMC utilizes a map to pass current computation state across tail calls.
 %This is because tail-called eBPF programs can only take the regular eBPF
  %   context as arguments.
-The computation state is stored before the tail call and reloaded afterwards.
+    The computation state is stored before the tail call and reloaded afterwards.
 
 %A similar problem also presents when processing the incoming packet data, where
 %    the authors had to bound data size to simplify verification of loops.
 %\mvle{verifier complexity or program complexity?}
-BMC suffers from verification complexity in its cache invalidation function,
-    as examplified by its cache invalidation logic. % shown in Figure~\ref{fig:bmc-code}.
-\mvle{what's bad about verification complexity? does it lead to verification failure?}
-The complexity is exacerbated by introducing two additional variables to track
-    the state of the key and the SET command.
-To address the verification complexity,
-    the cache invalidation code employs \texttt{for} loops with cumbersome
-    condition checks, and is further complicated by the nesting of multiple
-    \texttt{if} statements.
-Without these checks, the program produces an excessive number of jump instructions,
-    leading to verification failure.
-We discuss this in more depth in our case study for BMC
-    (\S\ref{eval:bmc-case-study}).
+BMC also suffers from verification complexity %in its cache invalidation function,
+as exemplified by its cache invalidation function,
+which examines an incoming packet to detect a SET commands and, if so,
+searches for keys to invalidate in its cache.
+A na\"ive implementation of this extension program
+produces an excessive number of jump instructions and possible paths to verify,
+leading to the verifier to reject it.
+% shown in Figure~\ref{fig:bmc-code}.
+%\mvle{what's bad about verification complexity? does it lead to verification failure?}
+To limit the verification complexity, the developers introduced two additional variables to
+explicitly track 
+the state of the key and the SET command, allowing the verifier to prune its analysis space.
+They further
+introduced
+\texttt{for} loops with multiple
+cumbersome
+condition checks and 
+nested \texttt{if} statements.
+We revisit this example in more depth---and demonstrate our solution---in our BMC case study (\S\ref{eval:bmc-case-study}).
+
 
 % \jinghao{Let me know if removing this makes sense: ``and the end of packet''.}
 %Such complex checks are intentionally designed to pass the
@@ -327,13 +337,13 @@ We discuss this in more depth in our case study for BMC
 %\mvle{I think this BMC section can be shortened significantly as it feels all the points
 %have already been made and these are just additional examples.}
 
-Both of these techniques are required for BMC to pass the eBPF verifier, but they
-    increase the programming burden, and produce code that is more difficult
+Using these techniques the developers of BMC could successfully pass the eBPF verifier, but they
+    increase the programming burden and produce code that is more difficult
     to maintain.
 The fixes implemented are not immediately apparent or trivial to implement, as
     exemplified by the complex branch conditions, and state restoring through maps.
-Fighting with the verifier made the implementation of BMC much more difficult then
-    it needed to be because of the gap between the programmer and the verifier.
+    The language/verifier gap required developers to understand the inner workings and limitations of the verifier, making the implementation of BMC much more difficult than
+    needed.
 
 % \begin{figure}[t]
 %     \lstinputlisting[language=myC]{./snippets/s6-bmc.c}
