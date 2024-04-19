@@ -87,11 +87,20 @@ by compiling extensions to a bytecode representation that is checked
 at extension load time by an in-kernel verifier.  This workflow is
 shown in Figure~\ref{fig:ebpf}.\djw{pretty stock bpf figure needed}
 
+\begin{figure}
+    \includegraphics[width=1.0\linewidth]{figs/bpf_intro.pdf}
+    \centering
+    \vspace{-10pt}
+    \caption{Overview of eBPF}
+    \label{fig:ebpf}
+    \vspace{-10pt}
+\end{figure}
+
 The safety properties checked by the eBPF verifier are generally
 related to avoiding kernel crashes or hangs.  In eBPF, the verifier
 uses a form of symbolic execution on the bytecode to examine all
 possible executions and interactions with the kernel through {\em
-  helper functions} and ensure safety.  We characterize these verifier
+  helper functions} \milo{This makes it seem like the helper function safety is checked much more than it is} and ensure safety.  We characterize these verifier
 checks as ensuring the following conceptual properties of the
 extension: \djw{this needs to match the list in 4}
 \begin{itemize}
@@ -100,7 +109,7 @@ extension: \djw{this needs to match the list in 4}
   interfaces, (e.g., helper functions).  This prevents kernel crashes
   through NULL pointer dereference or corruption of kernel data
   structures.
-\item {\bf Type Safety:} When accessing data on memory, the extension must use
+\item {\bf Type Safety:} When accessing data in memory, the extension must use
   the correct type of the data. This helps avoid misinterpretation of the data
   or memory corruptions.
 % When invoking kernel interfaces, the
