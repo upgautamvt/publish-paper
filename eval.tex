@@ -731,3 +731,19 @@ Even with the stack instrumentation in place, \projname{} is able to
     achieve roughly half the runtime of eBPF.
 This is likely due to the overhead of the runtime checking on tail
     call limit and the verification of tail call targets.
+
+\subsubsection{Safety robustness in \projname{}}
+\sloppypar
+An unintended bug occurred during our implementation of Rex-BMC in the
+\texttt{bmc\_invalidate\_cache} function
+which resulted in an out-of-bounds access error.
+%Afterwards, examination of the kernel logs showed an shocking number of kernel error messages.
+%With further investigation of these log along with the code, an out-of-bounds access error
+%emerged from the \texttt{bmc\_invalidate\_cache} function.
+This mistake caused kernel panics during experimentation.
+Remarkably, even with the numerous kernel panics, the overall system stability
+    and performance were not conspicuously impacted.
+The kernel continued to function well.
+%We have run several benchmarks in this kernel which already has a lot of Rex panic
+%    and this kernel continued to function well.
+This resilience highlights a robustness in the stack unwind and panic handling mechanisms of Rex.
