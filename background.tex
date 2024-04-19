@@ -83,26 +83,30 @@ ecosystem.  Unlike the Linux kernel module framework, where modules
 are written in C and programmer errors (e.g., errant pointer
 dereferences, integer overflows) will crash the kernel, the eBPF
 framework attempts to limit the damage from extension programmer error
-by compiling extensions to a bytecode representation that is checked
-at extension load time by an in-kernel verifier.  This workflow is
-shown in Figure~\ref{fig:ebpf}.\djw{pretty stock bpf figure needed}
+by compiling extensions written in a high-level language like C or
+Rust to a bytecode representation that is checked at extension load
+time by an in-kernel verifier.  This workflow is shown in
+Figure~\ref{fig:gap}.
 
-\begin{figure}
-    \includegraphics[width=1.0\linewidth]{figs/bpf_intro.pdf}
-    \centering
-    \vspace{-10pt}
-    \caption{Overview of eBPF}
-    \label{fig:ebpf}
-    \vspace{-10pt}
-\end{figure}
+%% \begin{figure}
+%%     \includegraphics[width=1.0\linewidth]{figs/bpf_intro.pdf}
+%%     \centering
+%%     \vspace{-10pt}
+%%     \caption{Overview of eBPF}
+%%     \label{fig:ebpf}
+%%     \vspace{-10pt}
+%% \end{figure}
 
 The safety properties checked by the eBPF verifier are generally
 related to avoiding kernel crashes or hangs.  In eBPF, the verifier
 uses a form of symbolic execution on the bytecode to examine all
-possible executions and interactions with the kernel through {\em
-  helper functions} \milo{This makes it seem like the helper function safety is checked much more than it is} and ensure safety.  We characterize these verifier
+possible executions to ensure safety.  It also performs limited
+checks on the extension's
+interactions with the kernel through {\em
+  helper functions}.
+We characterize these verifier
 checks as ensuring the following conceptual properties of the
-extension: \djw{this needs to match the list in 4}
+extension:
 \begin{itemize}
 \item {\bf Memory Safety:} Extensions can only access memory that is
   provided to them through explicit context arguments or kernel
