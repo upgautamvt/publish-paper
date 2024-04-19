@@ -4,7 +4,7 @@ Extending the operating system (OS) functionality at runtime is an
     important and powerful capability.
 Modern systems provide such capability in the form of kernel extensions and
     loadable kernel modules.
-Comparing to loadable kernel modules, kernel extensions generally provides such
+Compared to loadable kernel modules, kernel extensions generally provide such
     capability in a safer and more light-weighted way.
 Kernel extension has since become an essential component of modern OSs and
     been increasingly leveraged in the domains of kernel tracing, file systems,
@@ -24,10 +24,10 @@ The core value proposition of eBPF is its promise of safety.
 This promise makes eBPF superior to loadable kernel modules, which are
     generally implemented in unsafe C code.
 The safety promise of eBPF is provided by its in-kernel verifier:
-when the program is loaded into the kernel, verifier employs a form of symbolic
+when the program is loaded into the kernel, the verifier employs a form of symbolic
     execution on the program bytecode and checks against a list of safety
     properties, including memory safety, safe kernel resource management, and
-    program termination.
+    program termination. \milo{We never mention anything about bytecode and it just shows up here}
 Programs the verifier deems unsafe would be denied from loading.
 
 % A main attractor of eBPF is its use of static verification to ensure extension safety.
@@ -44,8 +44,8 @@ Developers have to heavily massage their code - splitting the program
 Cilium~\cite{cilium} has to use hand-written eBPF bytecode in order to
     workaround the verification checks.
 The BMC~\cite{BMC} program is forced to be split into seven
-    programs, where idealy only two programs are needed, and needs to
-    incorporate additional condition checks that is irrelevant to safety and
+    programs, where ideally only two programs are needed, and needs to
+    incorporate additional condition checks that are irrelevant to safety and
     correctness.
 
 % and complexities that arise from the gap between the programmer, compiler, and verifier.
@@ -53,7 +53,7 @@ The BMC~\cite{BMC} program is forced to be split into seven
 The core of this usability problem is a huge gap between the programming
     language and eBPF verifier.
 eBPF programs are often implemented in a high-level language like C or Rust,
-    and compiled into eBPF bytecode.
+    and compiled into eBPF bytecode. \milo{Now we bring in the bytecode}
 When writing eBPF programs, developers directly interact with the high-level
     language and generally keep themselves aligned to the safety requirements
     of the language.
@@ -61,9 +61,9 @@ This is, unfortunately, not enough for eBPF programming, as the code deemed
     safe by the compiler may not be safe from the verifier's perspective.
 For example, statically unbounded loops are generally not regarded as a problem
     in high-level languages but will be rejected by the verifier because it
-    cannot reason about the termination guarrantee of programs.
-One must also know about the requirements of the eBPF verifier well in order to
-    avoid the hidden traps verifier rejection.
+    cannot reason about the termination guarantee of programs.
+One must know the requirements of the eBPF verifier well in order to
+    avoid the hidden traps that cause verifier rejection.
 
 % In this paper we present a novel extension system for the Linux kernel called \projname{}.
 % \projname{} uses a combination of the Rust compiler and dynamic mechanisms
@@ -75,7 +75,7 @@ One must also know about the requirements of the eBPF verifier well in order to
 In this paper, we make the observation that both the enhanced usability for
     developers and the needed safety properties for the kernel can be achieved
     at the same time via a safe language.
-Under such a model, safety properties from programming language and its
+Under such a model, safety properties from the programming language and its
     compiler replace that of the in-kernel verifier.
 This allows elimination of the verifier, which effectively closes the gap
     between itself and the programming language.
@@ -86,19 +86,19 @@ We present a new, Rust-based kernel extension framework: \projname{}.
 \projname{} allows developers to implement kernel extension programs in safe
     Rust, and use them in the place of eBPF programs.
 \projname{} exploits the safety promise of Rust and combines it with
-    light-weighted runtime safety checks to ensure the programs can execute
+    light-weight runtime safety checks to ensure the programs can execute
     safely in the kernel.
-Hoisting safety checks from the verifier into the compiler closes the current
-    gap existing in Linux eBPF that is the root of its usability problem.
+Hoisting safety checks from the verifier into the compiler closes the existing 
+    gap in Linux eBPF that is the root of its usability problem.
 
-\projname{} transforms the promises of Rust into safety guarrantees of
+\projname{} transforms the promises of Rust into safety guarantees of
     extension programs by implementing a kernel programming interface the
     facilitates memory safety, type safety, and proper kernel resource
     management.
 At the same time, through its light-weight runtime safety mechanism,
     \projname{} can also handle runtime stack unwinding and resource cleanup
-    upon Rust panics, as well as extension programs that uses a excessive
-    amount of kernel stack or executes for a potentially long time.
+    upon Rust panics, as well as extension programs that use an excessive
+    amount of kernel stack or execute for a potentially long time.
 
 % We use our system to reimplement the BPF Memcached Cache~\cite{BMC} and achieve
 %     comparable performance to the eBPF implementation, while avoiding the
@@ -106,7 +106,7 @@ At the same time, through its light-weight runtime safety mechanism,
 
 We evaluate \projname{} on both its usability and performance.
 We show that the enhanced usability of \projname{}, together with the rich
-    builtin functionalty from Rust, is able to solve most of the usability
+    builtin functionality from Rust, is able to solve most of the usability
     issues we found from our motivational study and greatly simplify extension
     programs.
 We implement BPF Memcached Cache (BMC)~\cite{BMC}, a complex and
