@@ -54,19 +54,19 @@ challenge~\cite{untenableVerification,ebpf-stackoverflow,ebpf-termination}.
 % Recent works like verus employs formal verification on Rust code and provides
 %   further guarrantees.
 As \projname{} kernel crate serves as an interface to the kernel for the
-    extension programs, it inevitablly employs unsafe Rust code.
+    extension programs, it inevitably employs unsafe Rust code.
 This is needed because interacting with low-level kernel code and data requires
     kernel crate to access unsafe C types and invoking kernel functions through
     the FFI interface.
 Furthermore, certain ABIs of the Linux kernel also makes unsafe code a
-    necessity -- accessing per-CPU data requires inline assmebly code as well
+    necessity -- accessing per-CPU data requires inline assembly code as well
     as direct pointer arithmetics.
 \projname{} limits all unsafe code to the kernel crate which is implemented by
     trusted and experienced maintainers.
 The extension program itself is always implemented only in safe Rust, thereby
     making the program subject to all safety checks in Rust.
 At the same time, recent work~\cite{verus} has explored formal verification
-    techniques on Rust code, which provides additional safety guarrantees
+    techniques on Rust code, which provides additional safety guarantees
     for the correctness of unsafe code beyond these provided by the compiler.
 
 \para{Dynamic memory allocation:}
@@ -90,12 +90,12 @@ The allocation API is based on the dedicated, all-context eBPF memory
 \projname{} currently does not support dynamic memory allocation.
 However, we expect it to be possible to integrate memory allocation of Rust
     with the eBPF all-context allocator, effectively granting \projname{}
-    dynamic allcations.
+    dynamic allocations.
 Dynamic allocation enhances programmability of extension programs and opens
     up more advanced use cases.
 Furthermore, dynamic allocation will also make more components of the Rust
-    standard library available, notely the collection and smart pointer types.
-With these types the extension developer no longer needes to manage memory
+    standard library available, notably the collection and smart pointer types.
+With these types the extension developer no longer needs to manage memory
     manually, as the compiler will handle the lifetime of these objects and
     drop them automatically.
 
@@ -112,7 +112,7 @@ However, the version issues differences between the compiler and verifier are no
     with in any way.
 The compiler and verifier are decoupled in their development, so there will
     always be gaps between them.
-\projname{}'s elimination of the in-kenrel verifier effectively eliminate the
+\projname{}'s elimination of the in-kernel verifier effectively eliminate the
     mismatch issue between the compiler and the verifier.
 As for the problem of API changes across kernel versions, \projname{}'s kernel
     crate does not contain any kernel-version-specific code.
