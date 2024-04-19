@@ -181,7 +181,7 @@ compiler toolchain.
 \subsubsection{Restructuring eBPF program for verifier}
 \label{motivation:restructure}
 The most common workaround we found was the need to explicitly restructure eBPF programs.
-Developers employed this workaround to prevent 
+Developers employed this workaround to prevent
 the verifier from conservatively rejecting programs due to exceeding its internal limits
 on the number of bytecode instructions that it can analyze.
 We identified two main techniques for restructuring programs: splitting eBPF programs into smaller programs, and refactoring programs to reduce verification complexity---the number of
@@ -258,8 +258,8 @@ While we found 27 instances of this workaround, we use BMC\cite{BMC} as a repres
 %% TODO: End Comment
 
 %\noindent\textbf{BMC Example}:
-%BMC had to split eBPF programs into smaller subprograms, and refactor code for verification complexity 
-%    in order to immplement 
+%BMC had to split eBPF programs into smaller subprograms, and refactor code for verification complexity
+%    in order to immplement
 %Both of these verifier fixes were needed to implement BMC, an in-kernel cache for Memcached
 %    based on eBPF.
 %BMC stores recently queried key-value pairs in an eBPF map (i.e. the cache) to
@@ -272,7 +272,7 @@ Although only two eBPF programs are logically required for BMC, one at ingress a
 the authors had to split the extensions into seven
     eBPF programs that use eBPF tail calls to transfer control to each other
     to reduce verification complexity.
-This created unnecessary challenges for BMC's implementation: unfortunately, splitting their eBPF programs left program fragments 
+This created unnecessary challenges for BMC's implementation: unfortunately, splitting their eBPF programs left program fragments
     that are not self-contained and
     BMC sometimes has to pass computation states across tail calls, by using a map.
 %BMC utilizes a map to pass current computation state across tail calls.
@@ -293,13 +293,13 @@ leading to the verifier to reject it.
 % shown in Figure~\ref{fig:bmc-code}.
 %\mvle{what's bad about verification complexity? does it lead to verification failure?}
 To limit the verification complexity, the developers introduced two additional variables to
-explicitly track 
+explicitly track
 the state of the key and the SET command, allowing the verifier to prune its analysis space.
 They further
 introduced
 \texttt{for} loops with multiple
 cumbersome
-condition checks and 
+condition checks and
 nested \texttt{if} statements.
 We revisit this example in more depth---and demonstrate our solution---in our BMC case study (\S\ref{eval:bmc-case-study}).
 
@@ -359,7 +359,8 @@ The fixes implemented are not immediately apparent or trivial to implement, as
 The LLVM compiler translates eBPF programs written in high-level languages into eBPF bytecode.
 We found that in certain cases, LLVM would generate eBPF bytecode that would cause the program to fail verification.
 One issue found by Cilium was that LLVM may generate 32-bit assignments for
-    accessing the \texttt{ctx->data}, \texttt{ctx->data\_end}, and \texttt{ctx->data\_meta} fields.
+    access to the \texttt{data}, \texttt{data\_end}, and \texttt{data\_meta}
+    fields in the program argument.
 The LLVM compiler thought that the \texttt{data} fields were 32-bit values rather than 64-bit pointers as
     a result of the information hiding technique that
     eBPF employs.
