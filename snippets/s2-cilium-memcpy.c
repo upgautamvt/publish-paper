@@ -11,9 +11,7 @@ case 92: __it_mob(d, s, 32); goto jmp_88;
 case 84: __it_mob(d, s, 32); goto jmp_80;
 ...
   break;
-case 90: __it_mob(d, s, 16); goto jmp_88;
-case 82: __it_mob(d, s, 16); goto jmp_80;
-...
-  break;
 case  1: __it_mob(d, s, 8);
   break;
+...
+}
