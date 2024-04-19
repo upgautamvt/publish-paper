@@ -48,7 +48,7 @@ with plt.style.context("seaborn-v0_8-paper"):
     # NOTE: don't change
     fig, ax = plt.subplots(layout="tight")
     # fig.set_size_inches(8, 4.8) # for slides
-    fig.set_size_inches(4.5, 2.7)
+    fig.set_size_inches(4.5, 2)
 
     # for setup, time_consume in recursive_results.items():
         # offset = width * multiplier
