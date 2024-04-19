@@ -41,7 +41,7 @@ with plt.style.context('seaborn-v0_8-paper'):
 
     fig, ax = plt.subplots(layout='tight')
     # fig.set_size_inches(8, 4.8) # for slides
-    fig.set_size_inches(4.5, 2.7)
+    fig.set_size_inches(4.5, 2)
 
     for setup, throughput in bmc_results.items():
         offset = width * multiplier
@@ -51,7 +51,7 @@ with plt.style.context('seaborn-v0_8-paper'):
         multiplier += 1
 
     y_min, y_max = ax.get_ylim()
-    ax.set_ylim(y_min, y_max * 1.12)
+    ax.set_ylim(y_min, y_max * 1.24)
     y = np.arange(y_min, y_max, 0.2)
 
     # Add some text for labels, title and custom x-axis tick labels, etc.
