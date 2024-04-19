@@ -10,11 +10,12 @@ The kernel crate uses a mixture of safe and unsafe Rust to implement the safe
     interface for \projname{} programs to interact with the kernel.
 This interface contains the helper function interface, the kernel data type
     bindings, the wrapper type for program argument, and .
+    \milo{Missing portion?}
 
 \para{Helper function interface:}
 \projname{} implements its helper interface on top of the kernel helpers, with
     wrapping code that allows programs to invoke helpers with safe Rust types.
-Doing so come at a cost of losing the load time optimization (e.g. inlining) on
+Doing so comes at a cost of losing the load time optimization (e.g. inlining) on
     certain helpers by the eBPF verfier, which we further evaluate in
     \S\ref{eval:inline}.
 
@@ -53,7 +54,7 @@ The \projname{} runtime environment in the kernel consists of the stack
 \label{impl:compiler}
 \projname{} employs a compiler pass to handle the \projname{}-specific
     compile time instrumentations on the stack (\S\ref{principle:stack}).
-We take the advantage of Rust's use of LLVM~\cite{llvm} as its default code
+We take advantage of Rust's use of LLVM~\cite{llvm} as its default code
     generation backend and implement the needed pass in LLVM.
 A \projname{}-specific compiler switch is also added to the Rust compiler
     frontend (\emph{rustc}~\cite{rustc}) to gate the \projname{} compiler pass.
