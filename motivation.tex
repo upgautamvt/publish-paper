@@ -155,7 +155,7 @@ To better explain our categorization, we now walk through representative example
 \subsubsection{Restructure eBPF program for verifier}
 \label{motivation:restructure}
 A big theme across the commits we found was the need to explicitly restructure eBPF programs to pass the verifier.
-We identified two main techniques for restructuring programs: splitting eBPF programs into smaller programs, and refactoring programs \mvle{to reduce verification} complexity and \mvle{overcome} expressiveness limits.
+We identified two main techniques for restructuring programs: splitting eBPF programs into smaller programs, and refactoring programs to reduce verification complexity and overcome expressiveness limits.
 We now use BMC\cite{BMC} as a representative example for this category.
 
 %\begin{enumerate}
@@ -227,8 +227,10 @@ We now use BMC\cite{BMC} as a representative example for this category.
 %% TODO: End Comment
 
 \noindent\textbf{BMC Example}:
-Both of these verifier fixes were needed to implement BMC, an in-kernel cache for Memcached
-    based on eBPF.
+%BMC had to split eBPF programs into smaller subprograms, and refactor code for verification complexity 
+%    in order to immplement 
+%Both of these verifier fixes were needed to implement BMC, an in-kernel cache for Memcached
+%    based on eBPF.
 %BMC stores recently queried key-value pairs in an eBPF map (i.e. the cache) to
 %    accelerate the processing of GET requests to the Memcached server.
 % The map that serves as the cache is managed by eBPF programs, which implements
@@ -237,12 +239,13 @@ Both of these verifier fixes were needed to implement BMC, an in-kernel cache fo
 Implementation-wise, BMC is much more complicated
     compared to other common eBPF use cases.
 In order to pass the verifier, it has to be split into seven
-    eBPF programs that use eBPF tail calls to transfer control to each other to
-    reduce verification complexity.
+    eBPF programs that use eBPF tail calls to transfer control to each other. 
+%    to reduce verification complexity.
 Ideally, only two eBPF programs are required, one at ingress and one at egress.
-Unfortunately, splitting for the verifier leaves program fragments that are not self-contained and
-    BMC sometimes has to pass computation states across tail calls.
-BMC utilizes a map to pass current computation state across tail calls.
+Unfortunately, splitting eBPF programs for the verifier leaves program fragments 
+    that are not self-contained and
+    BMC sometimes has to pass computation states across tail calls, by using a map.
+%BMC utilizes a map to pass current computation state across tail calls.
 %This is because tail-called eBPF programs can only take the regular eBPF
  %   context as arguments.
 The computation state is stored before the tail call and reloaded afterwards.
@@ -319,7 +322,7 @@ Fighting with the verifier made the implementation of BMC much more difficult th
 The LLVM compiler translates eBPF programs written in high-level languages into eBPF bytecode.
 We found that in certain cases, LLVM would generate eBPF bytecode that would cause the program to fail verification.
 One issue found by Cilium was that LLVM may generate 32-bit assignments for
-    accessing \texttt{ctx->data}, \texttt{ctx->data\_end}, \texttt{ctx->data\_meta} fields.
+    accessing the \texttt{ctx->data}, \texttt{ctx->data\_end}, and \texttt{ctx->data\_meta} fields.
 The LLVM compiler thought that the \texttt{data} fields were 32-bit values rather than 64-bit pointers as
     a result of the information hiding technique that
     eBPF employs.
@@ -328,8 +331,8 @@ The kernel exports a limited context interface to extension programs that is the
 %    the fields that they may need, and at verification time all accesses to
 %    these fields are rewritten by the verifier to the actual kernel-internal
 %    data structure.
-The \texttt{data} field is defined as a 32-bit integer in the exported interface and
-    the LLVM compiler does not know that this gets rewritten by the verifier into a 64-bit pointer.
+The above fields are defined as 32-bit integers in the exported interface and
+    the LLVM compiler does not know that this gets rewritten by the verifier into 64-bit pointers.
 
 %Since the \texttt{data} field is defined as a 32-bit integer in the dummy
 %    interface the kernel exports, the compiler, which does not see the
@@ -343,8 +346,8 @@ The \texttt{data} field is defined as a 32-bit integer in the exported interface
 
 %The \texttt{data} field is
 
-To fix the problem, Cilium implemented the access using inline assembly code. %shown in Figure~\ref{fig:inline-asm}.
-LLVM does not generate the problematic 32-bit assignments as an optimization because it cannot optimize the
+To fix the problem, Cilium implemented access to \texttt{data} fields using inline assembly code. %shown in Figure~\ref{fig:inline-asm}.
+LLVM no longer generates the problematic 32-bit assignments as an optimization because it cannot optimize the
     inlined assembly.
 The verifier can then treat the register as a packet pointer, rather than a scalar.
 %\jinghao{It is actually not too clear how this fixes the problem -- for
@@ -357,7 +360,7 @@ Other commits use the \texttt{volatile} to prevent LLVM from performing other op
 
 These workarounds allow the eBPF program to pass the verifier.
 It is clear that they expose usability issues of the verifier.
-The LLVM compiler is unaware of what the verifier checks and what the verifier does to extension programs.
+The LLVM compiler is unaware of what the verifier checks and any modifications the verifier does to extension programs.
 Programmers must then know low level details about the eBPF system and LLVM bytecode generation in order to fix verifier issues for safe programs.
 
 
@@ -391,7 +394,7 @@ Another common fix for verifier complaints involves adding specific code to plea
 \noindent\textbf{Inlining Functions to Pass Verifier}:
 The verifier can lose track of information depending on how eBPF programs are structured.
 One fix for this is to inline functions for implementing functionality.
-It is not always clear what code needs to be made into a inlined function for the verifier
+It is not always clear what code needs to be made into an inlined function for the verifier
     which makes eBPF less usable.
 
 \begin{figure}
@@ -426,7 +429,7 @@ It is not always clear what code needs to be made into a inlined function for th
 For example, in Cilium, code that performed policy checks used goto statements to prevent code duplication.
 As seen in Figure~\ref{fig:inline-fig} the \texttt{policy} variable could be used to refer to \texttt{policy} or \texttt{l4policy} before jumping to the checking logic.
 This caused the verifier to reject the program because it lost track of what the \texttt{policy} variable referred to.
-The developers fixed this by converting the policy check logic from a labeled block of code, to an inline function.
+The developers fixed this by converting the policy check logic from a labeled block of code reached by a \texttt{goto}, to an inline function.
 The original structure of the code before was valid and correct, but it failed to pass the verifier.
 %In response to this, the developers had to figure out a workaround to make their valid code pass.
 
@@ -451,7 +454,7 @@ We found an example in Cilium where the developer needed to explicitly teach the
 The verifier lost track of the value of \texttt{nh\_params.nh\_family}, which caused it to reject the program.
 In Figure~\ref{fig:teach-verifier}, we can see that the developers needed to slightly change the code in order to ensure the verifier knew what the value was.
 The original code was fully safe, but the verifier rejected it.
-The required fix is also counter-intuitive, which makes it less usable.
+The required fix is unintuitive, which makes it less usable.
 
 \begin{figure}
     \lstinputlisting[language=myC]{./snippets/s2-teach.c}
@@ -475,7 +478,7 @@ From these examples it is clear that programmers need to add code to their
     eBPF extensions to please the verifier.
 The needed code is nontrivial, and the programmer receives little help from the verifier to track down
     the problem.
-The compiler provides no help at all, as it has no notion of the constraints of the verifier.
+The compiler provides no help at all, due to the \gap{}.
 %\begin{figure}
 %    \begin{lstlisting}[language=rust]
 %#[no_mangle]
@@ -505,8 +508,9 @@ Different kernel versions may have different versions of the eBPF verifier, each
 To maintain compatibility between these versions, developers have to change code to account for the differences.
 A good example of this is found in Cilium.
 %The verifier failed the program with the message shown in Figure~\ref{fig:kernel-version}.
-The verifier failed a program because it saw an invalid access of a context pointer.
-This specific scenario is a known verifier bug that has been fixed, but the fix is not present in all kernel versions.
+The verifier rejected a program because it saw an invalid access of a context pointer, even though
+    it was a valid access.
+The specific scenario is an instance of a known verifier bug that has been fixed, but the fix is not present in all kernel versions.
 Cilium developers had to implement a simple, but precise fix to ensure that the program would verify on all extensions.
 As shown in Figure~\ref{fig:kernel-version-code} the fix needed was to move line 7 to line 1 before the block of code.
 Version mismatches make eBPF much harder to use as they are decoupled.
@@ -557,8 +561,8 @@ We discuss this further in \S\ref{discussion:versions}.
 
 
 \subsection{Analysis Takeaways}
-From our analysis, we believe that there are serious usability challenges to the
-    existing eBPF system that stem from the gap between programmer and verifier.
+From our analysis, we believe that there are serious usability challenges in the
+    existing eBPF system that stem from a large \gap{}. %gap between programmer and verifier.
 The categories of verifier workaround that we found are direct indicators of this problem.
 eBPF programmers have to implement arcane fixes and change their mental model of
     programming to meet the constraints of the verifier without any compiler assistance.
