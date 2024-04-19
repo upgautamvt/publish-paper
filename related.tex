@@ -48,11 +48,12 @@ Similarly, SLIC \cite{slic} uses interposition as a mechanism to allow trusted
     extensions to be run with only minimal operating system changes.
 Nooks~\cite{nooks} followed in the same vein while KSplit~\cite{ksplit} attempted to
 automate the process of isolating kernel drivers by identifying and synchronizing
-shared kernel and driver state using static analysis. 
-\jinghao{I have some trouble articulating the difference in philosophical design}
-\mvle{my attempt}
+shared kernel and driver state using static analysis.
+% \jinghao{I have some trouble articulating the difference in philosophical design}
+% \mvle{my attempt}
+\jinghao{It seems that nooks and ksplit does not belong here.}
 We leverage and extend these bodies of work by utilizing a safe language combined with
-a thin run time to achieve a safe and efficient eBPF framework.
+a thin run time to achieve a safe and efficient kernel extension framework.
 
 % Rust-base safety
 %   Rust-based OS
