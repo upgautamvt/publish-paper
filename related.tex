@@ -1,26 +1,90 @@
 \section{Related Work}
-\subsection{Rust-based system}
-\begin{itemize}
-    \item Theseus
-    \item Redleaf
-    \item Evolving Operating Systems Towards Secure Kernel-Driver Interfaces
-    \item Michael Swift works
-    \item Leveraging Rust for Lightweight OS Correctness
-    \item Cross-Language Attacks from NDSS 2022
-\end{itemize}
+
+% eBPF
+%   eBPF for X papers
+%   safety problems
+%     work on eBPF safety
+% We try to rethink about the problem
+\para{Linux eBPF} is has been actively researched in past literatures.
+Works on distributed systems and
+    networking~\cite{BMC,Electrode,DINT,Hoiland-Jorgensen:conext:2018} has
+    exploited eBPF's ability to safely bypass the expensive kernel networking
+    stack without kernel modifications and thereby optimizing
+    system performance.
+At the same time, eBPF has also seen its application in file and storage
+    systems~\cite{Zhong:osdi:2022}, bringing both efficiency and flexibility.
+Other works has explored the use case of eBPF in
+    security~\cite{jia2023,ebpf-kcfi}, where eBPF is used for program system
+    call filters and kernel control flow integrity policies.
+In recent years, as safety and security issues of the eBPF infrastructure begin
+    to
+    surface~\cite{EPF,CVE-2021-31440,CVE-2022-23222,CVE-2022-2785,
+        CVE-2021-29154,CVE-2021-45402},
+    more works begin to propose new ways to ensure safety and security in eBPF
+    via fuzzing~\cite{hung2023brf}, formal
+    verification~\cite{ebpf-jit-formal,proof-carrying-verifier},
+    dynamic sandboxing~\cite{sandbpf}, and hardware protection
+    mechanisms~\cite{lu2023moat,ebpf-pks}.
+\projname{} observes the fundamental \gap{} existing in the current eBPF and
+    proposes to rethink about the problem.
+It employs a safe language for extension programming to try to solve this
+    fundamental challenge.
+
+% Safety and usability of kernel extensions
+%   SPIN and VINO
+%   difference in philosophical design
+%   modern context
+\para{Safe kernel extensions}
+A large body of work exists around the theme of creating extensible operating
+    systems.
+SPIN \cite{spin} utilizes the type safety of Modula-3 to produce
+    safe extensions that dynamically link into the kernel.
+VINO \cite{vino} uses software fault isolation techniques and interposition to
+    allow for kernel functions to be replaced, or event-based extensions to be
+    implemented.
+Similarly, SLIC \cite{slic} uses interposition as a mechanism to allow trusted
+    extensions to be run with only minimal operating system changes.
+\jinghao{I have some trouble articulating the difference in philosophical design}
+
+
+% Rust-base safety
+%   Rust-based OS
+%   Linux kernel Rust support
+%   not for kernel extensions
+\para{Safe languages in OS kernels}
+Past works have also leveraged the safety of Rust or other safe languages in
+    operating system design.
+Microsoft has developed Singularity~\cite{singularity}, an OS based on the safe
+    language Sing\#.
+Redleaf~\cite{redleaf} and Theseus~\cite{theseus,theseus-kisv23} both utilizes
+    Rust as the kernel programming language, demonstrating the safety and
+    isolation benefits stemming from an intra-language design.
+Burtsev, et al.~\cite{Burtsev-hotos23}, have proposed the use of Rust to secure
+    kernel-driver interfaces.
+The use of Rust is also embraced by modern, mainstream operating system
+    kernels, with both Linux~\cite{rust-for-linux-doc} and
+    Windows~\cite{rust-for-windows} incroporting it into their codebase.
+While \projname{} also applies Rust to the kernel context, its goals is to use
+    Rust to create safe and usable kernel extensions and has to work with
+    unsafe kernel code, which differs from other works that explore an OS
+    written in safe language.
+
+% \subsection{Rust-based system}
+% \begin{itemize}
+%     \item Theseus
+%     \item Redleaf
+%     \item Evolving Operating Systems Towards Secure Kernel-Driver Interfaces
+%     \item Michael Swift works
+%     \item Leveraging Rust for Lightweight OS Correctness
+%     \item Cross-Language Attacks from NDSS 2022
+% \end{itemize}
 
 %\subsection{Other eBPF safety}
-\subsection{Unprivileged eBPF through Extra Safety}
-Other work has attempted to add additional safety to eBPF programs largely
-    to support unprivileged eBPF.
-MOAT~\cite{lu2023moat} uses hardware based Intel Memory Protection Keys
-    to isolate eBPF programs from the kernel.
-This would prevent attackers from using eBPF.
-Another system SandBPF~\cite{sandbpf} uses software fault isolation to dynamically
-    sandbox eBPF programs.
-
-\subsection{Other OS extension}
-A large body of work exists around the theme of creating extensible operating systems.
-Systems such as SPIN \cite{spin} utilize the type safety of Modula-3 to produce safe extensions that dynamically link into the kernel.
-VINO \cite{vino} uses software fault isolation techniques and interposition to allow for kernel functions to be replaced, or event-based extensions to be implemented.
-Similarly, SLIC \cite{slic} uses interposition as a mechanism to allow trusted extensions to be run with only minimal operating system changes.
+% \subsection{Unprivileged eBPF through Extra Safety}
+% Other work has attempted to add additional safety to eBPF programs largely
+%     to support unprivileged eBPF.
+% MOAT~\cite{lu2023moat} uses hardware based Intel Memory Protection Keys
+%     to isolate eBPF programs from the kernel.
+% This would prevent attackers from using eBPF.
+% Another system SandBPF~\cite{sandbpf} uses software fault isolation to dynamically
+%     sandbox eBPF programs.

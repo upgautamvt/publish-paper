@@ -5464,3 +5464,93 @@ title="{Drop in core::ops - Rust}",
 howpublished = {\url{https://doc.rust-lang.org/core/ops/trait.Drop.html}},
 note={(Accessed on 2024-04-18)},
 }
+
+@inproceedings {DINT,
+author = {Yang Zhou and Xingyu Xiang and Matthew Kiley and Sowmya Dharanipragada and Minlan Yu},
+title = {{DINT}: Fast {In-Kernel} Distributed Transactions with {eBPF}},
+booktitle = {21st USENIX Symposium on Networked Systems Design and Implementation (NSDI 24)},
+year = {2024},
+isbn = {978-1-939133-39-7},
+address = {Santa Clara, CA},
+pages = {401--417},
+url = {https://www.usenix.org/conference/nsdi24/presentation/zhou-yang},
+publisher = {USENIX Association},
+month = apr
+}
+
+@inproceedings {EPF,
+author = {Di Jin and Vaggelis Atlidakis and Vasileios P. Kemerlis},
+title = {{EPF}: Evil Packet Filter},
+booktitle = {2023 USENIX Annual Technical Conference (USENIX ATC 23)},
+year = {2023},
+isbn = {978-1-939133-35-9},
+address = {Boston, MA},
+pages = {735--751},
+url = {https://www.usenix.org/conference/atc23/presentation/jin},
+publisher = {USENIX Association},
+month = jul
+}
+
+@article{jia2023,
+  title="{Programmable System Call Security with eBPF}",
+  author={Jinghao Jia and YiFei Zhu and Dan Williams and Andrea Arcangeli and Claudio Canella and Hubertus Franke and
+    Tobin Feldman-Fitzthum and Dimitrios Skarlatos and Daniel Gruss and Tianyin Xu},
+  journal={arXiv:2302.10366},
+  year={2023},
+  month = FEB,
+}
+
+@article{hung2023brf,
+title={BRF: eBPF Runtime Fuzzer},
+author={Hsin-Wei Hung and Ardalan Amiri Sani},
+year={2023},
+journal={arXiv:2305.08782},
+month=may
+}
+
+@inproceedings{theseus-kisv23,
+author = {Ijaz, Ramla and Boos, Kevin and Zhong, Lin},
+title = {Leveraging Rust for Lightweight OS Correctness},
+year = {2023},
+isbn = {9798400704116},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/3625275.3625398},
+doi = {10.1145/3625275.3625398},
+abstract = {This paper reports our experience of providing lightweight correctness guarantees to an open-source Rust-based OS, Theseus. First, we report new developments in intralingual design that leverage Rust's type system to enforce invariants at compile time, trusting the Rust compiler. Second, we develop a hybrid proof approach that combines formal verification, type checking, and informal reasoning. By lessening the strength of correctness guarantees, this hybrid approach substantially lowers the proof burden. We share our experience of applying this approach to the memory subsystem of Theseus, demonstrate its utility, and quantify its reduced proof effort.},
+booktitle = {Proceedings of the 1st Workshop on Kernel Isolation, Safety and Verification},
+pages = {1–8},
+numpages = {8},
+location = {Koblenz, Germany},
+series = {KISV '23}
+}
+
+@inproceedings{Burtsev-hotos23,
+author = {Burtsev, Anton and Narayanan, Vikram and Huang, Yongzhe and Huang, Kaiming and Tan, Gang and Jaeger, Trent},
+title = {Evolving Operating System Kernels Towards Secure Kernel-Driver Interfaces},
+year = {2023},
+isbn = {9798400701955},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/3593856.3595914},
+doi = {10.1145/3593856.3595914},
+abstract = {Our work explores the challenge of developing secure kernel-driver interfaces designed to protect the kernel from isolated kernel extensions. We first analyze a range of possible attack vectors that exist in current isolation frameworks. Then, we suggest a new approach to building secure isolation boundaries centered around ideas that originate in safe operating systems: isolation of heaps and single ownership.},
+booktitle = {Proceedings of the 19th Workshop on Hot Topics in Operating Systems},
+pages = {166–173},
+numpages = {8},
+location = {Providence, RI, USA},
+series = {HOTOS '23}
+}
+
+@misc{rust-for-linux-doc,
+title="{Rust for Linux}",
+howpublished = {\url{https://rust-for-linux.com/}},
+note={(Accessed on 2024-04-19)},
+}
+
+@misc{rust-for-windows,
+title="{Rust for Windows, and the windows crate}",
+howpublished = {\url{https://learn.microsoft.com/en-us/windows/dev-environment/rust/rust-for-windows}},
+year={2023},
+month=aug,
+}
