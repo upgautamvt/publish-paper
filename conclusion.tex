@@ -1,1 +1,12 @@
 \section{Conclusion}
+This paper identifies the fundamental \gap{} within the current Linux eBPF
+    infrastructure that is the source of its poor usability.
+We make the observation that by using a safe language for kernel extensions and
+    remove the extra verification layer, both the desired usability and safety can be
+    achieved.
+We demonstrate this by presenting \projname{}, a Rust-based kernel extension
+    framework for the Linux kernel that leverages language-based safety from
+    Rust without a separate verfier.
+We show that \projname{} is able to solve existing usability issues
+    associated with the eBPF verifier without performance costs, facilitating
+    safe and easy-to-write kernel extensions.
