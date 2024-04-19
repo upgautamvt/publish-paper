@@ -297,7 +297,7 @@ Failing to do so will result in leakage of kernel resources such as reference
 In these situations, the eBPF verifier checks and ensures that the resource is
     released on all possible code paths to prevent leaking kernel resources.
 
-\projname{} leverages the resource-acquisition-is-initialization
+\projname{} uses the resource-acquisition-is-initialization
     (RAII)~\cite{rust-raii} pattern of Rust: for each kernel resource that
     extension programs need, \projname{} creates an RAII wrapper type that ties
     the resource with the lifetime of the wrapper object.
