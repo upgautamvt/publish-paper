@@ -87,8 +87,8 @@ To collect data, we searched through the git commit logs of Cilium~\cite{cilium}
     Katran~\cite{katran}, which are mature, widely-used eBPF projects, for instances of
     keywords: "error", "reject", "rejects", "issue", and "verifier."
 For each commit log that matched, we manually inspected and classified the commit.
-In total, we collected 216 commit messages containing the above keywords, of which we decided that 73 of them were actually about verifier complaints.
-In addition, we included two issues raised in the BMC~\cite{BMC} and Electrode~\cite{Electrode} papers as examples when appropriate.
+In total, we collected 216 commit messages containing the above keywords, of which we concluded 73 were actually about verifier complaints.
+In addition, we included two issues raised by BMC~\cite{BMC} and Electrode~\cite{Electrode}. %as examples when appropriate.
 
 %88\% of commit messages found were from the Cilium repository.
 %Cilium is a mature project that makes extensive use of eBPF as a core part of its architecture.
@@ -105,7 +105,7 @@ In addition, we included two issues raised in the BMC~\cite{BMC} and Electrode~\
 %    create larger categories that represented classes of fixes, as well as picking out
 %    common patterns that are representative.
 
-\subsection{Categorization Overview}
+\subsection{Categorizing Verifier Workarounds}
 
 \begin{table}[t]
     \small
@@ -129,15 +129,24 @@ In addition, we included two issues raised in the BMC~\cite{BMC} and Electrode~\
         % moved to #3 Add a specific implementation of a helping function & 2 \\
         \bottomrule
     \end{tabular}
-    \caption{Table of common verifier fixes} %\mvle{we should rename these categories. These don't sound like verifier problems but actions done to overcome verfier issues.} \milo{These were meant to be fixes not problems, but the table title was a hold-over from before}}
+    \caption{Table of common verifier workarounds} %\mvle{we should rename these categories. These don't sound like verifier problems but actions done to overcome verfier issues.} \milo{These were meant to be fixes not problems, but the table title was a hold-over from before}}
     \vspace{-20pt}
     \label{fig:commit-table}
 \end{table}
 
-Our analysis classifies the commits into four categories.
-Each category represents a class of techniques that developers used to make their programs pass the verifier.
-Table~\ref{fig:commit-table} summarizes the results of our analysis.
+While the verifier is intended to reject programs that are unsafe, all
+of the programs mentioned in the commits we examined were rejected by
+the verifier because it was overly conservative in how it checked the
+program.  When the verifier rejects a safe program, the developer must
+find a {\em workaround}, or utilize a technique to convince the
+verifier that the program actually is safe.  We classify the commits
+into four common categories of developer workarounds, summarized in
+Table~\ref{fig:commit-table}.  As we describe further below, these
+workarounds require the programmer to possess deep knowledge of not
+just the verifier internals, but also the inner workings of the
+compiler toolchain.
 
+%make their programs pass the verifier.
 %\jinghao{
 %Some comments on the table: it is not immediately clear on what exactly
 %    the developers are doing for some of the categories, especially the last
@@ -147,24 +156,27 @@ Table~\ref{fig:commit-table} summarizes the results of our analysis.
 %    ``Refactor code to reduce complexity''.
 %We should be clear whether the categories are overlapping.
 %}
+%% The composition of the categories makes it clear that developers have to change their code in particular ways to get it to pass the verifier.
+%% It also demonstrates how difficult it can be to reason about the results of the verifier.
+%
 
-The composition of the categories makes it clear that developers have to change their code in particular ways to get it to pass the verifier.
-It also demonstrates how difficult it can be to reason about the results of the verifier.
 
-There are two basic reasons an eBPF program can fail to verify. %for several reasons.
-The first reason is when the program is unsafe, and the verifier correctly rejects it.
-The second reason is when a program is actually safe but the verifier is overly conservative
-in how it checks the program, and thus rejects it.
-When the verifier rejects a safe program, it is up to the developer to find a way to show the verifier that the program actually is safe.
-Each of the commits we categorized captured cases where the original code was safe, but the
-    verifier rejected it.
-The classes of solution employed are different ways that developers use to make sure the verifier accepts their programs.
+
+
+%% There are two basic reasons an eBPF program can fail to verify. %for several reasons.
+%% The first reason is when the program is unsafe, and the verifier correctly rejects it.
+%% The second reason is when a program is actually safe but the verifier is overly conservative
+%% in how it checks the program, and thus rejects it.
+%% When the verifier rejects a safe program, it is up to the developer to find a way to show the verifier that the program actually is safe.
+%% Each of the commits we categorized captured cases where the original code was safe, but the
+%%     verifier rejected it.
+%% The classes of solution employed are different ways that developers use to make sure the verifier accepts their programs.
 %\jinghao{This paragraph is reptitative given the preamable, I think what is
 %    missing here is an overview of the finding from our study (i.e. beef up the
 %    previous paragraph)}
 
-\subsection{Category Representative Examples}
-To better explain our categorization, we now walk through representative examples for each category.
+%% \subsection{Category Representative Examples}
+%% To better explain our categorization, we now walk through representative examples for each category.
 
 \subsubsection{Restructure eBPF program for verifier}
 \label{motivation:restructure}
