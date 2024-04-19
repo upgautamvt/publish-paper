@@ -34,7 +34,7 @@ max_val = max(*sorted_bpf, *sorted_rust)
 
 recursive_results = {
     "eBPF tail call": (sorted_bpf, '.-'),
-    "REX recursive fn call": (sorted_rust, 's-'),
+    "Rex recursive fn call": (sorted_rust, 's-'),
 }
 
 
@@ -54,7 +54,7 @@ with plt.style.context("seaborn-v0_8-paper"):
         # offset = width * multiplier
         # NOTE: change to plot
     ax.plot(sorted_keys, sorted_bpf, label="eBPF tail call", marker='o', mew=0.1, markersize=4)
-    ax.plot(sorted_keys, sorted_rust, label="REX recursive fn call", marker='^', mew=0.1, markersize=4)
+    ax.plot(sorted_keys, sorted_rust, label="Rex recursive fn call", marker='^', mew=0.1, markersize=4)
         # print("time_consume")
         # multiplier += 1
 
