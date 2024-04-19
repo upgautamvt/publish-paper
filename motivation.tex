@@ -1,4 +1,4 @@
-\section{The eBPF Programmer Gap}
+\section{The Language/Verifier Gap}
 \label{sec:motivation}
 
 \begin{figure}
@@ -13,29 +13,33 @@
 
 While eBPF verification is important for program safety, the eBPF verifier
     places additional constraints on programs, which results in usability challenges.
-The core of the problem is a large gap between the programmer and the
-    verifier.
-Typical eBPF development involves implementing programs in a high-level
+As shown in Figure~\ref{fig:gap},
+the core of the problem is a gap between the expectations of the programmer, formalized by the
+programming language, and the verifier.  We refer to this gap as the {\em language/verifier} gap.
+    Typical eBPF development involves implementing programs in a high-level
     programming language (e.g., C, Rust) and compiling to eBPF bytecode.
-Developers agree to a contract with the high-level language, which is
+Developers agree to a contract with the high-level language (e.g., code has property $p$), which is
     enforced by the compiler.
 When a program fails to compile, the developer will get a message with
     hints about where they violated
     the contract with the programming language.
-If, however, a program fails to pass the verifier it is harder for the programmer
-    to understand why the program failed and how to fix it because the compiler
-    and verifier do not pass information about program safety to each other.
+    If, however, a program fails to pass the verifier (e.g., code lacks property $q$, which was not
+    part of the contract),
+    it is difficult for the programmer
+    to understand why the program failed despite obeying the contract.
+    %% and how to fix it because the compiler
+    %% and verifier do not pass information about program safety to each other.
 %\mvle{not clear why it is hard for the programmer to understand verification failure messages.
 %Is it because what is being verified is not the same program being written and not the
 %same semantics being checked at the higher-level language?}
 
-In order to quantify the impact of this gap,
-    we analyzed commit messages from popular eBPF projects to see how programmers fix
-    eBPF programs that fail to verify.
-From the commit messages, we created a set of categories of fixes.
-In the rest of this section we will describe our methodology and categorization, walk through some illustrative examples, and describe the key high level takeaways.
-We find that the programmer gap as described exists, and that it makes the eBPF system less usable through the need for unintuitive programmer workarounds.
-%\milo{Reword this last sentence}
+In order to understand the impact of the language/verifier gap, specifically in terms of usability,
+we analyzed commit messages from popular eBPF projects
+addressing eBPF programs that fail to verify
+and categorized them by the
+approaches programmers resorted to in order to overcome them.
+In the rest of this section we describe our methodology and categorization, walk through some illustrative examples, and describe the key high level takeaway, namely that we find clear evidence of usability issues caused by the language/verifier gap.
+
 
 %Additionally, we describe two fundamental reasons for the programmer gap.
 %\milo{succinctly say them here.}
