@@ -199,7 +199,7 @@ It is easier for developers to upgrade the compiler than the OS kernel on the
 \label{eval:bmc-case-study}
 
 \begin{figure*}[t]
-    \includegraphics[width=1.0\linewidth]{figs/rusty-bmc.pdf}
+    \includegraphics[width=0.95\linewidth]{figs/rusty-bmc.pdf}
     \centering
     \vspace{-10pt}
     \caption{Comparison between the cache invalidation code in eBPF
@@ -500,7 +500,7 @@ All experiments are performed on the same machine that acts as the server in
 % %         for BPF, loaded and mapped pages for Rust)
 % % \end{itemize}
 
-\subsubsection{Startup overhead due to stack switching}
+\subsubsection{Stack switching overhead}
 \begin{table}[t]
     \small
     \centering
@@ -541,7 +541,8 @@ We implement an empty kprobe extension program -- both in eBPF and in
 The result is shown in Table~\ref{tab:startup-cleanup}.
 On average, the difference of runtime of invoking an empty \projname{} and eBPF
     program is less than 1ns.
-\subsubsection{Helper function overhead}
+
+\subsubsection{Map access overhead}
 \label{eval:inline}
 
 % The raw data and script used to make the graph (plot2.py)
@@ -567,30 +568,33 @@ On average, the difference of runtime of invoking an empty \projname{} and eBPF
 %             \item maps to test: array, hash (htab-lru, xsk-map?)
 %         \end{itemize}
 % \end{itemize}
-We evaluate the impact of missed optimization opportunities due to the elimination of
-    the eBPF verifier in \projname{} by looking into the eBPF map lookup
-    helpers.
-The eBPF verifier can inline the map lookup
+% We evaluate the impact of missed optimization opportunities due to the elimination of
+%     the eBPF verifier in \projname{} by looking into the eBPF map lookup
+%     helpers.
+The eBPF verifier can inline the eBPF map lookup
     helper function by replacing the call with equivalent eBPF instructions to
-    avoid additional function call and memory-accessing overheads.
+    improve performance.
+    % avoid additional function call and memory-accessing overheads.
 % This optimization can avoid two function calls and two pointer dereferences for
 %     map types that support lookup inlining.
 However, in \projname{}, inlining is not performed due to the absence of the
     eBPF verifier. % as well as kernel internal information (e.g. map addresses).
+At the same time, the \projname{} also implements extra wrapping code to let
+    extensions access the helpers safely.
+In this experiement we evaluate the performance of map lookup helper functions.
 
 %  Specifically, we look into the optimization of eBPF map lookups.
-The map lookup helpers represent a pessimistic case for \projname{} because
-    \projname{} not only misses the load time optimization but also needs more
-    wrapping code than other helpers due to its map implementation.
-In general, our experiments shows acceptable helper performance for this
-    pessimistic case.
+% The map lookup helpers represent a pessimistic case for \projname{} because
+%     \projname{} not only misses the load time optimization but also needs more
+%     wrapping code than other helpers due to its map implementation.
+% In general, our experiments shows acceptable helper performance for this
+%     pessimistic case.
 % We found that the missed optimization slows down the helper call by around 30ns
 %     and the safe wrapping code adds another 45ns, which is acceptable for a
 %     pessimistic case.
 
-
 We measure the runtime of eBPF map lookups for eBPF with and without inlining,
-    as well as \projname{}.
+    as well as for \projname{}.
 % Our test program for both eBPF and \projname{} is a tracepoint program that
 %     uses the \texttt{bpf\_ktime\_get\_ns} helper to measure the runtime of
 %     a \texttt{bpf\_map\_lookup\_elem} call.
@@ -598,14 +602,17 @@ We measure the runtime of eBPF map lookups for eBPF with and without inlining,
 %     eBPF verifier when possible.
 The setup of eBPF without inlining is achieved by removing the inlining logic
     from the eBPF verifier.
+We experiment on three types of maps: array maps, hash maps, and static
+    variables (implicitly converted to a map in eBPF).
+In \projname{}, we use a static Rust atomic variable as the counterpart of the
+    static variable map in eBPF.
 % We select two commonly-used eBPF map types for this experiment: array maps
 %     and hash maps, and both of them support lookup inlining.
-
 % Figure~\ref{fig:eval-inline}
 % shows the performance of inlining and non-inlining on a vanilla
 % v5.15 kernel as well as the \projname{} implementation.
-Figure~\ref{fig:eval-inline} shows the performance of map lookups on array map,
-    hash map, and static variable in eBPF and \projname{}.
+Figure~\ref{fig:eval-inline} shows the performance of map lookups on different
+    maps in eBPF and \projname{}.
 % The vanilla non-inlined
 % kernel is achieved by commenting out the lines in the kernel verifier.c file that
 % automatically inlines the bpf\_map\_lookup\_elem method.
@@ -617,19 +624,24 @@ For both array maps and hash maps, the
 % The additional slowdown of 30-40 nanoseconds seen in the rust implementation
 % can be explained by the wrapping performed around the bpf\_map\_lookup\_elem method.
 An additional slowdown of 30-40 nanoseconds is present for map lookups in
-    \projname{}.
-This is because of the wrapping code around the kernel
-    map lookup helper that allows \projname{} programs to invoke
-    it using safe Rust objects.
+    \projname{}, which can be attributed to the wrapping code of \projname{}.
+% This is because of the wrapping code around the kernel
+%     map lookup helper that allows \projname{} programs to invoke
+%     it using safe Rust objects.
 Most other helper functions neither support such load time
     optimizations in eBPF nor require the amount of wrapping code as in
     map helpers.
 Therefore, they would have a performance similar to that of eBPF's.
-Static variables are transformed into array maps in eBPF and its lookup is
-    always inlined, while in \projname{}, we implement the equivalent mechanism
-    through static atomic variables.
-As shown in Figure~\ref{fig:eval-inline}, the performance of static variables
-    in eBPF and \projname{} is roughly the same.
+% Static variables are transformed into array maps in eBPF and its lookup is
+%     always inlined,
+Static variables in eBPF are always accessed via direct load in eBPF without
+    invoking a helper.
+This is the same as accessing to Rust atomic variables, and, therefore, they
+    show roughly the same performance.
+%     while in \projname{}, we implement the equivalent mechanism
+%     through static atomic variables.
+% As shown in Figure~\ref{fig:eval-inline}, the performance of static variables
+%     in eBPF and \projname{} is roughly the same.
 
 % Egor: Not sure if I should go into more technical details about whats going on
 % in the wrapping
