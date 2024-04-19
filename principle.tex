@@ -60,7 +60,7 @@ As discussed in \S\ref{sec:motivation}, the current problem of usability of
 %     from a safe programming language without the verifier.
 Our insight is that by using a safe, high-level language that directly
     implements the required safety properties of kernel extensions, the need
-    of the extra verification layer can be dropped, and thereby closing the
+    for the extra verification layer can be dropped, and thereby closing the
     \gap{}.
 \mvle{not completely true tho since we need the runtime part for termination}
 
@@ -401,7 +401,7 @@ We implement the cleanup code as part of the \projname{} kernel crate, as it
 %     programs, adding no additional programming burden like the Itanium ABI.
 The other reason for implementing cleanup mechanism inside the kernel crate is
     safety, because such code is called upon panic, it must not trigger yet
-    another Rust panic and causes panic handling to fail.
+    another Rust panic and cause panic handling to fail.
 Therefore, \projname{} does not execute user-supplied \texttt{drop} handlers
     upon panic, as they are not guarranteed to be safe under panic handling
     context.
@@ -569,7 +569,7 @@ After returning from the IPI, the program will be executing the panic handler,
 
 % To safely terminate a \projname{} extension, we need to ensure the following :
 One challenge involved in terminating a \projname{} program safely is that a
-    program should never be terminated while executing the kernel helper
+    program should never be terminated while executing a kernel helper
     function or the panic handler, as doing so disrupts internal bookkeeping of
     the kernel (e.g. acquired resources) and safe exception handling process of
     \projname{}.
